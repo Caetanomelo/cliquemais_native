@@ -5,11 +5,10 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
-import '../settings/settings_screen.dart';
 
-/// IA Tutor — real Anthropic-backed chat with 4 modes (chat/grammar/vocab/
-/// pronunciation), matching the source app's `AiTutor` module. Requires the
-/// user's own Anthropic key (Settings) since none is ever bundled with the app.
+/// IA Tutor — Gemini-backed chat (via the shared Netlify `ai-chat` function)
+/// with 4 modes (chat/grammar/vocab/pronunciation), matching the source
+/// app's `AiTutor` module. No API key required from the user.
 class AiTutorScreen extends StatefulWidget {
   const AiTutorScreen({super.key});
 
@@ -26,25 +25,18 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scroll = ScrollController();
   bool _sending = false;
-  bool? _hasKey;
 
   @override
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
-    _checkKey();
-  }
-
-  Future<void> _checkKey() async {
-    final has = await _app.aiTutor.hasApiKey();
-    if (mounted) setState(() => _hasKey = has);
   }
 
   List<AiChatMessage> get _history => _historyByMode[_mode]!;
 
   Future<void> _send(String text) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty || _sending || _hasKey != true) return;
+    if (trimmed.isEmpty || _sending) return;
     setState(() {
       _history.add(AiChatMessage(role: 'user', content: trimmed));
       _sending = true;
@@ -61,8 +53,6 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
       if (!mounted) return;
       setState(() => _history.add(AiChatMessage(role: 'assistant', content: reply)));
       await _app.addXp(8);
-    } on AiTutorNoKeyException {
-      if (mounted) setState(() => _hasKey = false);
     } catch (_) {
       if (mounted) {
         setState(() => _history.add(const AiChatMessage(
@@ -109,26 +99,10 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('IA Tutor'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_rounded),
-            onPressed: () async {
-              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
-              _checkKey();
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
           _ModeTabs(mode: _mode, onChanged: _switchMode),
-          if (_hasKey == false)
-            _NoKeyBanner(
-              onOpenSettings: () async {
-                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                _checkKey();
-              },
-            ),
           Expanded(
             child: ListView(
               controller: _scroll,
@@ -152,7 +126,7 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                   label: Text(suggestions[i], style: const TextStyle(fontFamily: 'Sora', fontSize: 12)),
                   backgroundColor: AppTheme.surfaceDark,
                   side: const BorderSide(color: AppTheme.borderDark),
-                  onPressed: _hasKey == true && !_sending ? () => _send(suggestions[i]) : null,
+                  onPressed: !_sending ? () => _send(suggestions[i]) : null,
                 ),
               ),
             ),
@@ -165,7 +139,7 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      enabled: _hasKey == true && !_sending,
+                      enabled: !_sending,
                       style: const TextStyle(fontFamily: 'Sora', fontSize: 14, color: AppTheme.textMainDark),
                       decoration: const InputDecoration(
                         isDense: true,
@@ -178,7 +152,7 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    onPressed: _hasKey == true && !_sending ? () => _send(_controller.text) : null,
+                    onPressed: !_sending ? () => _send(_controller.text) : null,
                     icon: const Icon(Icons.send_rounded),
                   ),
                 ],
@@ -227,37 +201,6 @@ class _ModeTabs extends StatelessWidget {
             onSelected: (_) => onChanged(m),
           );
         },
-      ),
-    );
-  }
-}
-
-class _NoKeyBanner extends StatelessWidget {
-  final VoidCallback onOpenSettings;
-  const _NoKeyBanner({required this.onOpenSettings});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.gold.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.key_rounded, color: AppTheme.gold, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'Configure sua chave da Anthropic para usar o IA Tutor.',
-              style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textMainDark),
-            ),
-          ),
-          TextButton(onPressed: onOpenSettings, child: const Text('Configurar')),
-        ],
       ),
     );
   }

@@ -8,7 +8,6 @@ import '../core/services/tts_service.dart';
 import '../core/services/speech_service.dart';
 import '../core/services/chime_service.dart';
 import '../core/services/curriculum_progress_service.dart';
-import '../core/services/secure_key_service.dart';
 import '../core/services/cloud_tts_service.dart';
 import '../core/services/ai_tutor_service.dart';
 import '../core/services/push_service.dart';
@@ -32,7 +31,6 @@ class AppStateProvider extends ChangeNotifier {
   final TtsService tts = TtsService();
   final SpeechService speech = SpeechService();
   final ChimeService chime = ChimeService();
-  final SecureKeyService secureKeys = SecureKeyService();
   final PushService push = PushService();
   late final CloudTtsService cloudTts;
   late final AiTutorService aiTutor;
@@ -43,8 +41,8 @@ class AppStateProvider extends ChangeNotifier {
   Future<void> init() async {
     persistence = await PersistenceService.create();
     curriculumProgress = await CurriculumProgressService.create();
-    cloudTts = CloudTtsService(keys: secureKeys, fallback: tts);
-    aiTutor = AiTutorService(keys: secureKeys);
+    cloudTts = CloudTtsService(fallback: tts);
+    aiTutor = AiTutorService();
     unitData = UnitDataRepository(content: remoteContent);
     curriculum = CurriculumRepository(content: remoteContent);
     aiContent = AiContentRepository(content: remoteContent);

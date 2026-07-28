@@ -10,7 +10,7 @@ plugins {
 android {
     namespace = "com.cliquemais.cliquemais_native"
     // flutter.compileSdkVersion/ndkVersion trail what flutter_tts, audioplayers_android,
-    // flutter_secure_storage etc. actually require — pin explicitly per their own warnings.
+    // etc. actually require — pin explicitly per their own warnings.
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
