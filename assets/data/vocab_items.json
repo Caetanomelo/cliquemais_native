@@ -1,0 +1,2757 @@
+[
+    {
+        "unit":  0,
+        "items":  [
+                      {
+                          "en":  "Hi",
+                          "pt":  "Oi"
+                      },
+                      {
+                          "en":  "Hello",
+                          "pt":  "Olá"
+                      },
+                      {
+                          "en":  "Good morning",
+                          "pt":  "Bom dia"
+                      },
+                      {
+                          "en":  "Good afternoon",
+                          "pt":  "Boa tarde"
+                      },
+                      {
+                          "en":  "Good evening",
+                          "pt":  "Boa noite"
+                      },
+                      {
+                          "en":  "Good night",
+                          "pt":  "Boa noite (ao dormir)"
+                      },
+                      {
+                          "en":  "Nice to meet you",
+                          "pt":  "Prazer em conhecê-lo"
+                      },
+                      {
+                          "en":  "Goodbye",
+                          "pt":  "Adeus"
+                      },
+                      {
+                          "en":  "Bye",
+                          "pt":  "Tchau"
+                      },
+                      {
+                          "en":  "See you later",
+                          "pt":  "Até logo"
+                      },
+                      {
+                          "en":  "How are you?",
+                          "pt":  "Como você está?"
+                      },
+                      {
+                          "en":  "I\u0027m fine, thanks",
+                          "pt":  "Estou bem, obrigado"
+                      },
+                      {
+                          "en":  "See you later",
+                          "pt":  "Ate logo"
+                      },
+                      {
+                          "en":  "Take care",
+                          "pt":  "Se cuide"
+                      },
+                      {
+                          "en":  "Have a nice day",
+                          "pt":  "Tenha um bom dia"
+                      }
+                  ]
+    },
+    {
+        "unit":  1,
+        "items":  [
+                      {
+                          "en":  "a teacher",
+                          "pt":  "um(a) professor(a)"
+                      },
+                      {
+                          "en":  "a student",
+                          "pt":  "um(a) estudante"
+                      },
+                      {
+                          "en":  "an architect",
+                          "pt":  "um(a) arquiteto(a)"
+                      },
+                      {
+                          "en":  "an actor",
+                          "pt":  "um ator"
+                      },
+                      {
+                          "en":  "an athlete",
+                          "pt":  "um(a) atleta"
+                      },
+                      {
+                          "en":  "a musician",
+                          "pt":  "um(a) músico(a)"
+                      },
+                      {
+                          "en":  "an artist",
+                          "pt":  "um(a) artista"
+                      },
+                      {
+                          "en":  "a banker",
+                          "pt":  "um(a) bancário(a)"
+                      },
+                      {
+                          "en":  "a singer",
+                          "pt":  "um(a) cantor(a)"
+                      },
+                      {
+                          "en":  "a flight attendant",
+                          "pt":  "um(a) comissário(a)"
+                      },
+                      {
+                          "en":  "a doctor",
+                          "pt":  "um(a) médico(a)"
+                      },
+                      {
+                          "en":  "an engineer",
+                          "pt":  "um(a) engenheiro(a)"
+                      },
+                      {
+                          "en":  "a chef",
+                          "pt":  "um(a) chef de cozinha"
+                      },
+                      {
+                          "en":  "a nurse",
+                          "pt":  "um(a) enfermeiro(a)"
+                      },
+                      {
+                          "en":  "a journalist",
+                          "pt":  "um(a) jornalista"
+                      },
+                      {
+                          "en":  "a lawyer",
+                          "pt":  "um(a) advogado(a)"
+                      }
+                  ]
+    },
+    {
+        "unit":  2,
+        "items":  [
+                      {
+                          "en":  "a friend",
+                          "pt":  "um(a) amigo(a)"
+                      },
+                      {
+                          "en":  "a colleague",
+                          "pt":  "um(a) colega de trabalho"
+                      },
+                      {
+                          "en":  "a classmate",
+                          "pt":  "um(a) colega de classe"
+                      },
+                      {
+                          "en":  "a neighbor",
+                          "pt":  "um(a) vizinho(a)"
+                      },
+                      {
+                          "en":  "Mr.",
+                          "pt":  "Sr. (homem)"
+                      },
+                      {
+                          "en":  "Ms.",
+                          "pt":  "Sra./Srta. (mulher)"
+                      },
+                      {
+                          "en":  "Mrs.",
+                          "pt":  "Sra. (casada)"
+                      },
+                      {
+                          "en":  "Dr.",
+                          "pt":  "Dr./Dra."
+                      },
+                      {
+                          "en":  "first name",
+                          "pt":  "primeiro nome"
+                      },
+                      {
+                          "en":  "last name",
+                          "pt":  "sobrenome"
+                      },
+                      {
+                          "en":  "phone number",
+                          "pt":  "número de telefone"
+                      },
+                      {
+                          "en":  "email address",
+                          "pt":  "endereço de e-mail"
+                      },
+                      {
+                          "en":  "nationality",
+                          "pt":  "nacionalidade"
+                      },
+                      {
+                          "en":  "country",
+                          "pt":  "país"
+                      },
+                      {
+                          "en":  "reserved",
+                          "pt":  "reservado(a)"
+                      }
+                  ]
+    },
+    {
+        "unit":  3,
+        "items":  [
+                      {
+                          "en":  "a bank",
+                          "pt":  "um banco"
+                      },
+                      {
+                          "en":  "a pharmacy",
+                          "pt":  "uma farmácia"
+                      },
+                      {
+                          "en":  "a supermarket",
+                          "pt":  "um supermercado"
+                      },
+                      {
+                          "en":  "a restaurant",
+                          "pt":  "um restaurante"
+                      },
+                      {
+                          "en":  "a hospital",
+                          "pt":  "um hospital"
+                      },
+                      {
+                          "en":  "a school",
+                          "pt":  "uma escola"
+                      },
+                      {
+                          "en":  "a park",
+                          "pt":  "um parque"
+                      },
+                      {
+                          "en":  "a hotel",
+                          "pt":  "um hotel"
+                      },
+                      {
+                          "en":  "an airport",
+                          "pt":  "um aeroporto"
+                      },
+                      {
+                          "en":  "a train station",
+                          "pt":  "uma estação de trem"
+                      },
+                      {
+                          "en":  "a bus stop",
+                          "pt":  "um ponto de ônibus"
+                      },
+                      {
+                          "en":  "a gas station",
+                          "pt":  "um posto de gasolina"
+                      },
+                      {
+                          "en":  "by bus",
+                          "pt":  "de ônibus"
+                      },
+                      {
+                          "en":  "by train",
+                          "pt":  "de trem"
+                      },
+                      {
+                          "en":  "by subway",
+                          "pt":  "de metrô"
+                      },
+                      {
+                          "en":  "by car",
+                          "pt":  "de carro"
+                      },
+                      {
+                          "en":  "by bike",
+                          "pt":  "de bicicleta"
+                      },
+                      {
+                          "en":  "by taxi",
+                          "pt":  "de táxi"
+                      },
+                      {
+                          "en":  "on foot",
+                          "pt":  "a pé"
+                      },
+                      {
+                          "en":  "by plane",
+                          "pt":  "de avião"
+                      }
+                  ]
+    },
+    {
+        "unit":  4,
+        "items":  [
+                      {
+                          "en":  "mother / mom",
+                          "pt":  "mãe"
+                      },
+                      {
+                          "en":  "father / dad",
+                          "pt":  "pai"
+                      },
+                      {
+                          "en":  "sister",
+                          "pt":  "irmã"
+                      },
+                      {
+                          "en":  "brother",
+                          "pt":  "irmão"
+                      },
+                      {
+                          "en":  "grandmother / grandma",
+                          "pt":  "avó"
+                      },
+                      {
+                          "en":  "grandfather / grandpa",
+                          "pt":  "avô"
+                      },
+                      {
+                          "en":  "aunt",
+                          "pt":  "tia"
+                      },
+                      {
+                          "en":  "uncle",
+                          "pt":  "tio"
+                      },
+                      {
+                          "en":  "cousin",
+                          "pt":  "primo(a)"
+                      },
+                      {
+                          "en":  "daughter",
+                          "pt":  "filha"
+                      },
+                      {
+                          "en":  "son",
+                          "pt":  "filho"
+                      },
+                      {
+                          "en":  "wife",
+                          "pt":  "esposa"
+                      },
+                      {
+                          "en":  "husband",
+                          "pt":  "marido"
+                      },
+                      {
+                          "en":  "parents",
+                          "pt":  "pais (pai e mãe)"
+                      },
+                      {
+                          "en":  "tall",
+                          "pt":  "alto(a)"
+                      },
+                      {
+                          "en":  "short",
+                          "pt":  "baixo(a)"
+                      },
+                      {
+                          "en":  "young",
+                          "pt":  "jovem"
+                      },
+                      {
+                          "en":  "old",
+                          "pt":  "velho(a)/idoso(a)"
+                      },
+                      {
+                          "en":  "handsome",
+                          "pt":  "bonito (homem)"
+                      },
+                      {
+                          "en":  "pretty",
+                          "pt":  "bonita (mulher)"
+                      },
+                      {
+                          "en":  "friendly",
+                          "pt":  "simpático(a)"
+                      },
+                      {
+                          "en":  "funny",
+                          "pt":  "engraçado(a)"
+                      },
+                      {
+                          "en":  "smart",
+                          "pt":  "inteligente"
+                      },
+                      {
+                          "en":  "serious",
+                          "pt":  "sério(a)"
+                      }
+                  ]
+    },
+    {
+        "unit":  5,
+        "items":  [
+                      {
+                          "en":  "What time is it?",
+                          "pt":  "Que horas são?"
+                      },
+                      {
+                          "en":  "It\u0027s 3 o\u0027clock.",
+                          "pt":  "São 3 horas."
+                      },
+                      {
+                          "en":  "Monday",
+                          "pt":  "segunda-feira"
+                      },
+                      {
+                          "en":  "Tuesday",
+                          "pt":  "terça-feira"
+                      },
+                      {
+                          "en":  "Wednesday",
+                          "pt":  "quarta-feira"
+                      },
+                      {
+                          "en":  "Thursday",
+                          "pt":  "quinta-feira"
+                      },
+                      {
+                          "en":  "Friday",
+                          "pt":  "sexta-feira"
+                      },
+                      {
+                          "en":  "Saturday",
+                          "pt":  "sábado"
+                      },
+                      {
+                          "en":  "Sunday",
+                          "pt":  "domingo"
+                      },
+                      {
+                          "en":  "early",
+                          "pt":  "cedo"
+                      },
+                      {
+                          "en":  "on time",
+                          "pt":  "na hora, pontual"
+                      },
+                      {
+                          "en":  "late",
+                          "pt":  "tarde/atrasado"
+                      },
+                      {
+                          "en":  "January",
+                          "pt":  "janeiro"
+                      },
+                      {
+                          "en":  "February",
+                          "pt":  "fevereiro"
+                      },
+                      {
+                          "en":  "March",
+                          "pt":  "março"
+                      },
+                      {
+                          "en":  "April",
+                          "pt":  "abril"
+                      },
+                      {
+                          "en":  "May",
+                          "pt":  "maio"
+                      },
+                      {
+                          "en":  "June",
+                          "pt":  "junho"
+                      },
+                      {
+                          "en":  "July",
+                          "pt":  "julho"
+                      },
+                      {
+                          "en":  "August",
+                          "pt":  "agosto"
+                      },
+                      {
+                          "en":  "September",
+                          "pt":  "setembro"
+                      },
+                      {
+                          "en":  "October",
+                          "pt":  "outubro"
+                      },
+                      {
+                          "en":  "November",
+                          "pt":  "novembro"
+                      },
+                      {
+                          "en":  "December",
+                          "pt":  "dezembro"
+                      },
+                      {
+                          "en":  "a birthday",
+                          "pt":  "um aniversário"
+                      },
+                      {
+                          "en":  "a concert",
+                          "pt":  "um show"
+                      },
+                      {
+                          "en":  "a party",
+                          "pt":  "uma festa"
+                      },
+                      {
+                          "en":  "a meeting",
+                          "pt":  "uma reunião"
+                      }
+                  ]
+    },
+    {
+        "unit":  6,
+        "items":  [
+                      {
+                          "en":  "a shirt",
+                          "pt":  "uma camisa"
+                      },
+                      {
+                          "en":  "a T-shirt",
+                          "pt":  "uma camiseta"
+                      },
+                      {
+                          "en":  "pants / trousers",
+                          "pt":  "calças"
+                      },
+                      {
+                          "en":  "a skirt",
+                          "pt":  "uma saia"
+                      },
+                      {
+                          "en":  "a dress",
+                          "pt":  "um vestido"
+                      },
+                      {
+                          "en":  "a jacket",
+                          "pt":  "uma jaqueta"
+                      },
+                      {
+                          "en":  "a coat",
+                          "pt":  "um casaco"
+                      },
+                      {
+                          "en":  "shoes",
+                          "pt":  "sapatos"
+                      },
+                      {
+                          "en":  "sneakers",
+                          "pt":  "tênis"
+                      },
+                      {
+                          "en":  "a hat",
+                          "pt":  "um chapéu"
+                      },
+                      {
+                          "en":  "a tie",
+                          "pt":  "uma gravata"
+                      },
+                      {
+                          "en":  "a scarf",
+                          "pt":  "um cachecol"
+                      },
+                      {
+                          "en":  "socks",
+                          "pt":  "meias"
+                      },
+                      {
+                          "en":  "jeans",
+                          "pt":  "jeans"
+                      },
+                      {
+                          "en":  "red",
+                          "pt":  "vermelho"
+                      },
+                      {
+                          "en":  "blue",
+                          "pt":  "azul"
+                      },
+                      {
+                          "en":  "green",
+                          "pt":  "verde"
+                      },
+                      {
+                          "en":  "yellow",
+                          "pt":  "amarelo"
+                      },
+                      {
+                          "en":  "black",
+                          "pt":  "preto"
+                      },
+                      {
+                          "en":  "white",
+                          "pt":  "branco"
+                      },
+                      {
+                          "en":  "gray",
+                          "pt":  "cinza"
+                      },
+                      {
+                          "en":  "brown",
+                          "pt":  "marrom"
+                      },
+                      {
+                          "en":  "small (S)",
+                          "pt":  "pequeno"
+                      },
+                      {
+                          "en":  "medium (M)",
+                          "pt":  "médio"
+                      },
+                      {
+                          "en":  "large (L)",
+                          "pt":  "grande"
+                      },
+                      {
+                          "en":  "extra large (XL)",
+                          "pt":  "extra grande"
+                      }
+                  ]
+    },
+    {
+        "unit":  7,
+        "items":  [
+                      {
+                          "en":  "wake up",
+                          "pt":  "acordar"
+                      },
+                      {
+                          "en":  "get up",
+                          "pt":  "levantar"
+                      },
+                      {
+                          "en":  "take a shower",
+                          "pt":  "tomar banho"
+                      },
+                      {
+                          "en":  "brush my teeth",
+                          "pt":  "escovar os dentes"
+                      },
+                      {
+                          "en":  "get dressed",
+                          "pt":  "se vestir"
+                      },
+                      {
+                          "en":  "have breakfast",
+                          "pt":  "tomar café da manhã"
+                      },
+                      {
+                          "en":  "go to work",
+                          "pt":  "ir ao trabalho"
+                      },
+                      {
+                          "en":  "come home",
+                          "pt":  "chegar em casa"
+                      },
+                      {
+                          "en":  "have dinner",
+                          "pt":  "jantar"
+                      },
+                      {
+                          "en":  "watch TV",
+                          "pt":  "assistir TV"
+                      },
+                      {
+                          "en":  "go to bed",
+                          "pt":  "ir dormir"
+                      },
+                      {
+                          "en":  "go to sleep",
+                          "pt":  "adormecer"
+                      },
+                      {
+                          "en":  "play sports",
+                          "pt":  "praticar esportes"
+                      },
+                      {
+                          "en":  "listen to music",
+                          "pt":  "ouvir música"
+                      },
+                      {
+                          "en":  "read a book",
+                          "pt":  "ler um livro"
+                      },
+                      {
+                          "en":  "go shopping",
+                          "pt":  "ir às compras"
+                      },
+                      {
+                          "en":  "cook",
+                          "pt":  "cozinhar"
+                      },
+                      {
+                          "en":  "clean the house",
+                          "pt":  "limpar a casa"
+                      },
+                      {
+                          "en":  "do the laundry",
+                          "pt":  "lavar roupa"
+                      },
+                      {
+                          "en":  "wash the dishes",
+                          "pt":  "lavar a louça"
+                      },
+                      {
+                          "en":  "vacuum",
+                          "pt":  "aspirar o pó"
+                      },
+                      {
+                          "en":  "take out the trash",
+                          "pt":  "levar o lixo"
+                      }
+                  ]
+    },
+    {
+        "unit":  8,
+        "items":  [
+                      {
+                          "en":  "living room",
+                          "pt":  "sala de estar"
+                      },
+                      {
+                          "en":  "bedroom",
+                          "pt":  "quarto"
+                      },
+                      {
+                          "en":  "kitchen",
+                          "pt":  "cozinha"
+                      },
+                      {
+                          "en":  "bathroom",
+                          "pt":  "banheiro"
+                      },
+                      {
+                          "en":  "dining room",
+                          "pt":  "sala de jantar"
+                      },
+                      {
+                          "en":  "garage",
+                          "pt":  "garagem"
+                      },
+                      {
+                          "en":  "garden / yard",
+                          "pt":  "jardim, quintal"
+                      },
+                      {
+                          "en":  "balcony",
+                          "pt":  "varanda"
+                      },
+                      {
+                          "en":  "sofa / couch",
+                          "pt":  "sofá"
+                      },
+                      {
+                          "en":  "table",
+                          "pt":  "mesa"
+                      },
+                      {
+                          "en":  "refrigerator",
+                          "pt":  "geladeira"
+                      },
+                      {
+                          "en":  "stove",
+                          "pt":  "fogão"
+                      },
+                      {
+                          "en":  "washing machine",
+                          "pt":  "máquina de lavar"
+                      },
+                      {
+                          "en":  "air conditioner",
+                          "pt":  "ar-condicionado"
+                      },
+                      {
+                          "en":  "storage room",
+                          "pt":  "dispensa, deposito"
+                      }
+                  ]
+    },
+    {
+        "unit":  9,
+        "items":  [
+                      {
+                          "en":  "I\u0027m working",
+                          "pt":  "Estou trabalhando"
+                      },
+                      {
+                          "en":  "She\u0027s studying",
+                          "pt":  "Ela está estudando"
+                      },
+                      {
+                          "en":  "He\u0027s cooking",
+                          "pt":  "Ele está cozinhando"
+                      },
+                      {
+                          "en":  "We\u0027re traveling",
+                          "pt":  "Estamos viajando"
+                      },
+                      {
+                          "en":  "running",
+                          "pt":  "correndo"
+                      },
+                      {
+                          "en":  "swimming",
+                          "pt":  "nadando"
+                      },
+                      {
+                          "en":  "driving",
+                          "pt":  "dirigindo"
+                      },
+                      {
+                          "en":  "sleeping",
+                          "pt":  "dormindo"
+                      },
+                      {
+                          "en":  "eating",
+                          "pt":  "comendo"
+                      },
+                      {
+                          "en":  "reading",
+                          "pt":  "lendo"
+                      },
+                      {
+                          "en":  "writing",
+                          "pt":  "escrevendo"
+                      },
+                      {
+                          "en":  "talking on the phone",
+                          "pt":  "falando ao telefone"
+                      },
+                      {
+                          "en":  "to catch up",
+                          "pt":  "se atualizar, colocar o papo em dia"
+                      },
+                      {
+                          "en":  "to hang out",
+                          "pt":  "sair, passar tempo com alguem"
+                      },
+                      {
+                          "en":  "to look forward to",
+                          "pt":  "estar ansioso por algo"
+                      }
+                  ]
+    },
+    {
+        "unit":  10,
+        "items":  [
+                      {
+                          "en":  "rice",
+                          "pt":  "arroz"
+                      },
+                      {
+                          "en":  "beans",
+                          "pt":  "feijão"
+                      },
+                      {
+                          "en":  "chicken",
+                          "pt":  "frango"
+                      },
+                      {
+                          "en":  "beef",
+                          "pt":  "carne bovina"
+                      },
+                      {
+                          "en":  "fish",
+                          "pt":  "peixe"
+                      },
+                      {
+                          "en":  "vegetables",
+                          "pt":  "legumes/verduras"
+                      },
+                      {
+                          "en":  "fruit",
+                          "pt":  "fruta"
+                      },
+                      {
+                          "en":  "bread",
+                          "pt":  "pão"
+                      },
+                      {
+                          "en":  "eggs",
+                          "pt":  "ovos"
+                      },
+                      {
+                          "en":  "milk",
+                          "pt":  "leite"
+                      },
+                      {
+                          "en":  "juice",
+                          "pt":  "suco"
+                      },
+                      {
+                          "en":  "coffee",
+                          "pt":  "café"
+                      },
+                      {
+                          "en":  "water",
+                          "pt":  "água"
+                      },
+                      {
+                          "en":  "dessert",
+                          "pt":  "sobremesa"
+                      },
+                      {
+                          "en":  "soup",
+                          "pt":  "sopa"
+                      },
+                      {
+                          "en":  "salad",
+                          "pt":  "salada"
+                      }
+                  ]
+    },
+    {
+        "unit":  11,
+        "items":  [
+                      {
+                          "en":  "went (go → went)",
+                          "pt":  "foi/fui (ir)"
+                      },
+                      {
+                          "en":  "had (have → had)",
+                          "pt":  "tinha/teve (ter)"
+                      },
+                      {
+                          "en":  "saw (see → saw)",
+                          "pt":  "viu/vi (ver)"
+                      },
+                      {
+                          "en":  "came (come → came)",
+                          "pt":  "veio/vim (vir)"
+                      },
+                      {
+                          "en":  "ate (eat → ate)",
+                          "pt":  "comeu/comi (comer)"
+                      },
+                      {
+                          "en":  "drank (drink → drank)",
+                          "pt":  "bebeu/bebi (beber)"
+                      },
+                      {
+                          "en":  "met (meet → met)",
+                          "pt":  "encontrou/encontrei (encontrar)"
+                      },
+                      {
+                          "en":  "bought (buy → bought)",
+                          "pt":  "comprou/comprei (comprar)"
+                      },
+                      {
+                          "en":  "worked (regular)",
+                          "pt":  "trabalhou/trabalhei"
+                      },
+                      {
+                          "en":  "visited (regular)",
+                          "pt":  "visitou/visitei"
+                      },
+                      {
+                          "en":  "talked (regular)",
+                          "pt":  "falou/falei"
+                      },
+                      {
+                          "en":  "watched (regular)",
+                          "pt":  "assistiu/assisti"
+                      },
+                      {
+                          "en":  "to run into",
+                          "pt":  "encontrar por acaso"
+                      },
+                      {
+                          "en":  "to bring up",
+                          "pt":  "mencionar, trazer a tona"
+                      },
+                      {
+                          "en":  "to figure out",
+                          "pt":  "descobrir, resolver"
+                      }
+                  ]
+    },
+    {
+        "unit":  12,
+        "items":  [
+                      {
+                          "en":  "hair: long/short",
+                          "pt":  "cabelo: comprido/curto"
+                      },
+                      {
+                          "en":  "straight/curly hair",
+                          "pt":  "cabelo liso/cacheado"
+                      },
+                      {
+                          "en":  "dark/light hair",
+                          "pt":  "cabelo escuro/claro"
+                      },
+                      {
+                          "en":  "blue/brown eyes",
+                          "pt":  "olhos azuis/castanhos"
+                      },
+                      {
+                          "en":  "slim/heavy",
+                          "pt":  "magro(a)/gordo(a)"
+                      },
+                      {
+                          "en":  "medium height",
+                          "pt":  "altura média"
+                      },
+                      {
+                          "en":  "beard",
+                          "pt":  "barba"
+                      },
+                      {
+                          "en":  "glasses",
+                          "pt":  "óculos"
+                      },
+                      {
+                          "en":  "in his/her 30s",
+                          "pt":  "na faixa dos 30 anos"
+                      },
+                      {
+                          "en":  "looks young",
+                          "pt":  "parece jovem"
+                      },
+                      {
+                          "en":  "I have a headache.",
+                          "pt":  "Estou com dor de cabeça."
+                      },
+                      {
+                          "en":  "I have a cold.",
+                          "pt":  "Estou resfriado(a)."
+                      },
+                      {
+                          "en":  "I have a fever.",
+                          "pt":  "Estou com febre."
+                      },
+                      {
+                          "en":  "My throat hurts.",
+                          "pt":  "Minha garganta dói."
+                      },
+                      {
+                          "en":  "My back hurts.",
+                          "pt":  "Minhas costas doem."
+                      },
+                      {
+                          "en":  "I feel sick.",
+                          "pt":  "Estou me sentindo mal."
+                      },
+                      {
+                          "en":  "I feel tired.",
+                          "pt":  "Estou cansado(a)."
+                      },
+                      {
+                          "en":  "I feel better now.",
+                          "pt":  "Estou me sentindo melhor agora."
+                      }
+                  ]
+    },
+    {
+        "unit":  13,
+        "items":  [
+                      {
+                          "en":  "play the guitar",
+                          "pt":  "tocar violão/guitarra"
+                      },
+                      {
+                          "en":  "play the piano",
+                          "pt":  "tocar piano"
+                      },
+                      {
+                          "en":  "speak Spanish",
+                          "pt":  "falar espanhol"
+                      },
+                      {
+                          "en":  "cook well",
+                          "pt":  "cozinhar bem"
+                      },
+                      {
+                          "en":  "drive a car",
+                          "pt":  "dirigir um carro"
+                      },
+                      {
+                          "en":  "swim",
+                          "pt":  "nadar"
+                      },
+                      {
+                          "en":  "dance",
+                          "pt":  "dançar"
+                      },
+                      {
+                          "en":  "draw",
+                          "pt":  "desenhar"
+                      },
+                      {
+                          "en":  "fix a computer",
+                          "pt":  "consertar um computador"
+                      },
+                      {
+                          "en":  "speak English well",
+                          "pt":  "falar inglês bem"
+                      },
+                      {
+                          "en":  "sing",
+                          "pt":  "cantar"
+                      },
+                      {
+                          "en":  "ski",
+                          "pt":  "esquiar"
+                      },
+                      {
+                          "en":  "to take over",
+                          "pt":  "assumir o controle"
+                      },
+                      {
+                          "en":  "to step up",
+                          "pt":  "se superar, assumir responsabilidade"
+                      },
+                      {
+                          "en":  "to reach out",
+                          "pt":  "entrar em contato"
+                      }
+                  ]
+    },
+    {
+        "unit":  14,
+        "items":  [
+                      {
+                          "en":  "graduate from school",
+                          "pt":  "se formar na escola"
+                      },
+                      {
+                          "en":  "start a new job",
+                          "pt":  "começar um novo emprego"
+                      },
+                      {
+                          "en":  "get married",
+                          "pt":  "se casar"
+                      },
+                      {
+                          "en":  "have a baby",
+                          "pt":  "ter um filho"
+                      },
+                      {
+                          "en":  "move to a new city",
+                          "pt":  "se mudar para uma nova cidade"
+                      },
+                      {
+                          "en":  "travel abroad",
+                          "pt":  "viajar para o exterior"
+                      },
+                      {
+                          "en":  "learn a new language",
+                          "pt":  "aprender um novo idioma"
+                      },
+                      {
+                          "en":  "retire",
+                          "pt":  "se aposentar"
+                      },
+                      {
+                          "en":  "buy a house",
+                          "pt":  "comprar uma casa"
+                      },
+                      {
+                          "en":  "start a business",
+                          "pt":  "abrir um negócio"
+                      },
+                      {
+                          "en":  "dream",
+                          "pt":  "sonho"
+                      },
+                      {
+                          "en":  "goal",
+                          "pt":  "meta/objetivo"
+                      },
+                      {
+                          "en":  "plan",
+                          "pt":  "plano"
+                      },
+                      {
+                          "en":  "hope",
+                          "pt":  "esperança"
+                      },
+                      {
+                          "en":  "I\u0027d love to...",
+                          "pt":  "Eu adoraria..."
+                      },
+                      {
+                          "en":  "I hope to...",
+                          "pt":  "Eu espero..."
+                      },
+                      {
+                          "en":  "I\u0027d like to...",
+                          "pt":  "Eu gostaria de..."
+                      },
+                      {
+                          "en":  "Someday I want to...",
+                          "pt":  "Um dia quero..."
+                      },
+                      {
+                          "en":  "in the future",
+                          "pt":  "no futuro"
+                      },
+                      {
+                          "en":  "one day",
+                          "pt":  "um dia"
+                      }
+                  ]
+    },
+    {
+        "unit":  15,
+        "items":  [
+                      {
+                          "en":  "to have been working",
+                          "pt":  "ter estado trabalhando (Present Perfect Continuous)"
+                      },
+                      {
+                          "en":  "by the time",
+                          "pt":  "quando, no momento em que"
+                      },
+                      {
+                          "en":  "nevertheless",
+                          "pt":  "no entanto, apesar disso"
+                      },
+                      {
+                          "en":  "moreover",
+                          "pt":  "alem disso, ademais"
+                      },
+                      {
+                          "en":  "therefore",
+                          "pt":  "portanto, por isso"
+                      },
+                      {
+                          "en":  "that being said",
+                          "pt":  "dito isso, mesmo assim"
+                      },
+                      {
+                          "en":  "had already",
+                          "pt":  "ja tinha (Past Perfect com already)"
+                      },
+                      {
+                          "en":  "to have anticipated",
+                          "pt":  "ter antecipado (Past Perfect)"
+                      },
+                      {
+                          "en":  "market share",
+                          "pt":  "participacao de mercado"
+                      },
+                      {
+                          "en":  "to capture",
+                          "pt":  "capturar, ganhar (quota de mercado)"
+                      },
+                      {
+                          "en":  "to proceed",
+                          "pt":  "prosseguir, dar continuidade"
+                      },
+                      {
+                          "en":  "to consolidate",
+                          "pt":  "consolidar, solidificar resultados"
+                      },
+                      {
+                          "en":  "to have committed",
+                          "pt":  "ter se comprometido (Past Perfect)"
+                      },
+                      {
+                          "en":  "to recover the gap",
+                          "pt":  "recuperar a diferenca, o deficit"
+                      },
+                      {
+                          "en":  "to implement changes",
+                          "pt":  "implementar mudancas, colocar em pratica"
+                      }
+                  ]
+    },
+    {
+        "unit":  16,
+        "items":  [
+                      {
+                          "en":  "to tend to",
+                          "pt":  "tender a, ter a tendencia de"
+                      },
+                      {
+                          "en":  "I wonder whether",
+                          "pt":  "me pergunto se, questiono se"
+                      },
+                      {
+                          "en":  "inclined to",
+                          "pt":  "inclinado a, propenso a"
+                      },
+                      {
+                          "en":  "provided that",
+                          "pt":  "desde que, contanto que"
+                      },
+                      {
+                          "en":  "phased approach",
+                          "pt":  "abordagem gradual, por fases"
+                      },
+                      {
+                          "en":  "shall we",
+                          "pt":  "vamos, devemos (proposta formal)"
+                      },
+                      {
+                          "en":  "ought to",
+                          "pt":  "deveria (obrigacao moral elegante)"
+                      },
+                      {
+                          "en":  "might consider",
+                          "pt":  "poderia considerar (sugestao sofisticada)"
+                      },
+                      {
+                          "en":  "it seems as though",
+                          "pt":  "parece que, da a impressao de que"
+                      },
+                      {
+                          "en":  "implementation",
+                          "pt":  "implementacao (nominalizacao de implement)"
+                      },
+                      {
+                          "en":  "alignment",
+                          "pt":  "alinhamento (nominalizacao de align)"
+                      },
+                      {
+                          "en":  "recommendation",
+                          "pt":  "recomendacao (nominalizacao de recommend)"
+                      },
+                      {
+                          "en":  "formalization",
+                          "pt":  "formalizacao (nominalizacao de formalize)"
+                      },
+                      {
+                          "en":  "non-negotiable",
+                          "pt":  "inegociavel, sem margem para discussao"
+                      },
+                      {
+                          "en":  "prior to execution",
+                          "pt":  "antes da execucao, antes de executar"
+                      }
+                  ]
+    },
+    {
+        "unit":  17,
+        "items":  [
+                      {
+                          "en":  "pipeline",
+                          "pt":  "funil de vendas, oportunidades ativas"
+                      },
+                      {
+                          "en":  "value proposition",
+                          "pt":  "proposta de valor, argumento central de venda"
+                      },
+                      {
+                          "en":  "objection handling",
+                          "pt":  "gestao de objecoes, responder resistencias"
+                      },
+                      {
+                          "en":  "close the deal",
+                          "pt":  "fechar o negocio, concluir a venda"
+                      },
+                      {
+                          "en":  "follow-up",
+                          "pt":  "acompanhamento, contato pos-reuniao"
+                      },
+                      {
+                          "en":  "prospect",
+                          "pt":  "cliente em potencial, lead qualificado"
+                      },
+                      {
+                          "en":  "quota",
+                          "pt":  "meta de vendas, objetivo numerico"
+                      },
+                      {
+                          "en":  "win-win",
+                          "pt":  "ganha-ganha, beneficio mutuo"
+                      },
+                      {
+                          "en":  "leverage",
+                          "pt":  "vantagem, argumento de peso na negociacao"
+                      },
+                      {
+                          "en":  "upsell",
+                          "pt":  "venda adicional, oferecer produto superior"
+                      },
+                      {
+                          "en":  "cross-sell",
+                          "pt":  "venda cruzada, produto complementar"
+                      },
+                      {
+                          "en":  "cold call",
+                          "pt":  "ligacao fria, primeiro contato sem relacao previa"
+                      },
+                      {
+                          "en":  "ROI",
+                          "pt":  "retorno sobre investimento"
+                      },
+                      {
+                          "en":  "stakeholder",
+                          "pt":  "parte interessada no negocio"
+                      },
+                      {
+                          "en":  "terms and conditions",
+                          "pt":  "termos e condicoes do contrato"
+                      }
+                  ]
+    },
+    {
+        "unit":  18,
+        "items":  [
+                      {
+                          "en":  "onboarding",
+                          "pt":  "processo de integracao de novos colaboradores"
+                      },
+                      {
+                          "en":  "retention",
+                          "pt":  "retencao de talentos na organizacao"
+                      },
+                      {
+                          "en":  "competency framework",
+                          "pt":  "framework de competencias, modelo de habilidades"
+                      },
+                      {
+                          "en":  "turnover",
+                          "pt":  "rotatividade, saida de colaboradores"
+                      },
+                      {
+                          "en":  "succession planning",
+                          "pt":  "planejamento de sucessao, preparar futuros lideres"
+                      },
+                      {
+                          "en":  "engagement survey",
+                          "pt":  "pesquisa de engajamento, satisfacao dos colaboradores"
+                      },
+                      {
+                          "en":  "diversity and inclusion",
+                          "pt":  "diversidade e inclusao, DEI"
+                      },
+                      {
+                          "en":  "headcount",
+                          "pt":  "numero total de funcionarios"
+                      },
+                      {
+                          "en":  "performance improvement plan",
+                          "pt":  "plano de melhoria de desempenho, PIP"
+                      },
+                      {
+                          "en":  "employer branding",
+                          "pt":  "marca empregadora, reputacao como empregador"
+                      },
+                      {
+                          "en":  "talent acquisition",
+                          "pt":  "aquisicao de talentos, recrutamento estrategico"
+                      },
+                      {
+                          "en":  "L\u0026D",
+                          "pt":  "aprendizado e desenvolvimento, treinamento corporativo"
+                      },
+                      {
+                          "en":  "attrition",
+                          "pt":  "desgaste, saida gradual de colaboradores"
+                      },
+                      {
+                          "en":  "offboarding",
+                          "pt":  "processo de desligamento de colaborador"
+                      },
+                      {
+                          "en":  "HRIS",
+                          "pt":  "sistema de informacao de RH, software de gestao"
+                      }
+                  ]
+    },
+    {
+        "unit":  19,
+        "items":  [
+                      {
+                          "en":  "P\u0026L",
+                          "pt":  "demonstracao de lucros e perdas"
+                      },
+                      {
+                          "en":  "EBITDA",
+                          "pt":  "lucro antes de juros impostos depreciacao e amortizacao"
+                      },
+                      {
+                          "en":  "cash flow",
+                          "pt":  "fluxo de caixa, movimento de dinheiro"
+                      },
+                      {
+                          "en":  "ROI",
+                          "pt":  "retorno sobre investimento"
+                      },
+                      {
+                          "en":  "variance",
+                          "pt":  "diferenca entre planejado e realizado"
+                      },
+                      {
+                          "en":  "fiscal year",
+                          "pt":  "ano fiscal, periodo contabil"
+                      },
+                      {
+                          "en":  "working capital",
+                          "pt":  "capital de giro, recursos para operacao"
+                      },
+                      {
+                          "en":  "accounts receivable",
+                          "pt":  "contas a receber, valores que clientes devem"
+                      },
+                      {
+                          "en":  "accounts payable",
+                          "pt":  "contas a pagar, valores que a empresa deve"
+                      },
+                      {
+                          "en":  "revenue target",
+                          "pt":  "meta de receita, objetivo de faturamento"
+                      },
+                      {
+                          "en":  "burn rate",
+                          "pt":  "taxa de consumo de caixa"
+                      },
+                      {
+                          "en":  "liquidity",
+                          "pt":  "liquidez, capacidade de pagar obrigacoes"
+                      },
+                      {
+                          "en":  "equity",
+                          "pt":  "patrimonio liquido, valor dos acionistas"
+                      },
+                      {
+                          "en":  "hedge",
+                          "pt":  "protecao contra risco financeiro"
+                      },
+                      {
+                          "en":  "financial modeling",
+                          "pt":  "modelagem financeira, projecao de cenarios"
+                      }
+                  ]
+    },
+    {
+        "unit":  20,
+        "items":  [
+                      {
+                          "en":  "brand equity",
+                          "pt":  "patrimonio de marca, valor percebido"
+                      },
+                      {
+                          "en":  "target audience",
+                          "pt":  "publico-alvo, grupo que queremos atingir"
+                      },
+                      {
+                          "en":  "conversion rate",
+                          "pt":  "taxa de conversao, percentual que realiza acao"
+                      },
+                      {
+                          "en":  "content marketing",
+                          "pt":  "marketing de conteudo, atrair via conteudo relevante"
+                      },
+                      {
+                          "en":  "SEO",
+                          "pt":  "otimizacao para mecanismos de busca"
+                      },
+                      {
+                          "en":  "paid media",
+                          "pt":  "midia paga, anuncios que custam dinheiro"
+                      },
+                      {
+                          "en":  "earned media",
+                          "pt":  "midia espontanea, cobertura sem pagamento"
+                      },
+                      {
+                          "en":  "brand awareness",
+                          "pt":  "consciencia de marca, reconhecimento pelo publico"
+                      },
+                      {
+                          "en":  "A/B testing",
+                          "pt":  "teste A/B, comparar versoes para otimizar"
+                      },
+                      {
+                          "en":  "lead generation",
+                          "pt":  "geracao de leads, captura de potenciais clientes"
+                      },
+                      {
+                          "en":  "share of voice",
+                          "pt":  "parcela de voz, presenca relativa ao mercado"
+                      },
+                      {
+                          "en":  "customer journey",
+                          "pt":  "jornada do cliente, etapas da experiencia de compra"
+                      },
+                      {
+                          "en":  "impressions",
+                          "pt":  "impressoes, numero de vezes que o conteudo foi visto"
+                      },
+                      {
+                          "en":  "click-through rate",
+                          "pt":  "taxa de cliques, engajamento com o anuncio"
+                      },
+                      {
+                          "en":  "campaign brief",
+                          "pt":  "briefing de campanha, documento com objetivos"
+                      }
+                  ]
+    },
+    {
+        "unit":  21,
+        "items":  [
+                      {
+                          "en":  "churn rate",
+                          "pt":  "taxa de cancelamento, percentual de clientes que saem"
+                      },
+                      {
+                          "en":  "NPS",
+                          "pt":  "Net Promoter Score, indice de satisfacao e lealdade"
+                      },
+                      {
+                          "en":  "customer lifetime value",
+                          "pt":  "valor do ciclo de vida do cliente, CLV"
+                      },
+                      {
+                          "en":  "health score",
+                          "pt":  "pontuacao de saude, indicador de risco de cancelamento"
+                      },
+                      {
+                          "en":  "QBR",
+                          "pt":  "revisao trimestral de negocios, reuniao de alinhamento"
+                      },
+                      {
+                          "en":  "success plan",
+                          "pt":  "plano de sucesso, roadmap do cliente com o produto"
+                      },
+                      {
+                          "en":  "adoption rate",
+                          "pt":  "taxa de adocao, uso real do produto pelo cliente"
+                      },
+                      {
+                          "en":  "renewal rate",
+                          "pt":  "taxa de renovacao, percentual de contratos renovados"
+                      },
+                      {
+                          "en":  "at-risk account",
+                          "pt":  "conta em risco, cliente com alto risco de cancelar"
+                      },
+                      {
+                          "en":  "executive sponsor",
+                          "pt":  "patrocinador executivo, lider defensor do lado do cliente"
+                      },
+                      {
+                          "en":  "time to value",
+                          "pt":  "tempo ate o valor, quando o cliente percebe resultado"
+                      },
+                      {
+                          "en":  "upsell trigger",
+                          "pt":  "gatilho de venda adicional, sinal para expansao"
+                      },
+                      {
+                          "en":  "escalation path",
+                          "pt":  "caminho de escalonamento, processo para problemas criticos"
+                      },
+                      {
+                          "en":  "playbook",
+                          "pt":  "guia de acoes padronizado por situacao de cliente"
+                      },
+                      {
+                          "en":  "sentiment analysis",
+                          "pt":  "analise de sentimento, percepcao qualitativa do cliente"
+                      }
+                  ]
+    },
+    {
+        "unit":  22,
+        "items":  [
+                      {
+                          "en":  "due diligence",
+                          "pt":  "diligencia devida, verificacao aprofundada antes de assinar"
+                      },
+                      {
+                          "en":  "NDA",
+                          "pt":  "acordo de confidencialidade, nao divulgar informacoes"
+                      },
+                      {
+                          "en":  "liability",
+                          "pt":  "responsabilidade legal, obrigacao por danos"
+                      },
+                      {
+                          "en":  "indemnification",
+                          "pt":  "indenizacao, compensacao por prejuizo"
+                      },
+                      {
+                          "en":  "force majeure",
+                          "pt":  "forca maior, eventos imprevistos que liberam obrigacao"
+                      },
+                      {
+                          "en":  "jurisdiction",
+                          "pt":  "jurisdicao, local onde a lei se aplica"
+                      },
+                      {
+                          "en":  "material breach",
+                          "pt":  "violacao material, descumprimento grave do contrato"
+                      },
+                      {
+                          "en":  "intellectual property",
+                          "pt":  "propriedade intelectual, direitos sobre criacao"
+                      },
+                      {
+                          "en":  "compliance",
+                          "pt":  "conformidade, seguir regras e regulamentos"
+                      },
+                      {
+                          "en":  "arbitration",
+                          "pt":  "arbitragem, resolucao de disputas fora do tribunal"
+                      },
+                      {
+                          "en":  "governing law",
+                          "pt":  "lei aplicavel, qual lei rege o contrato"
+                      },
+                      {
+                          "en":  "warranty",
+                          "pt":  "garantia, compromisso sobre qualidade ou funcionalidade"
+                      },
+                      {
+                          "en":  "termination clause",
+                          "pt":  "clausula de rescisao, condicoes para encerrar"
+                      },
+                      {
+                          "en":  "remedy",
+                          "pt":  "remedio legal, solucao prevista para violacao"
+                      },
+                      {
+                          "en":  "risk matrix",
+                          "pt":  "matriz de risco, avaliacao de probabilidade e impacto"
+                      }
+                  ]
+    },
+    {
+        "unit":  23,
+        "items":  [
+                      {
+                          "en":  "architecture",
+                          "pt":  "arquitetura, estrutura geral do sistema"
+                      },
+                      {
+                          "en":  "scalability",
+                          "pt":  "escalabilidade, capacidade de crescer sem degradar"
+                      },
+                      {
+                          "en":  "latency",
+                          "pt":  "latencia, tempo de resposta do sistema"
+                      },
+                      {
+                          "en":  "deployment",
+                          "pt":  "implantacao, colocar sistema em producao"
+                      },
+                      {
+                          "en":  "sprint",
+                          "pt":  "sprint, ciclo curto de desenvolvimento agil"
+                      },
+                      {
+                          "en":  "technical debt",
+                          "pt":  "divida tecnica, codigo ruim que gera custo futuro"
+                      },
+                      {
+                          "en":  "refactoring",
+                          "pt":  "refatoracao, melhorar codigo sem mudar funcionalidade"
+                      },
+                      {
+                          "en":  "API",
+                          "pt":  "interface de programacao, conexao entre sistemas"
+                      },
+                      {
+                          "en":  "cloud-native",
+                          "pt":  "nativo em nuvem, projetado para rodar na nuvem"
+                      },
+                      {
+                          "en":  "microservices",
+                          "pt":  "microsservicos, servicos independentes e escalaveis"
+                      },
+                      {
+                          "en":  "CI/CD",
+                          "pt":  "integracao e entrega continua, automatizar o deploy"
+                      },
+                      {
+                          "en":  "agile methodology",
+                          "pt":  "metodologia agil, iterativa e adaptativa"
+                      },
+                      {
+                          "en":  "root cause",
+                          "pt":  "causa raiz, origem real de um problema"
+                      },
+                      {
+                          "en":  "tech stack",
+                          "pt":  "pilha tecnologica, conjunto de tecnologias usadas"
+                      },
+                      {
+                          "en":  "zero downtime",
+                          "pt":  "sem tempo de inatividade, sistema sempre disponivel"
+                      }
+                  ]
+    },
+    {
+        "unit":  24,
+        "items":  [
+                      {
+                          "en":  "production downtime",
+                          "pt":  "tempo de inatividade, quando a linha para de produzir"
+                      },
+                      {
+                          "en":  "OEE",
+                          "pt":  "eficacia geral do equipamento, indicador de desempenho"
+                      },
+                      {
+                          "en":  "lean manufacturing",
+                          "pt":  "manufatura enxuta, eliminar desperdicios"
+                      },
+                      {
+                          "en":  "six sigma",
+                          "pt":  "seis sigma, metodologia de reducao de erros"
+                      },
+                      {
+                          "en":  "throughput",
+                          "pt":  "taxa de producao, quantidade produzida por unidade de tempo"
+                      },
+                      {
+                          "en":  "bottleneck",
+                          "pt":  "gargalo, restricao que limita a capacidade"
+                      },
+                      {
+                          "en":  "preventive maintenance",
+                          "pt":  "manutencao preventiva, manutencao antes da falha"
+                      },
+                      {
+                          "en":  "yield rate",
+                          "pt":  "taxa de rendimento, percentual de produtos aprovados"
+                      },
+                      {
+                          "en":  "BOM",
+                          "pt":  "lista de materiais, componentes necessarios para fabricar"
+                      },
+                      {
+                          "en":  "ERP system",
+                          "pt":  "sistema integrado de gestao empresarial"
+                      },
+                      {
+                          "en":  "capacity planning",
+                          "pt":  "planejamento de capacidade, prever necessidade de producao"
+                      },
+                      {
+                          "en":  "quality control",
+                          "pt":  "controle de qualidade, verificar conformidade do produto"
+                      },
+                      {
+                          "en":  "FMEA",
+                          "pt":  "analise de modos de falha, antecipar falhas potenciais"
+                      },
+                      {
+                          "en":  "supply reliability",
+                          "pt":  "confiabilidade de fornecimento, certeza de receber insumos"
+                      },
+                      {
+                          "en":  "tooling",
+                          "pt":  "ferramental, equipamentos e ferramentas para producao"
+                      }
+                  ]
+    },
+    {
+        "unit":  25,
+        "items":  [
+                      {
+                          "en":  "lead time",
+                          "pt":  "tempo de entrega, prazo desde o pedido ate a entrega"
+                      },
+                      {
+                          "en":  "inventory turnover",
+                          "pt":  "giro de estoque, frequencia de reposicao"
+                      },
+                      {
+                          "en":  "SKU",
+                          "pt":  "unidade de manutencao de estoque, codigo de produto"
+                      },
+                      {
+                          "en":  "3PL",
+                          "pt":  "logistica terceirizada, operador logistico externo"
+                      },
+                      {
+                          "en":  "freight forwarder",
+                          "pt":  "despachante, agente de transporte internacional"
+                      },
+                      {
+                          "en":  "incoterms",
+                          "pt":  "termos de comercio internacional, responsabilidade na entrega"
+                      },
+                      {
+                          "en":  "customs clearance",
+                          "pt":  "desembaraco aduaneiro, liberacao alfandegaria"
+                      },
+                      {
+                          "en":  "safety stock",
+                          "pt":  "estoque de seguranca, reserva para imprevistos"
+                      },
+                      {
+                          "en":  "demand forecasting",
+                          "pt":  "previsao de demanda, estimar vendas futuras"
+                      },
+                      {
+                          "en":  "just-in-time",
+                          "pt":  "just-in-time, entregar exatamente quando necessario"
+                      },
+                      {
+                          "en":  "reverse logistics",
+                          "pt":  "logistica reversa, devolucoes e descarte"
+                      },
+                      {
+                          "en":  "warehouse management",
+                          "pt":  "gestao de armazem, controle do deposito"
+                      },
+                      {
+                          "en":  "order fulfillment",
+                          "pt":  "atendimento de pedido, processo de envio ao cliente"
+                      },
+                      {
+                          "en":  "carrier performance",
+                          "pt":  "desempenho da transportadora, pontualidade e qualidade"
+                      },
+                      {
+                          "en":  "last-mile delivery",
+                          "pt":  "entrega de ultima milha, ultimo trecho ate o cliente"
+                      }
+                  ]
+    },
+    {
+        "unit":  26,
+        "items":  [
+                      {
+                          "en":  "clinical trial",
+                          "pt":  "ensaio clinico, teste de eficacia e seguranca"
+                      },
+                      {
+                          "en":  "regulatory pathway",
+                          "pt":  "caminho regulatorio, processo de aprovacao"
+                      },
+                      {
+                          "en":  "primary endpoint",
+                          "pt":  "desfecho primario, objetivo principal do estudo"
+                      },
+                      {
+                          "en":  "clinical significance",
+                          "pt":  "significancia clinica, relevancia real para o paciente"
+                      },
+                      {
+                          "en":  "contraindication",
+                          "pt":  "contraindicacao, quando nao usar o medicamento"
+                      },
+                      {
+                          "en":  "adverse event",
+                          "pt":  "evento adverso, efeito indesejado do tratamento"
+                      },
+                      {
+                          "en":  "protocol deviation",
+                          "pt":  "desvio de protocolo, nao seguir o plano do estudo"
+                      },
+                      {
+                          "en":  "IRB approval",
+                          "pt":  "aprovacao de comite de etica, revisao etica"
+                      },
+                      {
+                          "en":  "healthcare provider",
+                          "pt":  "prestador de cuidados de saude, medico ou hospital"
+                      },
+                      {
+                          "en":  "reimbursement pathway",
+                          "pt":  "caminho de reembolso, como o plano paga o tratamento"
+                      },
+                      {
+                          "en":  "real-world evidence",
+                          "pt":  "evidencia do mundo real, dados alem dos ensaios"
+                      },
+                      {
+                          "en":  "formulary",
+                          "pt":  "formulario, lista de medicamentos cobertos"
+                      },
+                      {
+                          "en":  "informed consent",
+                          "pt":  "consentimento informado, paciente concorda consciente"
+                      },
+                      {
+                          "en":  "patient outcome",
+                          "pt":  "desfecho do paciente, resultado final do tratamento"
+                      },
+                      {
+                          "en":  "FDA clearance",
+                          "pt":  "aprovacao da FDA, autorizacao para mercado americano"
+                      }
+                  ]
+    },
+    {
+        "unit":  27,
+        "items":  [
+                      {
+                          "en":  "guest experience",
+                          "pt":  "experiencia do hospede, toda a jornada de atencao"
+                      },
+                      {
+                          "en":  "VIP protocol",
+                          "pt":  "protocolo VIP, procedimentos para hospedes especiais"
+                      },
+                      {
+                          "en":  "service recovery",
+                          "pt":  "recuperacao de servico, corrigir uma ma experiencia"
+                      },
+                      {
+                          "en":  "concierge",
+                          "pt":  "concierge, servico personalizado de assistencia"
+                      },
+                      {
+                          "en":  "front of house",
+                          "pt":  "area de frente, recepcao sala de jantar lobby"
+                      },
+                      {
+                          "en":  "back of house",
+                          "pt":  "area de suporte, cozinha lavanderia manutencao"
+                      },
+                      {
+                          "en":  "occupancy rate",
+                          "pt":  "taxa de ocupacao, percentual de quartos ocupados"
+                      },
+                      {
+                          "en":  "RevPAR",
+                          "pt":  "receita por quarto disponivel, indicador de performance"
+                      },
+                      {
+                          "en":  "upselling at check-in",
+                          "pt":  "venda adicional no check-in, oferecer upgrade"
+                      },
+                      {
+                          "en":  "loyalty program",
+                          "pt":  "programa de fidelidade, recompensar clientes recorrentes"
+                      },
+                      {
+                          "en":  "online reputation",
+                          "pt":  "reputacao online, avaliacao em plataformas digitais"
+                      },
+                      {
+                          "en":  "banquet event order",
+                          "pt":  "ordem de evento de banquete, BEO detalhado"
+                      },
+                      {
+                          "en":  "turndown service",
+                          "pt":  "servico de abertura de cama, preparacao noturna"
+                      },
+                      {
+                          "en":  "attrition clause",
+                          "pt":  "clausula de atrito, penalidade por cancelamento de grupo"
+                      },
+                      {
+                          "en":  "standard operating procedure",
+                          "pt":  "procedimento operacional padrao, SOP"
+                      }
+                  ]
+    },
+    {
+        "unit":  28,
+        "items":  [
+                      {
+                          "en":  "cross-cultural communication",
+                          "pt":  "comunicacao intercultural, entre culturas diferentes"
+                      },
+                      {
+                          "en":  "cultural intelligence",
+                          "pt":  "inteligencia cultural, capacidade de adaptar comportamento"
+                      },
+                      {
+                          "en":  "business etiquette",
+                          "pt":  "etiqueta nos negocios, regras de comportamento profissional"
+                      },
+                      {
+                          "en":  "per diem",
+                          "pt":  "diaria, valor diario para despesas de viagem"
+                      },
+                      {
+                          "en":  "corporate travel policy",
+                          "pt":  "politica de viagem corporativa, regras de despesas"
+                      },
+                      {
+                          "en":  "global mobility",
+                          "pt":  "mobilidade global, relocacao de funcionarios internacionalmente"
+                      },
+                      {
+                          "en":  "duty of care",
+                          "pt":  "dever de cuidado, responsabilidade pela seguranca do viajante"
+                      },
+                      {
+                          "en":  "visa requirements",
+                          "pt":  "requisitos de visto, documentacao para entrada em paises"
+                      },
+                      {
+                          "en":  "time zone management",
+                          "pt":  "gestao de fuso horario, coordenar equipes globais"
+                      },
+                      {
+                          "en":  "local partnership",
+                          "pt":  "parceria local, alianca com empresa do pais"
+                      },
+                      {
+                          "en":  "market entry strategy",
+                          "pt":  "estrategia de entrada no mercado, como penetrar novo pais"
+                      },
+                      {
+                          "en":  "expat package",
+                          "pt":  "pacote de expatriado, beneficios para profissional no exterior"
+                      },
+                      {
+                          "en":  "bilateral agreement",
+                          "pt":  "acordo bilateral, tratado entre dois paises"
+                      },
+                      {
+                          "en":  "cultural briefing",
+                          "pt":  "briefing cultural, preparacao antes de viagem internacional"
+                      },
+                      {
+                          "en":  "jet lag protocol",
+                          "pt":  "protocolo de jet lag, minimizar impacto do fuso horario"
+                      }
+                  ]
+    },
+    {
+        "unit":  29,
+        "items":  [
+                      {
+                          "en":  "predictive analytics",
+                          "pt":  "analytics preditivo, prever eventos futuros com dados"
+                      },
+                      {
+                          "en":  "machine learning model",
+                          "pt":  "modelo de machine learning, algoritmo que aprende"
+                      },
+                      {
+                          "en":  "data pipeline",
+                          "pt":  "pipeline de dados, fluxo de processamento de dados"
+                      },
+                      {
+                          "en":  "feature engineering",
+                          "pt":  "engenharia de features, criar variaveis para o modelo"
+                      },
+                      {
+                          "en":  "model accuracy",
+                          "pt":  "precisao do modelo, quao correto e o algoritmo"
+                      },
+                      {
+                          "en":  "churn prediction",
+                          "pt":  "predicao de cancelamento, identificar clientes em risco"
+                      },
+                      {
+                          "en":  "statistical significance",
+                          "pt":  "significancia estatistica, resultado nao e ao acaso"
+                      },
+                      {
+                          "en":  "data governance",
+                          "pt":  "governanca de dados, regras de uso e qualidade"
+                      },
+                      {
+                          "en":  "ETL process",
+                          "pt":  "processo ETL, extrair transformar carregar dados"
+                      },
+                      {
+                          "en":  "dashboard KPI",
+                          "pt":  "dashboard de KPI, painel de indicadores chave"
+                      },
+                      {
+                          "en":  "cohort analysis",
+                          "pt":  "analise de coorte, comparar grupos ao longo do tempo"
+                      },
+                      {
+                          "en":  "funnel analysis",
+                          "pt":  "analise de funil, identificar onde usuarios abandonam"
+                      },
+                      {
+                          "en":  "data lake",
+                          "pt":  "repositorio centralizado de dados brutos"
+                      },
+                      {
+                          "en":  "actionable insight",
+                          "pt":  "insight acionavel, descoberta que gera decisao imediata"
+                      },
+                      {
+                          "en":  "A/B test significance",
+                          "pt":  "significancia estatistica do teste A/B"
+                      }
+                  ]
+    },
+    {
+        "unit":  30,
+        "items":  [
+                      {
+                          "en":  "product roadmap",
+                          "pt":  "roadmap do produto, plano de desenvolvimento futuro"
+                      },
+                      {
+                          "en":  "user story",
+                          "pt":  "historia do usuario, descricao de necessidade do usuario"
+                      },
+                      {
+                          "en":  "sprint planning",
+                          "pt":  "planejamento do sprint, definir o que fazer no ciclo"
+                      },
+                      {
+                          "en":  "backlog grooming",
+                          "pt":  "refinamento do backlog, preparar e priorizar tarefas"
+                      },
+                      {
+                          "en":  "product-market fit",
+                          "pt":  "produto adequado ao mercado, produto resolve problema real"
+                      },
+                      {
+                          "en":  "go-to-market strategy",
+                          "pt":  "estrategia de lancamento no mercado"
+                      },
+                      {
+                          "en":  "MVP",
+                          "pt":  "produto minimo viavel, versao inicial para validar hipotese"
+                      },
+                      {
+                          "en":  "north star metric",
+                          "pt":  "metrica estrela do norte, indicador principal de sucesso"
+                      },
+                      {
+                          "en":  "OKR",
+                          "pt":  "objetivo e resultado-chave, framework de metas"
+                      },
+                      {
+                          "en":  "discovery phase",
+                          "pt":  "fase de descoberta, entender o problema antes de resolver"
+                      },
+                      {
+                          "en":  "stakeholder mapping",
+                          "pt":  "mapeamento de stakeholders, identificar partes interessadas"
+                      },
+                      {
+                          "en":  "feature flagging",
+                          "pt":  "bandeira de feature, ativar funcionalidade por grupo"
+                      },
+                      {
+                          "en":  "retention hook",
+                          "pt":  "gancho de retencao, elemento que faz usuario voltar"
+                      },
+                      {
+                          "en":  "technical feasibility",
+                          "pt":  "viabilidade tecnica, se a engenharia consegue construir"
+                      },
+                      {
+                          "en":  "prioritization framework",
+                          "pt":  "framework de priorizacao, metodo para ordenar tarefas"
+                      }
+                  ]
+    },
+    {
+        "unit":  31,
+        "items":  [
+                      {
+                          "en":  "user experience",
+                          "pt":  "experiencia do usuario, toda a interacao com o produto"
+                      },
+                      {
+                          "en":  "information architecture",
+                          "pt":  "arquitetura da informacao, organizacao do conteudo"
+                      },
+                      {
+                          "en":  "cognitive load",
+                          "pt":  "carga cognitiva, esforco mental necessario para usar"
+                      },
+                      {
+                          "en":  "wireframe",
+                          "pt":  "wireframe, esboço basico da interface"
+                      },
+                      {
+                          "en":  "prototype",
+                          "pt":  "prototipo, versao interativa para testar antes de construir"
+                      },
+                      {
+                          "en":  "usability testing",
+                          "pt":  "teste de usabilidade, observar usuarios reais usando o produto"
+                      },
+                      {
+                          "en":  "accessibility",
+                          "pt":  "acessibilidade, produto funciona para todos incluindo PcD"
+                      },
+                      {
+                          "en":  "design system",
+                          "pt":  "sistema de design, biblioteca de componentes padronizados"
+                      },
+                      {
+                          "en":  "conversion funnel",
+                          "pt":  "funil de conversao, caminho ate a acao desejada"
+                      },
+                      {
+                          "en":  "heatmap",
+                          "pt":  "mapa de calor, onde os usuarios clicam e olham"
+                      },
+                      {
+                          "en":  "design token",
+                          "pt":  "token de design, variavel visual centralizada"
+                      },
+                      {
+                          "en":  "responsive design",
+                          "pt":  "design responsivo, adaptado para qualquer tela"
+                      },
+                      {
+                          "en":  "micro-interaction",
+                          "pt":  "micro-interacao, animacao pequena e significativa"
+                      },
+                      {
+                          "en":  "visual hierarchy",
+                          "pt":  "hierarquia visual, guiar o olho para o que importa"
+                      },
+                      {
+                          "en":  "affordance",
+                          "pt":  "affordance, pista visual que indica como usar algo"
+                      }
+                  ]
+    },
+    {
+        "unit":  32,
+        "items":  [
+                      {
+                          "en":  "threat actor",
+                          "pt":  "agente de ameaca, pessoa ou grupo que realiza o ataque"
+                      },
+                      {
+                          "en":  "attack surface",
+                          "pt":  "superficie de ataque, todos os pontos vulneraveis do sistema"
+                      },
+                      {
+                          "en":  "zero-day vulnerability",
+                          "pt":  "vulnerabilidade desconhecida pelo fabricante"
+                      },
+                      {
+                          "en":  "penetration testing",
+                          "pt":  "teste de penetracao, simular ataque para encontrar falhas"
+                      },
+                      {
+                          "en":  "SOC",
+                          "pt":  "centro de operacoes de seguranca, equipe de monitoramento 24/7"
+                      },
+                      {
+                          "en":  "SIEM",
+                          "pt":  "sistema de informacao e gerenciamento de eventos de seguranca"
+                      },
+                      {
+                          "en":  "ransomware",
+                          "pt":  "malware que sequestra dados e exige resgate"
+                      },
+                      {
+                          "en":  "phishing",
+                          "pt":  "email fraudulento para roubar informacoes ou credenciais"
+                      },
+                      {
+                          "en":  "MFA",
+                          "pt":  "autenticacao multifator, mais de uma forma de verificar identidade"
+                      },
+                      {
+                          "en":  "zero-trust architecture",
+                          "pt":  "arquitetura zero-confianca, verificar sempre nunca confiar"
+                      },
+                      {
+                          "en":  "data breach",
+                          "pt":  "violacao de dados, acesso nao autorizado a dados sensiveis"
+                      },
+                      {
+                          "en":  "incident response",
+                          "pt":  "resposta a incidentes, protocolo para quando ataque ocorre"
+                      },
+                      {
+                          "en":  "patch management",
+                          "pt":  "gerenciamento de patches, manter sistemas atualizados"
+                      },
+                      {
+                          "en":  "DLP",
+                          "pt":  "prevencao de perda de dados, impedir vazamento de informacoes"
+                      },
+                      {
+                          "en":  "supply chain attack",
+                          "pt":  "ataque a cadeia de fornecimento, comprometer terceiros"
+                      }
+                  ]
+    },
+    {
+        "unit":  33,
+        "items":  [
+                      {
+                          "en":  "executive presence",
+                          "pt":  "presenca executiva, autoridade e confianca percebidas"
+                      },
+                      {
+                          "en":  "active listening",
+                          "pt":  "escuta ativa, ouvir com atencao e responder com intencao"
+                      },
+                      {
+                          "en":  "nonverbal communication",
+                          "pt":  "comunicacao nao verbal, linguagem corporal e expressoes"
+                      },
+                      {
+                          "en":  "assertiveness",
+                          "pt":  "assertividade, comunicar com seguranca e respeito"
+                      },
+                      {
+                          "en":  "conciseness",
+                          "pt":  "concisao, dizer o maximo com o minimo de palavras"
+                      },
+                      {
+                          "en":  "business writing",
+                          "pt":  "escrita empresarial, comunicacao escrita profissional"
+                      },
+                      {
+                          "en":  "executive summary",
+                          "pt":  "sumario executivo, resumo conciso para tomadores de decisao"
+                      },
+                      {
+                          "en":  "narrative structure",
+                          "pt":  "estrutura narrativa, organizar argumentos com logica"
+                      },
+                      {
+                          "en":  "stakeholder communication",
+                          "pt":  "adequar mensagem para cada parte interessada"
+                      },
+                      {
+                          "en":  "follow-up",
+                          "pt":  "acompanhamento, contato posterior a uma reuniao ou acordo"
+                      },
+                      {
+                          "en":  "agenda setting",
+                          "pt":  "definicao de agenda, controlar o fluxo da conversa"
+                      },
+                      {
+                          "en":  "signposting",
+                          "pt":  "sinalizacao, indicar estrutura do discurso ao ouvinte"
+                      },
+                      {
+                          "en":  "diplomatic phrasing",
+                          "pt":  "linguagem diplomatica, dizer coisas dificeis com elegancia"
+                      },
+                      {
+                          "en":  "call to action",
+                          "pt":  "chamada para acao, pedir ao interlocutor que faca algo"
+                      },
+                      {
+                          "en":  "value proposition",
+                          "pt":  "proposta de valor, beneficio que voce oferece"
+                      }
+                  ]
+    },
+    {
+        "unit":  34,
+        "items":  [
+                      {
+                          "en":  "ESG",
+                          "pt":  "ambiental social e governanca, criterios de investimento responsavel"
+                      },
+                      {
+                          "en":  "carbon footprint",
+                          "pt":  "pegada de carbono, total de emissoes de CO2"
+                      },
+                      {
+                          "en":  "net zero",
+                          "pt":  "emissoes liquidas zero, equilibrio entre emissao e remocao de carbono"
+                      },
+                      {
+                          "en":  "circular economy",
+                          "pt":  "economia circular, reutilizar e reduzir desperdicios"
+                      },
+                      {
+                          "en":  "scope 1 emissions",
+                          "pt":  "emissoes diretas da empresa, proprias operacoes"
+                      },
+                      {
+                          "en":  "scope 2 emissions",
+                          "pt":  "emissoes indiretas, energia comprada"
+                      },
+                      {
+                          "en":  "scope 3 emissions",
+                          "pt":  "emissoes na cadeia de valor, fornecedores e clientes"
+                      },
+                      {
+                          "en":  "green bond",
+                          "pt":  "titulo verde, financiamento para projetos sustentaveis"
+                      },
+                      {
+                          "en":  "materiality assessment",
+                          "pt":  "avaliacao de materialidade, identificar riscos ESG relevantes"
+                      },
+                      {
+                          "en":  "stakeholder engagement",
+                          "pt":  "engajamento de partes interessadas em sustentabilidade"
+                      },
+                      {
+                          "en":  "GHG protocol",
+                          "pt":  "protocolo de gases de efeito estufa, padrao de medicao"
+                      },
+                      {
+                          "en":  "renewable energy",
+                          "pt":  "energia renovavel, solar eolica hidrica"
+                      },
+                      {
+                          "en":  "supply chain sustainability",
+                          "pt":  "sustentabilidade na cadeia de fornecimento"
+                      },
+                      {
+                          "en":  "ESG reporting",
+                          "pt":  "relatorio ESG, divulgacao de desempenho socioambiental"
+                      },
+                      {
+                          "en":  "just transition",
+                          "pt":  "transicao justa, migrar para economia verde sem excluir trabalhadores"
+                      }
+                  ]
+    },
+    {
+        "unit":  35,
+        "items":  [
+                      {
+                          "en":  "ROI on real estate",
+                          "pt":  "retorno sobre investimento imobiliario"
+                      },
+                      {
+                          "en":  "due diligence on property",
+                          "pt":  "diligencia devida imobiliaria, verificacao juridica e tecnica"
+                      },
+                      {
+                          "en":  "zoning regulations",
+                          "pt":  "regulamentacoes de zoneamento, uso permitido do terreno"
+                      },
+                      {
+                          "en":  "permitting process",
+                          "pt":  "processo de licenciamento, aprovacoes para construir"
+                      },
+                      {
+                          "en":  "general contractor",
+                          "pt":  "empreiteiro geral, responsavel pela obra completa"
+                      },
+                      {
+                          "en":  "LEED certification",
+                          "pt":  "certificacao LEED, padrao de construcao sustentavel"
+                      },
+                      {
+                          "en":  "project closeout",
+                          "pt":  "encerramento de projeto, documentacao final da obra"
+                      },
+                      {
+                          "en":  "punch list",
+                          "pt":  "lista de pendencias, itens a corrigir antes da entrega"
+                      },
+                      {
+                          "en":  "construction milestone",
+                          "pt":  "marco da construcao, etapa critica do cronograma"
+                      },
+                      {
+                          "en":  "change order",
+                          "pt":  "ordem de mudanca, alteracao no escopo apos inicio da obra"
+                      },
+                      {
+                          "en":  "value engineering",
+                          "pt":  "engenharia de valor, otimizar custo sem perder qualidade"
+                      },
+                      {
+                          "en":  "occupancy certificate",
+                          "pt":  "certificado de ocupacao, autorizacao para usar o edificio"
+                      },
+                      {
+                          "en":  "cap rate",
+                          "pt":  "taxa de capitalizacao, relacao entre renda e valor do imovel"
+                      },
+                      {
+                          "en":  "NOI",
+                          "pt":  "lucro operacional liquido do imovel"
+                      },
+                      {
+                          "en":  "feasibility study",
+                          "pt":  "estudo de viabilidade, avaliar se o projeto e rentavel"
+                      }
+                  ]
+    },
+    {
+        "unit":  36,
+        "items":  [
+                      {
+                          "en":  "learning outcomes",
+                          "pt":  "resultados de aprendizagem, o que o aluno conseguira fazer"
+                      },
+                      {
+                          "en":  "instructional design",
+                          "pt":  "design instrucional, planejar aprendizado eficaz"
+                      },
+                      {
+                          "en":  "blended learning",
+                          "pt":  "aprendizagem hibrida, presencial e online combinados"
+                      },
+                      {
+                          "en":  "LMS",
+                          "pt":  "sistema de gestao de aprendizagem, plataforma de cursos"
+                      },
+                      {
+                          "en":  "competency-based learning",
+                          "pt":  "aprendizagem baseada em competencias, habilidades demonstraveis"
+                      },
+                      {
+                          "en":  "cognitive load theory",
+                          "pt":  "teoria da carga cognitiva, limitar informacao nova por vez"
+                      },
+                      {
+                          "en":  "spaced repetition",
+                          "pt":  "repeticao espacada, revisar material em intervalos crescentes"
+                      },
+                      {
+                          "en":  "formative assessment",
+                          "pt":  "avaliacao formativa, feedback durante o processo de aprendizagem"
+                      },
+                      {
+                          "en":  "summative assessment",
+                          "pt":  "avaliacao somativa, medicao ao final do aprendizado"
+                      },
+                      {
+                          "en":  "learner engagement",
+                          "pt":  "engajamento do aprendiz, participacao ativa no aprendizado"
+                      },
+                      {
+                          "en":  "microlearning",
+                          "pt":  "microlearning, conteudo em formatos curtos e focados"
+                      },
+                      {
+                          "en":  "cohort-based learning",
+                          "pt":  "aprendizagem em coorte, turma aprende junta ao longo do tempo"
+                      },
+                      {
+                          "en":  "facilitation skills",
+                          "pt":  "habilidades de facilitacao, conduzir grupo a resultados"
+                      },
+                      {
+                          "en":  "transfer of learning",
+                          "pt":  "transferencia de aprendizagem, aplicar na pratica o que aprendeu"
+                      },
+                      {
+                          "en":  "ROI of training",
+                          "pt":  "retorno sobre investimento em treinamento, impacto mensuravel"
+                      }
+                  ]
+    },
+    {
+        "unit":  37,
+        "items":  [
+                      {
+                          "en":  "seed funding",
+                          "pt":  "financiamento semente, primeiro investimento externo"
+                      },
+                      {
+                          "en":  "Series A/B/C",
+                          "pt":  "rodadas de investimento em serie, estagios de crescimento"
+                      },
+                      {
+                          "en":  "term sheet",
+                          "pt":  "folha de termos, documento pre-contrato de investimento"
+                      },
+                      {
+                          "en":  "valuation",
+                          "pt":  "valorizacao, valor estimado da empresa"
+                      },
+                      {
+                          "en":  "cap table",
+                          "pt":  "tabela de capitalizacao, estrutura de propriedade da empresa"
+                      },
+                      {
+                          "en":  "runway",
+                          "pt":  "runway, quanto tempo a empresa sobrevive com o caixa atual"
+                      },
+                      {
+                          "en":  "pivot",
+                          "pt":  "pivotar, mudar de direcao estrategica com base em aprendizado"
+                      },
+                      {
+                          "en":  "traction",
+                          "pt":  "tracao, evidencia de crescimento e adocao do mercado"
+                      },
+                      {
+                          "en":  "product-market fit",
+                          "pt":  "produto adequado ao mercado"
+                      },
+                      {
+                          "en":  "burn rate",
+                          "pt":  "taxa de consumo de caixa, velocidade de gasto mensal"
+                      },
+                      {
+                          "en":  "equity dilution",
+                          "pt":  "diluicao de participacao, reducao do percentual de propriedade"
+                      },
+                      {
+                          "en":  "bootstrapping",
+                          "pt":  "autofinanciamento, crescer sem investimento externo"
+                      },
+                      {
+                          "en":  "go-to-market",
+                          "pt":  "estrategia de lancamento no mercado"
+                      },
+                      {
+                          "en":  "exit strategy",
+                          "pt":  "estrategia de saida, IPO aquisicao ou buyout"
+                      },
+                      {
+                          "en":  "due diligence (investor)",
+                          "pt":  "diligencia do investidor, verificacao antes de investir"
+                      }
+                  ]
+    },
+    {
+        "unit":  38,
+        "items":  [
+                      {
+                          "en":  "trade agreement",
+                          "pt":  "acordo comercial, pacto entre paises sobre comercio"
+                      },
+                      {
+                          "en":  "tariff",
+                          "pt":  "tarifa, imposto sobre importacoes ou exportacoes"
+                      },
+                      {
+                          "en":  "trade deficit",
+                          "pt":  "deficit comercial, importa mais do que exporta"
+                      },
+                      {
+                          "en":  "trade surplus",
+                          "pt":  "superavit comercial, exporta mais do que importa"
+                      },
+                      {
+                          "en":  "WTO",
+                          "pt":  "Organizacao Mundial do Comercio, regula o comercio internacional"
+                      },
+                      {
+                          "en":  "bilateral trade",
+                          "pt":  "comercio bilateral, entre dois paises"
+                      },
+                      {
+                          "en":  "multilateral agreement",
+                          "pt":  "acordo multilateral, entre varios paises"
+                      },
+                      {
+                          "en":  "sanctions",
+                          "pt":  "sancoes, restricoes economicas impostas a paises"
+                      },
+                      {
+                          "en":  "intellectual property rights",
+                          "pt":  "direitos de propriedade intelectual, protecao de inovacao"
+                      },
+                      {
+                          "en":  "most favored nation",
+                          "pt":  "nacao mais favorecida, status comercial preferencial"
+                      },
+                      {
+                          "en":  "protectionism",
+                          "pt":  "protecionismo, politicas que protegem industria nacional"
+                      },
+                      {
+                          "en":  "free trade zone",
+                          "pt":  "zona de livre comercio, area sem restricoes alfandegarias"
+                      },
+                      {
+                          "en":  "comparative advantage",
+                          "pt":  "vantagem comparativa, producao mais eficiente do que outros"
+                      },
+                      {
+                          "en":  "currency manipulation",
+                          "pt":  "manipulacao cambial, interferir no valor da moeda"
+                      },
+                      {
+                          "en":  "diplomatic protocol",
+                          "pt":  "protocolo diplomatico, regras de conduta entre nacoes"
+                      }
+                  ]
+    }
+]

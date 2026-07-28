@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "623871799582",
+    "project_id": "app-clique-mais",
+    "storage_bucket": "app-clique-mais.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:623871799582:android:3f9132e6529d0f51b3190f",
+        "android_client_info": {
+          "package_name": "com.cliquemais.cliquemais_native"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5KRntMLkfSkvcur0sRoK94o54VfhrCiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
