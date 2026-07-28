@@ -20,6 +20,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
+  bool _failed = false;
 
   @override
   void initState() {
@@ -30,12 +31,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _boot() async {
+    setState(() => _failed = false);
     final app = context.read<AppStateProvider>();
     final start = DateTime.now();
     try {
       await app.init();
     } catch (e, st) {
       debugPrint('AppStateProvider.init failed: $e\n$st');
+      if (!mounted) return;
+      setState(() => _failed = true);
+      return;
     }
     final elapsed = DateTime.now().difference(start);
     const minSplash = Duration(milliseconds: 900);
@@ -71,14 +76,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 height: 88,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const RadialGradient(
-                    colors: [AppTheme.accentBright, AppTheme.accent],
-                  ),
+                  gradient: _failed
+                      ? const RadialGradient(colors: [Color(0xFFef4444), Color(0xFFb91c1c)])
+                      : const RadialGradient(colors: [AppTheme.accentBright, AppTheme.accent]),
                   boxShadow: [
                     BoxShadow(color: AppTheme.accentBright.withValues(alpha: 0.45), blurRadius: 40, spreadRadius: 6),
                   ],
                 ),
-                child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 44),
+                child: Icon(
+                  _failed ? Icons.wifi_off_rounded : Icons.bolt_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
               ),
             ),
             const SizedBox(height: 28),
@@ -94,13 +103,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 8),
             Text(
-              'Preparando sua sessão…',
+              _failed ? 'Sem conexão com a internet.\nO app precisa estar online para funcionar.' : 'Preparando sua sessão…',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Sora',
                 fontSize: 13,
                 color: const Color(0xFFE8F0FE).withValues(alpha: 0.55),
               ),
             ),
+            if (_failed) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _boot,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                ),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
           ],
         ),
       ),

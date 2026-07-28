@@ -5,11 +5,11 @@ import '../models/unit_meta.dart';
 import '../models/phrase.dart';
 import '../models/vocab_item.dart';
 
-/// Loads and caches the four data assets extracted from the web app:
+/// Loads the four data assets extracted from the web app:
 /// unit_meta.json (`_UNIT_MAP_5C`), drive_phrases.json (`_UNIT_PHRASES`),
 /// vocab_items.json (vocab-type lesson items in `UNITS`) and
-/// emoji_map.json (`EMOJI_MAP`). Content comes from [RemoteContentService]
-/// (Netlify-hosted, cached) with the bundled assets as offline fallback.
+/// emoji_map.json (`EMOJI_MAP`). Content comes straight from
+/// [RemoteContentService] (Netlify/Supabase-hosted) — no offline fallback.
 class UnitDataRepository {
   final RemoteContentService _content;
   UnitDataRepository({RemoteContentService? content}) : _content = content ?? RemoteContentService();

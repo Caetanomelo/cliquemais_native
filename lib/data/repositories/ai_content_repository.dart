@@ -3,11 +3,10 @@ import 'dart:convert';
 import '../../core/services/ai_tutor_service.dart' show AiTutorMode;
 import '../../core/services/remote_content_service.dart';
 
-/// Loads the AI Tutor's static content (system prompts, quick-suggestion
-/// chips, welcome messages) extracted from the source app's `AiTutor`
-/// module — one entry per mode (chat/grammar/vocab/pronunciation). Content
-/// comes from [RemoteContentService] (Netlify-hosted, cached) with the
-/// bundled assets as offline fallback.
+/// Loads the AI Tutor's content (system prompts, quick-suggestion chips,
+/// welcome messages) — one entry per mode (chat/grammar/vocab/pronunciation).
+/// Content comes straight from [RemoteContentService] (Netlify/Supabase-hosted)
+/// — no offline fallback.
 class AiContentRepository {
   final RemoteContentService _content;
   AiContentRepository({RemoteContentService? content}) : _content = content ?? RemoteContentService();

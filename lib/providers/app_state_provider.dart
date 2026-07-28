@@ -52,9 +52,6 @@ class AppStateProvider extends ChangeNotifier {
     await speech.init();
     _ready = true;
     notifyListeners();
-    // Boot always uses cache/bundled content; refresh the cache in the
-    // background so the *next* launch can pick up newer Netlify content.
-    remoteContent.refreshInBackground();
     // Fire-and-forget: push permission/token registration must never block
     // or fail boot.
     unawaited(push.register());

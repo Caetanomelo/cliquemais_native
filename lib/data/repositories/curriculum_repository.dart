@@ -5,11 +5,10 @@ import '../models/corp_track.dart';
 import '../models/lesson_unit.dart';
 import '../models/unit_curriculum_meta.dart';
 
-/// Loads and caches the full lesson curriculum: lessons.json (`UNITS`),
+/// Loads the full lesson curriculum: lessons.json (`UNITS`),
 /// unit_progression.json (`UNIT_META`), corp_tracks.json (`CORP_TRACKS`)
-/// and unit_emojis.json (`UNIT_EMOJIS`). Content comes from
-/// [RemoteContentService] (Netlify-hosted, cached) with the bundled assets
-/// as offline fallback.
+/// and unit_emojis.json (`UNIT_EMOJIS`). Content comes straight from
+/// [RemoteContentService] (Netlify/Supabase-hosted) — no offline fallback.
 class CurriculumRepository {
   final RemoteContentService _content;
   CurriculumRepository({RemoteContentService? content}) : _content = content ?? RemoteContentService();
