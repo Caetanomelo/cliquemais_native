@@ -46,6 +46,7 @@ class CloudTtsService {
         'input': {'text': text},
         'voice': {
           'languageCode': 'en-US',
+          'name': voiceGender == 'female' ? 'en-US-Neural2-F' : 'en-US-Neural2-D',
           'ssmlGender': voiceGender == 'female' ? 'FEMALE' : 'MALE',
         },
         'audioConfig': {'audioEncoding': 'MP3'},
