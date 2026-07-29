@@ -7,6 +7,7 @@ import '../../core/services/scoring_service.dart';
 import '../../data/models/vocab_item.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/speech_bubble.dart';
 import '../../widgets/vpc_ring_painter.dart';
 
 enum _Overlay { none, celebrate, fail }
@@ -20,8 +21,7 @@ enum _Overlay { none, celebrate, fail }
 class VpcScreen extends StatefulWidget {
   final int unit;
   final int startIndex;
-  final bool autoRecord;
-  const VpcScreen({super.key, required this.unit, this.startIndex = 0, this.autoRecord = false});
+  const VpcScreen({super.key, required this.unit, this.startIndex = 0});
 
   @override
   State<VpcScreen> createState() => _VpcScreenState();
@@ -48,9 +48,6 @@ class _VpcScreenState extends State<VpcScreen> {
     _items = _app.unitData.vocabForUnit(widget.unit);
     _index = widget.startIndex.clamp(0, _items.isEmpty ? 0 : _items.length - 1);
     _confetti = ConfettiController(duration: const Duration(milliseconds: 600));
-    if (widget.autoRecord) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _record());
-    }
   }
 
   @override
@@ -275,6 +272,10 @@ class _VpcScreenState extends State<VpcScreen> {
                             ],
                           ),
                         ),
+                        if (!_listening) ...[
+                          const SpeechBubble(),
+                          const SizedBox(height: 12),
+                        ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

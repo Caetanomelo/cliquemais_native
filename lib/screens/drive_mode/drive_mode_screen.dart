@@ -7,6 +7,7 @@ import '../../core/services/voice_command_service.dart';
 import '../../data/models/phrase.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/speech_bubble.dart';
 
 enum _ResultKind { none, success, retry }
 
@@ -71,12 +72,9 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
 
     if (!mounted) return;
     setState(() {
-      _statusText = 'Ouça e repita, ou diga um comando';
+      _statusText = 'Aperte para falar';
       _busy = false;
     });
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    _startListening();
   }
 
   Future<void> _startListening() async {
@@ -289,6 +287,10 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                             ],
                           ),
                         ),
+                        if (!_busy && !_listening) ...[
+                          const SpeechBubble(),
+                          const SizedBox(height: 12),
+                        ],
                         GestureDetector(
                           onTap: _busy || _listening ? null : _startListening,
                           child: Container(

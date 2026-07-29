@@ -34,7 +34,7 @@ class _VocabLessonViewState extends State<VocabLessonView> {
 
   Future<void> _testPronunciation() async {
     await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => VpcScreen(unit: widget.unit, startIndex: _index, autoRecord: true),
+      builder: (_) => VpcScreen(unit: widget.unit, startIndex: _index),
     ));
   }
 
