@@ -16,8 +16,8 @@ enum _ResultKind { none, success, retry }
 /// auto-advance after 3 attempts regardless of score, 5s celebration/retry
 /// overlays, local voice-command matching for NEXT/PREV/REPEAT/SKIP/EXIT.
 class DriveModeScreen extends StatefulWidget {
-  final int unit;
-  const DriveModeScreen({super.key, required this.unit});
+  final List<int> units;
+  const DriveModeScreen({super.key, required this.units});
 
   @override
   State<DriveModeScreen> createState() => _DriveModeScreenState();
@@ -40,7 +40,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
-    _phrases = _app.unitData.phrasesForUnit(widget.unit);
+    _phrases = widget.units.expand((u) => _app.unitData.phrasesForUnit(u)).toList();
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakAndListen());
   }
 

@@ -9,30 +9,50 @@ import '../data/models/unit_meta.dart';
 /// in this list falls into a trailing "other" bucket instead of being lost.
 const List<String> kCefrLevelOrder = ['A1', 'A2', 'B1', 'B2'];
 
+/// A run of units sharing the same `phase` name within a single CEFR level
+/// (never merged across levels — e.g. B1 "Especialização" and B2
+/// "Especialização" stay separate groups).
+class _PhaseGroup {
+  final String phase;
+  final List<UnitMeta> units;
+  const _PhaseGroup(this.phase, this.units);
+}
+
 /// Bottom sheet unit picker used by both Drive Mode and Vocabulário. Units
 /// are grouped into CEFR sub-groups (A1/A2/B1/B2, in level order); within
-/// each group the units are shuffled (re-randomized every time the picker
-/// opens) instead of kept in unit-number order. A group is unlocked once
-/// the user's current CEFR level has reached it, matching the coarse level
+/// each level, units sharing the same phase name are concatenated into a
+/// single pickable entry instead of repeating that name once per unit.
+/// Picking an entry hands back every unit it bundles, in shuffled order
+/// (re-randomized every time the picker opens), so callers can concatenate
+/// their content into one combined session. A level is unlocked once the
+/// user's current CEFR level has reached it, matching the coarse level
 /// indicator already used on the Dashboard's `_LevelTrack`.
 Future<void> showLevelUnitPicker(
   BuildContext context, {
   required List<UnitMeta> units,
   required String currentCefr,
-  required void Function(int unit) onPicked,
+  required void Function(List<int> units) onPicked,
   String title = 'Escolha uma unidade',
 }) {
-  final groups = <String, List<UnitMeta>>{};
+  final byLevel = <String, List<UnitMeta>>{};
   for (final u in units) {
-    groups.putIfAbsent(u.cefr, () => []).add(u);
+    byLevel.putIfAbsent(u.cefr, () => []).add(u);
   }
   final rng = Random();
-  for (final list in groups.values) {
+  for (final list in byLevel.values) {
     list.shuffle(rng);
   }
+  final phaseGroups = <String, List<_PhaseGroup>>{};
+  for (final entry in byLevel.entries) {
+    final byPhase = <String, List<UnitMeta>>{};
+    for (final u in entry.value) {
+      byPhase.putIfAbsent(u.phase, () => []).add(u);
+    }
+    phaseGroups[entry.key] = [for (final p in byPhase.entries) _PhaseGroup(p.key, p.value)];
+  }
   final orderedLevels = [
-    ...kCefrLevelOrder.where(groups.containsKey),
-    ...groups.keys.where((l) => !kCefrLevelOrder.contains(l)),
+    ...kCefrLevelOrder.where(byLevel.containsKey),
+    ...byLevel.keys.where((l) => !kCefrLevelOrder.contains(l)),
   ];
   final currentIndex = kCefrLevelOrder.indexOf(currentCefr).clamp(0, kCefrLevelOrder.length - 1);
 
@@ -63,12 +83,12 @@ Future<void> showLevelUnitPicker(
               Expanded(
                 child: _LevelGroupList(
                   levels: orderedLevels,
-                  groups: groups,
+                  phaseGroups: phaseGroups,
                   currentCefr: currentCefr,
                   currentIndex: currentIndex,
-                  onPicked: (unit) {
+                  onPicked: (units) {
                     Navigator.of(ctx).pop();
-                    onPicked(unit);
+                    onPicked(units);
                   },
                 ),
               ),
@@ -82,14 +102,14 @@ Future<void> showLevelUnitPicker(
 
 class _LevelGroupList extends StatefulWidget {
   final List<String> levels;
-  final Map<String, List<UnitMeta>> groups;
+  final Map<String, List<_PhaseGroup>> phaseGroups;
   final String currentCefr;
   final int currentIndex;
-  final void Function(int unit) onPicked;
+  final void Function(List<int> units) onPicked;
 
   const _LevelGroupList({
     required this.levels,
-    required this.groups,
+    required this.phaseGroups,
     required this.currentCefr,
     required this.currentIndex,
     required this.onPicked,
@@ -110,7 +130,7 @@ class _LevelGroupListState extends State<_LevelGroupList> {
         for (final level in widget.levels)
           _LevelSection(
             level: level,
-            units: widget.groups[level] ?? const [],
+            phaseGroups: widget.phaseGroups[level] ?? const [],
             unlocked: !kCefrLevelOrder.contains(level) || kCefrLevelOrder.indexOf(level) <= widget.currentIndex,
             isCurrent: level == widget.currentCefr,
             expanded: _expanded == level,
@@ -124,16 +144,16 @@ class _LevelGroupListState extends State<_LevelGroupList> {
 
 class _LevelSection extends StatelessWidget {
   final String level;
-  final List<UnitMeta> units;
+  final List<_PhaseGroup> phaseGroups;
   final bool unlocked;
   final bool isCurrent;
   final bool expanded;
   final VoidCallback onToggle;
-  final void Function(int unit) onPicked;
+  final void Function(List<int> units) onPicked;
 
   const _LevelSection({
     required this.level,
-    required this.units,
+    required this.phaseGroups,
     required this.unlocked,
     required this.isCurrent,
     required this.expanded,
@@ -143,6 +163,7 @@ class _LevelSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final totalUnits = phaseGroups.fold<int>(0, (sum, g) => sum + g.units.length);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Container(
@@ -200,7 +221,7 @@ class _LevelSection extends StatelessWidget {
                                   color: unlocked ? AppTheme.textMainDark : AppTheme.textSubDark,
                                 )),
                             Text(
-                              unlocked ? '${units.length} unidades' : 'Bloqueado',
+                              unlocked ? '$totalUnits unidades' : 'Bloqueado',
                               style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark),
                             ),
                           ],
@@ -217,16 +238,20 @@ class _LevelSection extends StatelessWidget {
               ),
             ),
             if (unlocked && expanded)
-              for (final u in units)
+              for (final pg in phaseGroups)
                 ListTile(
                   dense: true,
                   leading: CircleAvatar(
                     backgroundColor: AppTheme.accent.withValues(alpha: 0.18),
-                    child: Text('${u.step}', style: const TextStyle(color: AppTheme.accentBright, fontWeight: FontWeight.w700)),
+                    child: Text('${pg.units.length}', style: const TextStyle(color: AppTheme.accentBright, fontWeight: FontWeight.w700)),
                   ),
-                  title: Text(u.phase, style: const TextStyle(fontFamily: 'Sora', color: AppTheme.textMainDark)),
-                  trailing: u.milestone ? const Icon(Icons.emoji_events_rounded, color: AppTheme.gold) : null,
-                  onTap: () => onPicked(u.unit),
+                  title: Text(pg.phase, style: const TextStyle(fontFamily: 'Sora', color: AppTheme.textMainDark)),
+                  subtitle: Text(
+                    pg.units.length > 1 ? '${pg.units.length} unidades combinadas' : '1 unidade',
+                    style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark),
+                  ),
+                  trailing: pg.units.any((u) => u.milestone) ? const Icon(Icons.emoji_events_rounded, color: AppTheme.gold) : null,
+                  onTap: () => onPicked([for (final u in pg.units) u.unit]),
                 ),
           ],
         ),

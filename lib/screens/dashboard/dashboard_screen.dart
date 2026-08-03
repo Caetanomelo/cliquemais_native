@@ -54,8 +54,8 @@ class DashboardScreen extends StatelessWidget {
                 context,
                 units: app.unitData.unitMeta,
                 currentCefr: journey.cefr,
-                onPicked: (unit) => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => DriveModeScreen(unit: unit)),
+                onPicked: (units) => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
                 ),
               ),
             ),
@@ -68,8 +68,8 @@ class DashboardScreen extends StatelessWidget {
                 context,
                 units: app.unitData.unitMeta,
                 currentCefr: journey.cefr,
-                onPicked: (unit) => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => VpcScreen(unit: unit)),
+                onPicked: (units) => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
                 ),
               ),
             ),

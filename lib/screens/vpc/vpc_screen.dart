@@ -19,9 +19,9 @@ enum _Overlay { none, celebrate, fail }
 /// commit 5cdad43) — VPC only advances on an exact spoken match, regardless
 /// of attempt count, unlike Drive Mode's 3-attempt fallback.
 class VpcScreen extends StatefulWidget {
-  final int unit;
+  final List<int> units;
   final int startIndex;
-  const VpcScreen({super.key, required this.unit, this.startIndex = 0});
+  const VpcScreen({super.key, required this.units, this.startIndex = 0});
 
   @override
   State<VpcScreen> createState() => _VpcScreenState();
@@ -45,7 +45,7 @@ class _VpcScreenState extends State<VpcScreen> {
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
-    _items = _app.unitData.vocabForUnit(widget.unit);
+    _items = widget.units.expand((u) => _app.unitData.vocabForUnit(u)).toList();
     _index = widget.startIndex.clamp(0, _items.isEmpty ? 0 : _items.length - 1);
     _confetti = ConfettiController(duration: const Duration(milliseconds: 600));
   }
