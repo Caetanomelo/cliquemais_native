@@ -14,9 +14,11 @@ import '../../widgets/speech_bubble.dart';
 enum _ResultKind { none, success, retry }
 
 /// Port of DriveModeController (index.html:2866-4804): hands-free voice
-/// practice. Word-overlap scoring against 0.40 raw-fraction threshold,
-/// auto-advance after 3 attempts regardless of score, 5s celebration/retry
-/// overlays, local voice-command matching for NEXT/PREV/REPEAT/SKIP/EXIT.
+/// practice. Word-overlap scoring against 0.40 raw-fraction threshold; like
+/// Vocabulário, never auto-advances on failure — only a genuinely correct
+/// score moves to the next phrase. 5s celebration/retry overlays, local
+/// voice-command matching for NEXT/PREV/REPEAT/SKIP/EXIT, live partial STT
+/// transcript and manual stop-to-finish recording (same as VPC's `_record`).
 class DriveModeScreen extends StatefulWidget {
   final List<int> units;
   const DriveModeScreen({super.key, required this.units});
@@ -33,7 +35,10 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   final Set<int> _correctIndices = {};
   bool _busy = false;
   bool _listening = false;
+  bool _processing = false;
   String _statusText = 'Preparando…';
+  String _liveText = '';
+  bool _liveIsFinal = false;
 
   double? _lastScore;
   String? _lastTranscript;
@@ -59,10 +64,13 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   Future<void> _speakAndListen() async {
     final phrase = _current;
     if (phrase == null) return;
+    _processing = false;
     setState(() {
       _busy = true;
       _statusText = '▶ Ouvindo a frase…';
       _resultKind = _ResultKind.none;
+      _liveText = '';
+      _liveIsFinal = false;
     });
 
     final baseRate = phrase.rate;
@@ -81,26 +89,40 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   }
 
   Future<void> _startListening() async {
-    if (!mounted) return;
+    if (!mounted || _listening || _processing) return;
     setState(() {
       _listening = true;
       _statusText = '🎙️ Escutando…';
+      _liveText = '';
+      _liveIsFinal = false;
     });
     await _app.speech.listen(
-      partialResults: false,
+      partialResults: true,
+      listenFor: const Duration(seconds: 8),
+      pauseFor: const Duration(seconds: 2),
       onResult: (text, isFinal) {
+        if (!mounted) return;
+        setState(() {
+          _liveText = text;
+          _liveIsFinal = isFinal;
+        });
         if (isFinal) _handleVoiceResult(text);
       },
     );
   }
 
+  Future<void> _stopRecording() async {
+    await _app.speech.stop();
+  }
+
   void _handleVoiceResult(String transcript) {
-    if (!mounted) return;
+    if (_processing || !mounted) return;
     setState(() {
       _listening = false;
       _statusText = 'Toque para falar';
     });
     if (transcript.trim().isEmpty) return;
+    _processing = true;
 
     final wordCount = transcript.trim().split(RegExp(r'\s+')).length;
     if (wordCount <= 3) {
@@ -121,19 +143,21 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
       _lastTranscript = transcript;
     });
 
-    final willAdvance = score >= 0.40 || _attemptCount >= 3;
-    _app.chime.play(willAdvance);
-    if (willAdvance) _correctIndices.add(_index);
-    setState(() => _resultKind = willAdvance ? _ResultKind.success : _ResultKind.retry);
+    final correct = score >= 0.40;
+    _app.chime.play(correct);
+    if (correct) _correctIndices.add(_index);
+    setState(() => _resultKind = correct ? _ResultKind.success : _ResultKind.retry);
 
     Future.delayed(const Duration(milliseconds: 5000), () async {
       if (!mounted) return;
+      _processing = false;
       setState(() => _resultKind = _ResultKind.none);
-      if (willAdvance) {
+      if (correct) {
         _attemptCount = 0;
         await _app.addXp(5);
         _nextPhrase();
       } else {
+        // Retry: never auto-advances on failure, same rule as Vocabulário.
         _speakAndListen();
       }
     });
@@ -276,6 +300,20 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                                       fontFamily: 'Sora',
                                       fontSize: 13,
                                       color: _listening ? AppTheme.accentBright : AppTheme.textSubDark)),
+                              if (_liveText.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Text(
+                                    '"$_liveText"',
+                                    style: TextStyle(
+                                      fontFamily: 'Sora',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      fontStyle: FontStyle.italic,
+                                      color: _liveIsFinal ? AppTheme.green : AppTheme.accentBright,
+                                    ),
+                                  ),
+                                ),
                               if (_lastScore != null && _lastTranscript != null) ...[
                                 const SizedBox(height: 20),
                                 Container(
@@ -299,7 +337,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                           const SizedBox(height: 12),
                         ],
                         GestureDetector(
-                          onTap: _busy || _listening ? null : _startListening,
+                          onTap: _busy ? null : (_listening ? _stopRecording : _startListening),
                           child: Container(
                             width: 76,
                             height: 76,
@@ -310,7 +348,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                                   ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
                                   : null,
                             ),
-                            child: Icon(_listening ? Icons.mic : Icons.mic_none_rounded, color: Colors.white, size: 32),
+                            child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
                           ),
                         ),
                         const SizedBox(height: 10),
