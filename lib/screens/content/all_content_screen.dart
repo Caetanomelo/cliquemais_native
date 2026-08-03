@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/lesson_unit.dart';
-import '../../data/models/unit_meta.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/level_unit_picker.dart';
 import '../ai_tutor/ai_tutor_screen.dart';
 import '../drive_mode/drive_mode_screen.dart';
 import '../lesson/unit_lesson_screen.dart';
@@ -49,16 +49,18 @@ class AllContentScreen extends StatelessWidget {
             onContinue: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const StudySessionScreen()),
             ),
-            onVocab: () => _pickUnit(
+            onVocab: () => showLevelUnitPicker(
               context,
               units: app.unitData.unitMeta,
+              currentCefr: journey.cefr,
               onPicked: (unit) => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => VpcScreen(unit: unit)),
               ),
             ),
-            onPronunc: () => _pickUnit(
+            onPronunc: () => showLevelUnitPicker(
               context,
               units: app.unitData.unitMeta,
+              currentCefr: journey.cefr,
               onPicked: (unit) => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => DriveModeScreen(unit: unit)),
               ),
@@ -87,64 +89,6 @@ class AllContentScreen extends StatelessWidget {
         ],
       ),
       bottomNavigationBar: const AppBottomNav(current: AppTab.conteudos),
-    );
-  }
-
-  static void _pickUnit(
-    BuildContext context, {
-    required List<UnitMeta> units,
-    required void Function(int unit) onPicked,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.surfaceDark,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: SizedBox(
-            height: MediaQuery.of(ctx).size.height * 0.7,
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(color: AppTheme.borderDark, borderRadius: BorderRadius.circular(2)),
-                ),
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Escolha uma unidade',
-                      style: TextStyle(fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: units.length,
-                    itemBuilder: (_, i) {
-                      final u = units[i];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.accent.withValues(alpha: 0.18),
-                          child: Text('${u.step}', style: const TextStyle(color: AppTheme.accentBright, fontWeight: FontWeight.w700)),
-                        ),
-                        title: Text(u.phase, style: const TextStyle(fontFamily: 'Sora', color: AppTheme.textMainDark)),
-                        subtitle: Text(u.cefr, style: const TextStyle(color: AppTheme.textSubDark)),
-                        trailing: u.milestone ? const Icon(Icons.emoji_events_rounded, color: AppTheme.gold) : null,
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          onPicked(u.unit);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
