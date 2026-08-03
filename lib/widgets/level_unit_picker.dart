@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
@@ -8,11 +10,11 @@ import '../data/models/unit_meta.dart';
 const List<String> kCefrLevelOrder = ['A1', 'A2', 'B1', 'B2'];
 
 /// Bottom sheet unit picker used by both Drive Mode and Vocabulário. Units
-/// are grouped into CEFR sub-groups (A1/A2/B1/B2, in level order — not
-/// resorted by unit number, so interleaved B1/B2 units stay each in their
-/// own group); a group is unlocked once the user's current CEFR level has
-/// reached it, matching the coarse level indicator already used on the
-/// Dashboard's `_LevelTrack`.
+/// are grouped into CEFR sub-groups (A1/A2/B1/B2, in level order); within
+/// each group the units are shuffled (re-randomized every time the picker
+/// opens) instead of kept in unit-number order. A group is unlocked once
+/// the user's current CEFR level has reached it, matching the coarse level
+/// indicator already used on the Dashboard's `_LevelTrack`.
 Future<void> showLevelUnitPicker(
   BuildContext context, {
   required List<UnitMeta> units,
@@ -23,6 +25,10 @@ Future<void> showLevelUnitPicker(
   final groups = <String, List<UnitMeta>>{};
   for (final u in units) {
     groups.putIfAbsent(u.cefr, () => []).add(u);
+  }
+  final rng = Random();
+  for (final list in groups.values) {
+    list.shuffle(rng);
   }
   final orderedLevels = [
     ...kCefrLevelOrder.where(groups.containsKey),
