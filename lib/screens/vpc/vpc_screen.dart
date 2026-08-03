@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -159,6 +161,7 @@ class _VpcScreenState extends State<VpcScreen> {
   }
 
   void _finishSession() {
+    unawaited(_app.markVocabUnitsComplete(widget.units));
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

@@ -8,6 +8,7 @@ import '../core/services/tts_service.dart';
 import '../core/services/speech_service.dart';
 import '../core/services/chime_service.dart';
 import '../core/services/curriculum_progress_service.dart';
+import '../core/services/practice_progress_service.dart';
 import '../core/services/cloud_tts_service.dart';
 import '../core/services/ai_tutor_service.dart';
 import '../core/services/push_service.dart';
@@ -24,6 +25,7 @@ import '../data/repositories/ai_content_repository.dart';
 class AppStateProvider extends ChangeNotifier {
   late final PersistenceService persistence;
   late final CurriculumProgressService curriculumProgress;
+  late final PracticeProgressService practiceProgress;
   final RemoteContentService remoteContent = RemoteContentService();
   late final UnitDataRepository unitData;
   late final CurriculumRepository curriculum;
@@ -41,6 +43,7 @@ class AppStateProvider extends ChangeNotifier {
   Future<void> init() async {
     persistence = await PersistenceService.create();
     curriculumProgress = await CurriculumProgressService.create();
+    practiceProgress = await PracticeProgressService.create();
     cloudTts = CloudTtsService(fallback: tts);
     aiTutor = AiTutorService();
     unitData = UnitDataRepository(content: remoteContent);
@@ -72,6 +75,16 @@ class AppStateProvider extends ChangeNotifier {
 
   Future<void> addXp(int amount) async {
     await persistence.addXp(amount);
+    notifyListeners();
+  }
+
+  Future<void> markDriveUnitsComplete(List<int> units) async {
+    await practiceProgress.markDriveUnitsComplete(units);
+    notifyListeners();
+  }
+
+  Future<void> markVocabUnitsComplete(List<int> units) async {
+    await practiceProgress.markVocabUnitsComplete(units);
     notifyListeners();
   }
 

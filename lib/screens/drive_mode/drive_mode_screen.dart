@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -186,6 +188,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   }
 
   void _finishSession() {
+    unawaited(_app.markDriveUnitsComplete(widget.units));
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

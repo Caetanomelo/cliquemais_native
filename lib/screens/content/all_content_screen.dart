@@ -53,6 +53,7 @@ class AllContentScreen extends StatelessWidget {
               context,
               units: app.unitData.unitMeta,
               currentCefr: journey.cefr,
+              completedUnits: app.practiceProgress.vocabCompletedUnits,
               onPicked: (units) => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
               ),
@@ -61,6 +62,7 @@ class AllContentScreen extends StatelessWidget {
               context,
               units: app.unitData.unitMeta,
               currentCefr: journey.cefr,
+              completedUnits: app.practiceProgress.driveCompletedUnits,
               onPicked: (units) => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
               ),
