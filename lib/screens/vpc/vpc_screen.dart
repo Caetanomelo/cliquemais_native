@@ -33,6 +33,7 @@ class _VpcScreenState extends State<VpcScreen> {
   late final AppStateProvider _app;
   late final ConfettiController _confetti;
   List<VocabItem> _items = const [];
+  final Set<int> _correctIndices = {};
   int _index = 0;
   bool _listening = false;
   bool _processing = false;
@@ -120,6 +121,7 @@ class _VpcScreenState extends State<VpcScreen> {
   void _showResult(int sc, String spoken, bool exact) {
     final xp = sc >= 85 ? 15 : (sc >= 50 ? 8 : 3);
     _app.addXp(xp);
+    if (exact) _correctIndices.add(_index);
 
     setState(() {
       _score = sc;
@@ -161,7 +163,9 @@ class _VpcScreenState extends State<VpcScreen> {
   }
 
   void _finishSession() {
-    unawaited(_app.markVocabUnitsComplete(widget.units));
+    if (_correctIndices.length == _items.length) {
+      unawaited(_app.markVocabUnitsComplete(widget.units));
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

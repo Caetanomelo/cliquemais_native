@@ -30,6 +30,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   List<Phrase> _phrases = const [];
   int _index = 0;
   int _attemptCount = 0;
+  final Set<int> _correctIndices = {};
   bool _busy = false;
   bool _listening = false;
   String _statusText = 'Preparando…';
@@ -122,6 +123,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
 
     final willAdvance = score >= 0.40 || _attemptCount >= 3;
     _app.chime.play(willAdvance);
+    if (willAdvance) _correctIndices.add(_index);
     setState(() => _resultKind = willAdvance ? _ResultKind.success : _ResultKind.retry);
 
     Future.delayed(const Duration(milliseconds: 5000), () async {
@@ -188,7 +190,9 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   }
 
   void _finishSession() {
-    unawaited(_app.markDriveUnitsComplete(widget.units));
+    if (_correctIndices.length == _phrases.length) {
+      unawaited(_app.markDriveUnitsComplete(widget.units));
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
