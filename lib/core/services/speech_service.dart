@@ -22,6 +22,7 @@ class SpeechService {
     required bool partialResults,
     Duration listenFor = const Duration(seconds: 12),
     Duration pauseFor = const Duration(seconds: 3),
+    String localeId = 'en_US',
   }) async {
     if (!_available) {
       final ok = await init();
@@ -35,7 +36,7 @@ class SpeechService {
           cancelOnError: true,
           listenFor: listenFor,
           pauseFor: pauseFor,
-          localeId: 'en_US',
+          localeId: localeId,
         ),
       );
     } catch (_) {

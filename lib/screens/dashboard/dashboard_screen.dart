@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/level_unit_picker.dart';
+import '../ai_tutor/ai_tutor_screen.dart';
 import '../content/all_content_screen.dart';
 import '../drive_mode/drive_mode_screen.dart';
 import '../settings/settings_screen.dart';
@@ -46,6 +47,12 @@ class DashboardScreen extends StatelessWidget {
             _LevelTrack(cefr: journey.cefr, levelFraction: journey.levelFraction),
             const SizedBox(height: 22),
             _XpDailySection(todayXp: app.todayXp, goal: AppStateProvider.dailyXpGoal),
+            const SizedBox(height: 16),
+            _AiTutorPrimaryCard(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AiTutorScreen()),
+              ),
+            ),
             const SizedBox(height: 26),
             const _SectionLabel('DRIVE MODE'),
             const SizedBox(height: 12),
@@ -322,6 +329,51 @@ class _DriveModePrimaryCard extends StatelessWidget {
                         style: TextStyle(fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
                     SizedBox(height: 3),
                     Text('Prática de pronúncia mãos-livres, com comandos de voz',
+                        style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppTheme.accentBright),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AiTutorPrimaryCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AiTutorPrimaryCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: AppTheme.glassCard(),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
+                child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Tutor IA',
+                        style: TextStyle(fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
+                    SizedBox(height: 3),
+                    Text('Converse e pratique pronúncia com o professor de IA',
                         style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
                   ],
                 ),

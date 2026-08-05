@@ -5,10 +5,12 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import 'ai_tutor_call_screen.dart';
 
 /// IA Tutor — Gemini-backed chat (via the shared Netlify `ai-chat` function)
-/// with 4 modes (chat/grammar/vocab/pronunciation), matching the source
-/// app's `AiTutor` module. No API key required from the user.
+/// with 2 modes (chat/pronunciation), matching the web app's merged `AiTutor`
+/// module. Pronúncia mode also offers a live voice call with the AI. No API
+/// key required from the user.
 class AiTutorScreen extends StatefulWidget {
   const AiTutorScreen({super.key});
 
@@ -103,6 +105,25 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
       body: Column(
         children: [
           _ModeTabs(mode: _mode, onChanged: _switchMode),
+          if (_mode == AiTutorMode.pronunciation)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AiTutorCallScreen()),
+                  ),
+                  icon: const Icon(Icons.call_rounded, size: 18),
+                  label: const Text('Chamada de Voz com o Tutor IA', style: TextStyle(fontFamily: 'Sora', fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.accentBright,
+                    side: const BorderSide(color: AppTheme.accentBright),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ),
           Expanded(
             child: ListView(
               controller: _scroll,
@@ -173,8 +194,6 @@ class _ModeTabs extends StatelessWidget {
 
   static const _labels = {
     AiTutorMode.chat: ('Conversa', Icons.chat_bubble_outline_rounded),
-    AiTutorMode.grammar: ('Gramática', Icons.menu_book_rounded),
-    AiTutorMode.vocab: ('Vocabulário', Icons.style_rounded),
     AiTutorMode.pronunciation: ('Pronúncia', Icons.record_voice_over_rounded),
   };
 

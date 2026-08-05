@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../netlify_config.dart';
 
-enum AiTutorMode { chat, grammar, vocab, pronunciation }
+enum AiTutorMode { chat, pronunciation }
 
 class AiChatMessage {
   final String role; // 'user' or 'assistant'

@@ -42,6 +42,10 @@ dependencies:
   speech_to_text: ^7.4.0
   flutter_tts: ^4.2.5
 
+  # Raw WAV mic capture for the AI Tutor call screen's hold-to-talk button
+  # (Azure Pronunciation Assessment needs raw PCM, not just recognized text)
+  record: ^6.2.1
+
   # Persistence
   shared_preferences: ^2.5.3
 

@@ -4,7 +4,8 @@ import '../../core/services/ai_tutor_service.dart' show AiTutorMode;
 import '../../core/services/remote_content_service.dart';
 
 /// Loads the AI Tutor's content (system prompts, quick-suggestion chips,
-/// welcome messages) — one entry per mode (chat/grammar/vocab/pronunciation).
+/// welcome messages) — one entry per mode (chat/pronunciation), plus a
+/// standalone 'call' entry used by the voice-call screen (not a tab).
 /// Content comes straight from [RemoteContentService] (Netlify/Supabase-hosted)
 /// — no offline fallback.
 class AiContentRepository {
@@ -35,4 +36,9 @@ class AiContentRepository {
   String systemPromptFor(AiTutorMode mode) => _systemPrompts?[mode.name] ?? '';
   List<String> quickSuggestionsFor(AiTutorMode mode) => _quickSuggestions?[mode.name] ?? const [];
   String welcomeMessageFor(AiTutorMode mode) => _welcomeMessages?[mode.name] ?? '';
+
+  /// Raw key lookup for content not backed by an [AiTutorMode] tab — namely
+  /// 'call', used by the voice-call screen.
+  String systemPromptForKey(String key) => _systemPrompts?[key] ?? '';
+  String welcomeMessageForKey(String key) => _welcomeMessages?[key] ?? '';
 }

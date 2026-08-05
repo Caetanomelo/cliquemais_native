@@ -11,6 +11,7 @@ import '../core/services/curriculum_progress_service.dart';
 import '../core/services/practice_progress_service.dart';
 import '../core/services/cloud_tts_service.dart';
 import '../core/services/ai_tutor_service.dart';
+import '../core/services/pronunciation_assessment_service.dart';
 import '../core/services/push_service.dart';
 import '../core/services/remote_content_service.dart';
 import '../data/repositories/unit_data_repository.dart';
@@ -36,6 +37,7 @@ class AppStateProvider extends ChangeNotifier {
   final PushService push = PushService();
   late final CloudTtsService cloudTts;
   late final AiTutorService aiTutor;
+  late final PronunciationAssessmentService pronunciation;
 
   bool _ready = false;
   bool get ready => _ready;
@@ -46,6 +48,7 @@ class AppStateProvider extends ChangeNotifier {
     practiceProgress = await PracticeProgressService.create();
     cloudTts = CloudTtsService(fallback: tts);
     aiTutor = AiTutorService();
+    pronunciation = PronunciationAssessmentService();
     unitData = UnitDataRepository(content: remoteContent);
     curriculum = CurriculumRepository(content: remoteContent);
     aiContent = AiContentRepository(content: remoteContent);
