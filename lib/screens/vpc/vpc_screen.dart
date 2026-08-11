@@ -10,6 +10,7 @@ import '../../data/models/vocab_item.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/speech_bubble.dart';
+import '../../widgets/unit_complete_dialog.dart';
 import '../../widgets/vpc_ring_painter.dart';
 
 enum _Overlay { none, celebrate, fail }
@@ -136,24 +137,23 @@ class _VpcScreenState extends State<VpcScreen> {
 
     final dismissAfter = exact ? const Duration(milliseconds: 2400) : const Duration(milliseconds: 2200);
     Future.delayed(dismissAfter, () {
-      if (mounted) setState(() => _overlay = _Overlay.none);
-    });
-
-    Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
       _processing = false;
       if (exact) {
         if (_index < _items.length - 1) {
           setState(() {
+            _overlay = _Overlay.none;
             _index++;
           });
           _resetUi();
         } else {
+          setState(() => _overlay = _Overlay.none);
           _finishSession();
         }
       } else {
         // Retry: never auto-advances on failure, no matter the attempt count.
         setState(() {
+          _overlay = _Overlay.none;
           _score = null;
           _spoken = null;
           _liveText = '';
@@ -166,23 +166,7 @@ class _VpcScreenState extends State<VpcScreen> {
     if (_correctIndices.length == _items.length) {
       unawaited(_app.markVocabUnitsComplete(widget.units));
     }
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surfaceDark,
-        title: const Text('Unidade concluída!', style: TextStyle(color: AppTheme.textMainDark)),
-        content: const Text('Você praticou todo o vocabulário desta unidade.', style: TextStyle(color: AppTheme.textSubDark)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Voltar ao início'),
-          ),
-        ],
-      ),
-    );
+    showUnitCompleteDialog(context, message: 'Você praticou todo o vocabulário desta unidade.');
   }
 
   Color _ringColor(int sc) {

@@ -7,6 +7,8 @@ import '../../core/dashboard_stats.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/coming_soon.dart';
+import '../../widgets/info_card_row.dart';
 import '../../widgets/level_unit_picker.dart';
 import '../ai_tutor/ai_tutor_screen.dart';
 import '../content/all_content_screen.dart';
@@ -38,7 +40,7 @@ class DashboardScreen extends StatelessWidget {
             const SizedBox(height: 18),
             _GreetingHeader(
               cefr: journey.cefr,
-              onBell: () => _emBreve(context),
+              onBell: () => showComingSoonSnackbar(context),
               onSettings: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               ),
@@ -105,12 +107,6 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: const AppBottomNav(current: AppTab.inicio),
-    );
-  }
-
-  void _emBreve(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Em breve'), duration: Duration(seconds: 2)),
     );
   }
 }
@@ -303,41 +299,24 @@ class _DriveModePrimaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
+    return InfoCardRow(
+      onTap: onTap,
+      padding: const EdgeInsets.all(20),
+      decoration: AppTheme.glassCard(),
       borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: AppTheme.glassCard(),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
-                child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Drive Mode',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
-                    SizedBox(height: 3),
-                    Text('Prática de pronúncia mãos-livres, com comandos de voz',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.accentBright),
-            ],
-          ),
-        ),
+      gap: 16,
+      titleFontSize: 16,
+      titleFontWeight: FontWeight.w800,
+      subtitleFontSize: 12,
+      chevronColor: AppTheme.accentBright,
+      leading: Container(
+        width: 56,
+        height: 56,
+        decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
+        child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
       ),
+      title: 'Drive Mode',
+      subtitle: 'Prática de pronúncia mãos-livres, com comandos de voz',
     );
   }
 }
@@ -348,41 +327,24 @@ class _AiTutorPrimaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
+    return InfoCardRow(
+      onTap: onTap,
+      padding: const EdgeInsets.all(20),
+      decoration: AppTheme.glassCard(),
       borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: AppTheme.glassCard(),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
-                child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Tutor IA',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
-                    SizedBox(height: 3),
-                    Text('Converse e pratique pronúncia com o professor de IA',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.accentBright),
-            ],
-          ),
-        ),
+      gap: 16,
+      titleFontSize: 16,
+      titleFontWeight: FontWeight.w800,
+      subtitleFontSize: 12,
+      chevronColor: AppTheme.accentBright,
+      leading: Container(
+        width: 56,
+        height: 56,
+        decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
+        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
       ),
+      title: 'Tutor IA',
+      subtitle: 'Converse e pratique pronúncia com o professor de IA',
     );
   }
 }
@@ -396,43 +358,23 @@ class _SecondaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      child: InkWell(
+    return InfoCardRow(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceDark.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-            border: Border.all(color: AppTheme.borderDark),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(color: AppTheme.green.withValues(alpha: 0.15), shape: BoxShape.circle),
-                child: Icon(icon, color: AppTheme.green),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.textSubDark),
-            ],
-          ),
-        ),
+        border: Border.all(color: AppTheme.borderDark),
       ),
+      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(color: AppTheme.green.withValues(alpha: 0.15), shape: BoxShape.circle),
+        child: Icon(icon, color: AppTheme.green),
+      ),
+      title: title,
+      subtitle: subtitle,
     );
   }
 }
@@ -607,41 +549,23 @@ class _ContentBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
+    return InfoCardRow(
+      onTap: onTap,
+      padding: const EdgeInsets.all(18),
+      decoration: AppTheme.glassCard(),
       borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: AppTheme.glassCard(),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: AppTheme.accent2.withValues(alpha: 0.18), shape: BoxShape.circle),
-                child: const Icon(Icons.school_rounded, color: AppTheme.accent2),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Todo o Conteúdo',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
-                    SizedBox(height: 3),
-                    Text('Todas as unidades e lições, por livro',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.accentBright),
-            ],
-          ),
-        ),
+      titleFontSize: 15,
+      titleFontWeight: FontWeight.w800,
+      subtitleFontSize: 12,
+      chevronColor: AppTheme.accentBright,
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(color: AppTheme.accent2.withValues(alpha: 0.18), shape: BoxShape.circle),
+        child: const Icon(Icons.school_rounded, color: AppTheme.accent2),
       ),
+      title: 'Todo o Conteúdo',
+      subtitle: 'Todas as unidades e lições, por livro',
     );
   }
 }

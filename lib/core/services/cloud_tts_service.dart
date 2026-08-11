@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
 
-import '../netlify_config.dart';
+import 'netlify_post_json.dart';
 import 'tts_service.dart';
 
 /// Cloud TTS through the shared `/.netlify/functions/tts` Google proxy (the
@@ -38,11 +38,10 @@ class CloudTtsService {
   }
 
   Future<Uint8List> _speakGoogleViaNetlify(String text, String voiceGender) async {
-    final uri = Uri.parse('${NetlifyConfig.baseUrl}/.netlify/functions/tts');
-    final res = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
+    final json = await postJson(
+      _client,
+      'tts',
+      {
         'input': {'text': text},
         'voice': {
           'languageCode': 'en-US',
@@ -50,12 +49,9 @@ class CloudTtsService {
           'ssmlGender': voiceGender == 'female' ? 'FEMALE' : 'MALE',
         },
         'audioConfig': {'audioEncoding': 'MP3'},
-      }),
+      },
+      errorLabel: 'Netlify TTS',
     );
-    if (res.statusCode != 200) {
-      throw Exception('Netlify TTS failed: ${res.statusCode}');
-    }
-    final json = jsonDecode(res.body) as Map<String, dynamic>;
     return base64Decode(json['audioContent'] as String);
   }
 

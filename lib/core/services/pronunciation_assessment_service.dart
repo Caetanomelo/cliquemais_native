@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import '../netlify_config.dart';
+import 'netlify_post_json.dart';
 
 class PronWord {
   final String word;
@@ -50,16 +50,12 @@ class PronunciationAssessmentService {
   PronunciationAssessmentService({http.Client? client}) : _client = client ?? http.Client();
 
   Future<PronunciationResult?> assess(List<int> wavBytes, {String lang = 'en-US'}) async {
-    final uri = Uri.parse('${NetlifyConfig.baseUrl}/.netlify/functions/pronunciation-assess');
-    final res = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'audioBase64': base64Encode(wavBytes), 'lang': lang}),
+    final json = await postJson(
+      _client,
+      'pronunciation-assess',
+      {'audioBase64': base64Encode(wavBytes), 'lang': lang},
+      errorLabel: 'Pronunciation assessment',
     );
-    if (res.statusCode != 200) {
-      throw Exception('Pronunciation assessment failed (${res.statusCode}): ${res.body}');
-    }
-    final json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final nBest = json['NBest'] as List?;
     if (nBest == null || nBest.isEmpty) return null;
     final best = nBest.first as Map<String, dynamic>;

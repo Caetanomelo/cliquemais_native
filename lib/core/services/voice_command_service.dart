@@ -1,3 +1,5 @@
+import 'text_normalize.dart';
+
 /// Port of VoiceCommandRegistry (index.html:3635-3860) — Drive Mode's
 /// local, offline command matcher. Pure string operations, no AI/network.
 enum VoiceIntent { next, prev, repeat, pause, resume, exit, confirm, skip }
@@ -86,17 +88,7 @@ class VoiceCommandService {
 
   static String _normalise(String? str) {
     if (str == null || str.isEmpty) return '';
-    var s = str.toLowerCase();
-    s = s.replaceAll(RegExp(r'[à-åæ]'), 'a');
-    s = s.replaceAll(RegExp(r'[è-ë]'), 'e');
-    s = s.replaceAll(RegExp(r'[ì-ï]'), 'i');
-    s = s.replaceAll(RegExp(r'[ò-öø]'), 'o');
-    s = s.replaceAll(RegExp(r'[ù-ü]'), 'u');
-    s = s.replaceAll('ç', 'c');
-    s = s.replaceAll('ñ', 'n');
-    s = s.replaceAll(RegExp(r'[^a-z0-9 ]'), '');
-    s = s.replaceAll(RegExp(r'\s+'), ' ');
-    return s.trim();
+    return TextNormalize.normVpc(str);
   }
 
   static double _scoreAlias(String tNorm, Set<String> tWordSet, _AliasEntry aEntry) {

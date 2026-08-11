@@ -7,7 +7,7 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'ai_tutor_call_screen.dart';
 
-/// IA Tutor — Gemini-backed chat (via the shared Netlify `ai-chat` function)
+/// IA Tutor — Claude-backed chat (via the shared Netlify `ai-chat` function)
 /// with 2 modes (chat/pronunciation), matching the web app's merged `AiTutor`
 /// module. Pronúncia mode also offers a live voice call with the AI. No API
 /// key required from the user.

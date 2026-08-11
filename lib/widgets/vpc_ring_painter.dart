@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+
 /// Ports the VPC score ring (decoded_app.html `.vpc-ring-fill` SVG circle,
 /// r=35, stroke-width=7, `showResult()`'s `dash=circ-(sc/100)*circ`).
 class VpcRingPainter extends CustomPainter {
   final double percent; // 0.0-1.0
   final Color strokeColor;
   final Color bgColor;
-  const VpcRingPainter({required this.percent, required this.strokeColor, this.bgColor = const Color(0xFFDDD0B0)});
+  const VpcRingPainter({required this.percent, required this.strokeColor, this.bgColor = AppTheme.borderDark});
 
   @override
   void paint(Canvas canvas, Size size) {

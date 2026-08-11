@@ -248,7 +248,7 @@ class _Hero extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0x33141B29),
+              color: AppTheme.surfaceDark.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
               border: Border.all(color: AppTheme.navBorder),
             ),

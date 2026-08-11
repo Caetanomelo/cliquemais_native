@@ -108,6 +108,12 @@ class AppStateProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    unawaited(tts.stop());
+    unawaited(speech.cancel());
+    cloudTts.dispose();
+    aiTutor.dispose();
+    pronunciation.dispose();
+    push.dispose();
     chime.dispose();
     super.dispose();
   }

@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: _failed
-                      ? const RadialGradient(colors: [Color(0xFFef4444), Color(0xFFb91c1c)])
+                      ? const RadialGradient(colors: [AppTheme.red, AppTheme.red])
                       : const RadialGradient(colors: [AppTheme.accentBright, AppTheme.accent]),
                   boxShadow: [
                     BoxShadow(color: AppTheme.accentBright.withValues(alpha: 0.45), blurRadius: 40, spreadRadius: 6),

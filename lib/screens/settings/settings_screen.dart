@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/info_card_row.dart';
 import '../ai_tutor/ai_tutor_screen.dart';
 import '../content/study_session_screen.dart';
 import '../corp/corp_portal_screen.dart';
@@ -68,37 +69,17 @@ class _ResourceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.surfaceDark,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
+    return InfoCardRow(
+      onTap: onTap,
+      materialColor: AppTheme.surfaceDark,
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.borderDark),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: AppTheme.accentBright),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.textSubDark),
-            ],
-          ),
-        ),
+        border: Border.all(color: AppTheme.borderDark),
       ),
+      gap: 12,
+      leading: Icon(icon, color: AppTheme.accentBright),
+      title: title,
+      subtitle: subtitle,
     );
   }
 }

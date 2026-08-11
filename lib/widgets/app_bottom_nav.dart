@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../screens/content/all_content_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import 'coming_soon.dart';
 
 /// The four top-level destinations the persistent bottom nav can jump to.
 enum AppTab { inicio, conteudos, evolucao, perfil }
@@ -61,9 +62,7 @@ class AppBottomNav extends StatelessWidget {
         nav.push(MaterialPageRoute(builder: (_) => const AllContentScreen()));
         break;
       case AppTab.evolucao:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Em breve'), duration: Duration(seconds: 2)),
-        );
+        showComingSoonSnackbar(context);
         break;
       case AppTab.perfil:
         nav.push(MaterialPageRoute(builder: (_) => const SettingsScreen()));

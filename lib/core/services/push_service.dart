@@ -41,4 +41,6 @@ class PushService {
       // Best-effort — will retry on next launch or token refresh.
     }
   }
+
+  void dispose() => _client.close();
 }

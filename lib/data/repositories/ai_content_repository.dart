@@ -33,9 +33,9 @@ class AiContentRepository {
     apply(jsonDecode(raw) as Map<String, dynamic>);
   }
 
-  String systemPromptFor(AiTutorMode mode) => _systemPrompts?[mode.name] ?? '';
+  String systemPromptFor(AiTutorMode mode) => systemPromptForKey(mode.name);
   List<String> quickSuggestionsFor(AiTutorMode mode) => _quickSuggestions?[mode.name] ?? const [];
-  String welcomeMessageFor(AiTutorMode mode) => _welcomeMessages?[mode.name] ?? '';
+  String welcomeMessageFor(AiTutorMode mode) => welcomeMessageForKey(mode.name);
 
   /// Raw key lookup for content not backed by an [AiTutorMode] tab — namely
   /// 'call', used by the voice-call screen.

@@ -10,6 +10,7 @@ import '../../data/models/phrase.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/speech_bubble.dart';
+import '../../widgets/unit_complete_dialog.dart';
 
 enum _ResultKind { none, success, retry }
 
@@ -217,30 +218,14 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
     if (_correctIndices.length == _phrases.length) {
       unawaited(_app.markDriveUnitsComplete(widget.units));
     }
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surfaceDark,
-        title: const Text('Unidade concluída!', style: TextStyle(color: AppTheme.textMainDark)),
-        content: const Text('Você praticou todas as frases desta unidade.', style: TextStyle(color: AppTheme.textSubDark)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Voltar ao início'),
-          ),
-        ],
-      ),
-    );
+    showUnitCompleteDialog(context, message: 'Você praticou todas as frases desta unidade.');
   }
 
   Color _scoreColor(double score) {
-    if (score >= 0.9) return const Color(0xFF4ADE80);
-    if (score >= 0.70) return const Color(0xFF38BDF8);
-    if (score >= 0.40) return const Color(0xFFFBBF24);
-    return const Color(0xFFF87171);
+    if (score >= 0.9) return AppTheme.green;
+    if (score >= 0.70) return AppTheme.accent;
+    if (score >= 0.40) return AppTheme.gold;
+    return AppTheme.red;
   }
 
   String _scoreEmoji(double score) {
