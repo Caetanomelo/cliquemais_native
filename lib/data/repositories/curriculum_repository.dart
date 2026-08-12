@@ -17,6 +17,7 @@ class CurriculumRepository {
   Map<String, UnitCurriculumMeta>? _progression;
   List<CorpTrack>? _corpTracks;
   Map<String, String>? _unitEmojis;
+  Map<String, List<LessonUnit>>? _groupedByBook;
 
   Future<void> loadAll() async {
     await Future.wait([
@@ -71,12 +72,16 @@ class CurriculumRepository {
   String emojiForUnit(String unitId) => _unitEmojis?[unitId] ?? '📘';
 
   /// Units grouped by `book`, preserving first-seen order (matches the web
-  /// app's "Todo o Conteúdo" grouping).
+  /// app's "Todo o Conteúdo" grouping). `units` is immutable after
+  /// [loadAll], so this is computed once and cached — `AllContentScreen`
+  /// calls it on every `context.watch` rebuild (XP/streak changes included),
+  /// which was otherwise re-grouping the full unit list on each of those.
   Map<String, List<LessonUnit>> groupedByBook() {
+    if (_groupedByBook != null) return _groupedByBook!;
     final result = <String, List<LessonUnit>>{};
     for (final u in units) {
       result.putIfAbsent(u.book, () => []).add(u);
     }
-    return result;
+    return _groupedByBook = result;
   }
 }
