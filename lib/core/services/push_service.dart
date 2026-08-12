@@ -32,11 +32,13 @@ class PushService {
   Future<void> _subscribe(String token) async {
     try {
       final uri = Uri.parse('${NetlifyConfig.baseUrl}/.netlify/functions/subscribe');
-      await _client.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'token': token}),
-      );
+      await _client
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'token': token}),
+          )
+          .timeout(const Duration(seconds: 20));
     } catch (_) {
       // Best-effort — will retry on next launch or token refresh.
     }

@@ -14,11 +14,16 @@ Future<Map<String, dynamic>> postJson(
   required String errorLabel,
 }) async {
   final uri = Uri.parse('${NetlifyConfig.baseUrl}/.netlify/functions/$functionName');
-  final res = await client.post(
-    uri,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(body),
-  );
+  final res = await client
+      .post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      )
+      // Netlify functions themselves cap out at ~10-12s server-side; give
+      // this a comfortable margin above that instead of hanging forever
+      // on a stalled connection.
+      .timeout(const Duration(seconds: 20));
   if (res.statusCode != 200) {
     throw Exception('$errorLabel failed (${res.statusCode}): ${res.body}');
   }
