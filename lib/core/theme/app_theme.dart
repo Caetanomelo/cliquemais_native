@@ -34,6 +34,10 @@ class AppTheme {
   static const Color accentBright = Color(0xFF00F2FE);
   // --btn-primary-start — secondary blue for icon variety on cards.
   static const Color accent2 = Color(0xFF0EA5E9);
+  // White text/icons on accent2 only reach 2.77:1 (fails WCAG AA's 4.5:1
+  // for text / 3:1 for icons) — accent2 stays as-is for icon/text-on-navy
+  // uses (6.8:1+ there), but solid button fills need this darker shade.
+  static const Color buttonBg = Color(0xFF0369A1);
   // --success / --error / --warning (warning doubles as "gold" — the
   // web reuses amber #FBBF24 for streak/trophy toasts).
   static const Color green = Color(0xFF4ADE80);
@@ -51,11 +55,13 @@ class AppTheme {
   static const double radiusBtn = 50;
   static const double radiusSm = 12;
 
-  // --btn-primary gradient (135deg, #0ea5e9 -> #2563eb)
+  // --btn-primary gradient (135deg, #0ea5e9 -> #2563eb), darkened from the
+  // web's literal values to buttonBg -> #2563eb: white text/icons on the
+  // original #0ea5e9 stop only hit 2.77:1, below WCAG AA.
   static const LinearGradient primaryButtonGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF0EA5E9), Color(0xFF2563EB)],
+    colors: [buttonBg, Color(0xFF2563EB)],
   );
 
   /// Glass-card look (blur is left to the caller via BackdropFilter;
@@ -113,7 +119,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: accent2,
+          backgroundColor: buttonBg,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusBtn),

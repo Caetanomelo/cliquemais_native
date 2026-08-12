@@ -116,7 +116,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ElevatedButton(
                 onPressed: _boot,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accent,
+                  backgroundColor: AppTheme.buttonBg,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
