@@ -194,10 +194,25 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
 
   @override
   void dispose() {
-    unawaited(_recorder.stop());
-    _recorder.dispose();
+    // stop() must finish before dispose() runs — firing both unawaited let
+    // dispose() tear down the plugin's native session while stop() was
+    // still flushing the in-progress recording, which could throw inside
+    // stop() (using an already-disposed channel) or leave the Android
+    // AudioRecord session half-released for the next screen that needs it.
+    unawaited(_stopThenDisposeRecorder());
     _app.tts.stop();
     super.dispose();
+  }
+
+  Future<void> _stopThenDisposeRecorder() async {
+    try {
+      if (await _recorder.isRecording()) {
+        await _recorder.stop();
+      }
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._stopThenDisposeRecorder: stop failed', fatal: false));
+    }
+    await _recorder.dispose();
   }
 
   @override
