@@ -18,6 +18,9 @@ void main() async {
       return true;
     };
   } catch (e) {
+    // Crashlytics itself needs Firebase.initializeApp() to have succeeded,
+    // so there's no structured-logging path available for this specific
+    // failure — debugPrint is the only option left, not an oversight.
     debugPrint('Firebase.initializeApp failed: $e');
   }
   runApp(const CliqueMaisApp());

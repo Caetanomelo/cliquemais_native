@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -37,7 +38,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     try {
       await app.init();
     } catch (e, st) {
-      debugPrint('AppStateProvider.init failed: $e\n$st');
+      // debugPrint is a no-op in release builds, so this failure — the one
+      // that leaves the user stuck at the splash screen — was invisible in
+      // production telemetry. Every other error site in the app already
+      // reports through Crashlytics; this is the one that matters most.
+      try {
+        await FirebaseCrashlytics.instance.recordError(e, st, reason: 'SplashScreen._boot: AppStateProvider.init failed', fatal: false);
+      } catch (_) {
+        // Best-effort — must never block showing the retry UI below.
+      }
       if (!mounted) return;
       setState(() => _failed = true);
       return;
