@@ -8,6 +8,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     // Reads android/app/google-services.json — required for Firebase Cloud Messaging.
     id("com.google.gms.google-services")
+    // Uploads ProGuard/R8 mapping files on release builds so Crashlytics can de-obfuscate stack traces.
+    id("com.google.firebase.crashlytics")
 }
 
 // Release signing — secrets live in android/key.properties (gitignored, not
