@@ -321,19 +321,24 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                           const SpeechBubble(),
                           const SizedBox(height: 12),
                         ],
-                        GestureDetector(
-                          onTap: _busy ? null : (_listening ? _stopRecording : _startListening),
-                          child: Container(
-                            width: 76,
-                            height: 76,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _listening ? AppTheme.red : AppTheme.accent,
-                              boxShadow: _listening
-                                  ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
-                                  : null,
+                        Semantics(
+                          button: true,
+                          enabled: !_busy,
+                          label: _listening ? 'Parar gravação' : 'Gravar pronúncia',
+                          child: GestureDetector(
+                            onTap: _busy ? null : (_listening ? _stopRecording : _startListening),
+                            child: Container(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _listening ? AppTheme.red : AppTheme.accent,
+                                boxShadow: _listening
+                                    ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
+                                    : null,
+                              ),
+                              child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
                             ),
-                            child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
                           ),
                         ),
                         const SizedBox(height: 10),

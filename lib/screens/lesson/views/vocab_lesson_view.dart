@@ -100,6 +100,7 @@ class _VocabLessonViewState extends State<VocabLessonView> {
                   IconButton(
                     onPressed: () => widget.onSpeak(item.en),
                     icon: const Icon(Icons.volume_up_rounded, color: AppTheme.gold, size: 28),
+                    tooltip: 'Ouvir pronúncia',
                   ),
                   const SizedBox(height: 4),
                   Material(

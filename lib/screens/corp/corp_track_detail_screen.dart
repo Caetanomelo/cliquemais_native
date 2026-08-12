@@ -40,6 +40,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
                   IconButton(
                     onPressed: () => speak(track.audio),
                     icon: const Icon(Icons.volume_up_rounded, color: AppTheme.accentBright),
+                    tooltip: 'Ouvir áudio',
                   ),
                 ],
               ),
@@ -93,6 +94,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
                     IconButton(
                       onPressed: () => speak(v.en),
                       icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.accentBright),
+                      tooltip: 'Ouvir pronúncia',
                     ),
                   ],
                 ),

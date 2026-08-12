@@ -80,6 +80,7 @@ class _DialogueBubble extends StatelessWidget {
                         constraints: const BoxConstraints(),
                         icon: const Icon(Icons.volume_up_rounded, size: 16, color: AppTheme.accentBright),
                         onPressed: () => onSpeak(line.text),
+                        tooltip: 'Ouvir frase',
                       ),
                     ],
                   ),

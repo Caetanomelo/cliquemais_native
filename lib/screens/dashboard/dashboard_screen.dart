@@ -143,13 +143,17 @@ class _GreetingHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        GestureDetector(
-          onTap: onSettings,
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
-            child: const Icon(Icons.person_rounded, color: Colors.white),
+        Semantics(
+          button: true,
+          label: 'Abrir configurações',
+          child: GestureDetector(
+            onTap: onSettings,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
+              child: const Icon(Icons.person_rounded, color: Colors.white),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -183,6 +187,7 @@ class _GreetingHeader extends StatelessWidget {
         IconButton(
           onPressed: onBell,
           icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.textMainDark),
+          tooltip: 'Notificações',
         ),
       ],
     );

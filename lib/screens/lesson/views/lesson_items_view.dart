@@ -53,6 +53,7 @@ class LessonItemsView<T> extends StatelessWidget {
               IconButton(
                 onPressed: () => onSpeak(speakTextOf(it)),
                 icon: const Icon(Icons.volume_up_rounded, color: AppTheme.accentBright),
+                tooltip: 'Ouvir pronúncia',
               ),
             ],
           ),

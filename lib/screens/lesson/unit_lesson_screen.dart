@@ -176,14 +176,18 @@ class _LessonDots extends StatelessWidget {
         children: [
           for (var i = 0; i < count; i++)
             Expanded(
-              child: GestureDetector(
-                onTap: () => onTap(i),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: i <= index ? AppTheme.accentBright : AppTheme.borderDark,
-                    borderRadius: BorderRadius.circular(3),
+              child: Semantics(
+                button: true,
+                label: 'Ir para etapa ${i + 1} de $count',
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i <= index ? AppTheme.accentBright : AppTheme.borderDark,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
               ),

@@ -240,25 +240,30 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
                     : null,
               ),
               const SizedBox(height: 32),
-              GestureDetector(
-                onTapDown: busy ? null : (_) => _startRecording(),
-                onTapUp: busy ? null : (_) => _stopRecordingAndSend(),
-                onTapCancel: busy ? null : _cancelRecording,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: listening ? AppTheme.red : AppTheme.accent,
-                    boxShadow: listening
-                        ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.5), blurRadius: 20, spreadRadius: 3)]
-                        : null,
-                  ),
-                  child: Icon(
-                    listening ? Icons.stop_rounded : Icons.mic_rounded,
-                    color: Colors.white,
-                    size: 36,
+              Semantics(
+                button: true,
+                enabled: !busy,
+                label: listening ? 'Gravando. Solte para enviar.' : 'Aperte e segure para falar',
+                child: GestureDetector(
+                  onTapDown: busy ? null : (_) => _startRecording(),
+                  onTapUp: busy ? null : (_) => _stopRecordingAndSend(),
+                  onTapCancel: busy ? null : _cancelRecording,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: listening ? AppTheme.red : AppTheme.accent,
+                      boxShadow: listening
+                          ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.5), blurRadius: 20, spreadRadius: 3)]
+                          : null,
+                    ),
+                    child: Icon(
+                      listening ? Icons.stop_rounded : Icons.mic_rounded,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                   ),
                 ),
               ),

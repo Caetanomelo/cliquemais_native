@@ -276,19 +276,23 @@ class _VpcScreenState extends State<VpcScreen> {
                               label: const Text('Tutor', style: TextStyle(color: AppTheme.accentBright)),
                             ),
                             const SizedBox(width: 12),
-                            GestureDetector(
-                              onTap: _listening ? _stopRecording : _record,
-                              child: Container(
-                                width: 76,
-                                height: 76,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _listening ? AppTheme.red : AppTheme.accent,
-                                  boxShadow: _listening
-                                      ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
-                                      : null,
+                            Semantics(
+                              button: true,
+                              label: _listening ? 'Parar gravação' : 'Gravar pronúncia',
+                              child: GestureDetector(
+                                onTap: _listening ? _stopRecording : _record,
+                                child: Container(
+                                  width: 76,
+                                  height: 76,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _listening ? AppTheme.red : AppTheme.accent,
+                                    boxShadow: _listening
+                                        ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
+                                        : null,
+                                  ),
+                                  child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
                                 ),
-                                child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
                               ),
                             ),
                           ],

@@ -179,6 +179,7 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                   IconButton.filled(
                     onPressed: !_sending ? () => _send(_controller.text) : null,
                     icon: const Icon(Icons.send_rounded),
+                    tooltip: 'Enviar mensagem',
                   ),
                 ],
               ),
