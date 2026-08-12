@@ -49,6 +49,31 @@ android {
         versionName = flutter.versionName
     }
 
+    // applicationId stays identical across flavors on purpose: there's only
+    // one Firebase Android app registered (google-services.json's
+    // package_name), so a suffixed dev/staging id would silently break
+    // Crashlytics/FCM init in those builds. Flavors exist to build against a
+    // different backend (see NetlifyConfig.baseUrl's API_BASE_URL dart-define)
+    // and to tell the installed app apart by name/version, not to install all
+    // three side by side.
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Click+ Dev")
+        }
+        create("staging") {
+            dimension = "env"
+            versionNameSuffix = "-staging"
+            resValue("string", "app_name", "Click+ Staging")
+        }
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "Click+")
+        }
+    }
+
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {

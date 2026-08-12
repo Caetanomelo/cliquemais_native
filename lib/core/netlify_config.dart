@@ -11,6 +11,13 @@
 /// cleartext blocked since API 28) already applies — that's the right
 /// level of protection for this app's data (lesson content, chat prompts,
 /// pronunciation audio — no payments or sensitive PII).
+/// Overridable at build time — `flutter run --flavor dev
+/// --dart-define=API_BASE_URL=https://deploy-preview-x--clickmaisapp.netlify.app`
+/// points a dev/staging flavor at a different backend (e.g. a Netlify branch
+/// deploy) without touching this file. Omitted, it defaults to production.
 class NetlifyConfig {
-  static const baseUrl = 'https://clickmaisapp.netlify.app';
+  static const baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://clickmaisapp.netlify.app',
+  );
 }
