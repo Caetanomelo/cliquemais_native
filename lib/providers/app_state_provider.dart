@@ -43,19 +43,30 @@ class AppStateProvider extends ChangeNotifier {
   bool get ready => _ready;
 
   Future<void> init() async {
-    persistence = await PersistenceService.create();
-    curriculumProgress = await CurriculumProgressService.create();
-    practiceProgress = await PracticeProgressService.create();
     cloudTts = CloudTtsService(fallback: tts);
     aiTutor = AiTutorService();
     pronunciation = PronunciationAssessmentService();
     unitData = UnitDataRepository(content: remoteContent);
     curriculum = CurriculumRepository(content: remoteContent);
     aiContent = AiContentRepository(content: remoteContent);
-    await unitData.loadAll();
-    await curriculum.loadAll();
-    await aiContent.loadAll();
-    await speech.init();
+
+    // None of these depend on each other, so kick them all off together
+    // instead of chaining sequential awaits — the persistence-box opens
+    // (disk I/O) run alongside the content loads (network) and the speech
+    // plugin init (platform channel), shaving real time off cold boot.
+    final persistenceFuture = PersistenceService.create();
+    final curriculumProgressFuture = CurriculumProgressService.create();
+    final practiceProgressFuture = PracticeProgressService.create();
+    await Future.wait([
+      unitData.loadAll(),
+      curriculum.loadAll(),
+      aiContent.loadAll(),
+      speech.init(),
+    ]);
+    persistence = await persistenceFuture;
+    curriculumProgress = await curriculumProgressFuture;
+    practiceProgress = await practiceProgressFuture;
+
     _ready = true;
     notifyListeners();
     // Fire-and-forget: push permission/token registration must never block
