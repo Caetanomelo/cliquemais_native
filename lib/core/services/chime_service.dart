@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 /// Plays the pre-rendered chime assets (synthesized offline to match the
 /// web app's Web-Audio oscillator recipe: success = C5/E5/G5 arpeggio,
@@ -12,8 +15,10 @@ class ChimeService {
     try {
       await _player.stop();
       await _player.play(AssetSource(success ? 'audio/chime_success.wav' : 'audio/chime_fail.wav'));
-    } catch (_) {
-      // Non-critical: a missing/broken audio backend shouldn't block scoring flow.
+    } catch (e, st) {
+      // Non-critical: a missing/broken audio backend shouldn't block scoring
+      // flow, but still worth knowing about in Crashlytics as a non-fatal.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'ChimeService.play failed', fatal: false));
     }
   }
 

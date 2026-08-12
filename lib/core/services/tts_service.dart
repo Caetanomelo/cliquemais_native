@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 /// Wraps flutter_tts for on-device English speech synthesis, replacing the
@@ -51,9 +54,10 @@ class TtsService {
           return;
         }
       }
-    } catch (_) {
+    } catch (e, st) {
       // Voice enumeration isn't available on every platform — fall back
       // to the engine's default voice.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'TtsService.setVoiceGender failed', fatal: false));
     }
   }
 

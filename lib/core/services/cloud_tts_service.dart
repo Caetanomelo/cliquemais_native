@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:http/http.dart' as http;
 
 import 'netlify_post_json.dart';
@@ -30,9 +32,11 @@ class CloudTtsService {
       final bytes = await _speakGoogleViaNetlify(text, voiceGender);
       await _player.stop();
       await _player.play(BytesSource(bytes));
-    } catch (_) {
+    } catch (e, st) {
       // Any network/API failure falls back to on-device speech rather than
-      // leaving the user with silence.
+      // leaving the user with silence, but still gets recorded so a spike
+      // in Netlify/Google TTS failures shows up in Crashlytics.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speak failed', fatal: false));
       await _fallback.speak(text, rate: rate, voiceGender: voiceGender);
     }
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
@@ -74,7 +75,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
     try {
       final path = await _recorder.stop();
       if (path != null) await _safeDelete(path);
-    } catch (_) {}
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._cancelRecording failed', fatal: false));
+    }
     if (mounted) setState(() => _state = _CallState.idle);
   }
 
@@ -83,7 +86,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
     String? path;
     try {
       path = await _recorder.stop();
-    } catch (_) {}
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._stopRecordingAndSend: recorder.stop failed', fatal: false));
+    }
     setState(() => _state = _CallState.thinking);
 
     if (path == null) {
@@ -100,7 +105,8 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
         return;
       }
       await _assessAndSend(bytes);
-    } catch (_) {
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._stopRecordingAndSend failed', fatal: false));
       if (mounted) setState(() => _state = _CallState.idle);
     }
   }
@@ -108,7 +114,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
   Future<void> _safeDelete(String path) async {
     try {
       await File(path).delete();
-    } catch (_) {}
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._safeDelete failed', fatal: false));
+    }
   }
 
   Future<void> _assessAndSend(List<int> wavBytes) async {
@@ -123,14 +131,17 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
         final ptResult = await _app.pronunciation.assess(wavBytes, lang: 'pt-BR');
         transcript = ptResult?.recognizedText ?? '';
       }
-    } catch (_) {
+    } catch (e, st) {
       // Azure unreachable/misconfigured (missing keys, timeout, etc.) — try
       // one plain pt-BR pass as a last resort; if that also fails, give up
       // on this turn gracefully below rather than sending garbage upstream.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._assessAndSend: en-US assess failed', fatal: false));
       try {
         final ptResult = await _app.pronunciation.assess(wavBytes, lang: 'pt-BR');
         transcript = ptResult?.recognizedText ?? '';
-      } catch (_) {}
+      } catch (e2, st2) {
+        unawaited(FirebaseCrashlytics.instance.recordError(e2, st2, reason: 'AiTutorCallScreen._assessAndSend: pt-BR fallback assess failed', fatal: false));
+      }
     }
 
     if (transcript.trim().isEmpty) {
@@ -154,7 +165,8 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
       );
       _history.add(AiChatMessage(role: 'assistant', content: reply));
       await _speak(reply.isNotEmpty ? reply : 'Desculpe, pode repetir?');
-    } catch (_) {
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._sendToAI failed', fatal: false));
       if (mounted) setState(() => _state = _CallState.idle);
     }
   }

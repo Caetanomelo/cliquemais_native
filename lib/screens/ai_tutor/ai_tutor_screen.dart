@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -55,7 +58,8 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
       if (!mounted) return;
       setState(() => _history.add(AiChatMessage(role: 'assistant', content: reply)));
       await _app.addXp(8);
-    } catch (_) {
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorScreen._send failed', fatal: false));
       if (mounted) {
         setState(() => _history.add(const AiChatMessage(
               role: 'assistant',

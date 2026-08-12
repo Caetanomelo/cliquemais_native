@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 /// Wraps speech_to_text. `partialResults` maps to Drive Mode's
@@ -11,8 +14,9 @@ class SpeechService {
   Future<bool> init() async {
     try {
       _available = await _speech.initialize();
-    } catch (_) {
+    } catch (e, st) {
       _available = false;
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'SpeechService.init failed', fatal: false));
     }
     return _available;
   }
@@ -39,9 +43,12 @@ class SpeechService {
           localeId: localeId,
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
       // Device has no usable speech recognizer (or it dropped mid-session) —
-      // fail silently rather than crash; callers already handle empty results.
+      // fail silently rather than crash; callers already handle empty
+      // results. Still recorded as a non-fatal to spot devices/OEMs where
+      // this fails often.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'SpeechService.listen failed', fatal: false));
     }
   }
 

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,8 +26,9 @@ class PushService {
       final token = await messaging.getToken();
       if (token != null) await _subscribe(token);
       messaging.onTokenRefresh.listen(_subscribe);
-    } catch (_) {
+    } catch (e, st) {
       // Push is additive — never required for the app to function.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'PushService.register failed', fatal: false));
     }
   }
 
@@ -39,8 +42,9 @@ class PushService {
             body: jsonEncode({'token': token}),
           )
           .timeout(const Duration(seconds: 20));
-    } catch (_) {
+    } catch (e, st) {
       // Best-effort — will retry on next launch or token refresh.
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'PushService._subscribe failed', fatal: false));
     }
   }
 
