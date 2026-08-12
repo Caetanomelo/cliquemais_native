@@ -24,17 +24,68 @@ import '../data/repositories/ai_content_repository.dart';
 /// keeps it since the curriculum/tutor/TTS pieces are still simple lookups
 /// and network calls, not shared mutable UI state.
 class AppStateProvider extends ChangeNotifier {
+  // Every dependency is injectable so tests (and the boot flow itself) can
+  // swap in fakes instead of hitting real network/disk/platform channels —
+  // previously each service was `new`'d up inline here, so nothing about
+  // this class could be exercised without the real implementations. Screens
+  // only ever go through the single AppStateProvider instance (via
+  // provider), so this is the one seam that needed it.
+  AppStateProvider({
+    RemoteContentService? remoteContent,
+    TtsService? tts,
+    SpeechService? speech,
+    ChimeService? chime,
+    PushService? push,
+    CloudTtsService? cloudTts,
+    AiTutorService? aiTutor,
+    PronunciationAssessmentService? pronunciation,
+    UnitDataRepository? unitData,
+    CurriculumRepository? curriculum,
+    AiContentRepository? aiContent,
+    PersistenceService? persistence,
+    CurriculumProgressService? curriculumProgress,
+    PracticeProgressService? practiceProgress,
+  })  : remoteContent = remoteContent ?? RemoteContentService(),
+        tts = tts ?? TtsService(),
+        speech = speech ?? SpeechService(),
+        chime = chime ?? ChimeService(),
+        push = push ?? PushService(),
+        _seedCloudTts = cloudTts,
+        _seedAiTutor = aiTutor,
+        _seedPronunciation = pronunciation,
+        _seedUnitData = unitData,
+        _seedCurriculum = curriculum,
+        _seedAiContent = aiContent,
+        _seedPersistence = persistence,
+        _seedCurriculumProgress = curriculumProgress,
+        _seedPracticeProgress = practiceProgress;
+
+  final RemoteContentService remoteContent;
+  final TtsService tts;
+  final SpeechService speech;
+  final ChimeService chime;
+  final PushService push;
+
+  // Built (or adopted from the constructor) in init(), since the real
+  // implementations need an async factory (persistence/progress) or depend
+  // on another injected service (cloudTts on tts, the repositories on
+  // remoteContent) that isn't known until the constructor body has run.
+  final CloudTtsService? _seedCloudTts;
+  final AiTutorService? _seedAiTutor;
+  final PronunciationAssessmentService? _seedPronunciation;
+  final UnitDataRepository? _seedUnitData;
+  final CurriculumRepository? _seedCurriculum;
+  final AiContentRepository? _seedAiContent;
+  final PersistenceService? _seedPersistence;
+  final CurriculumProgressService? _seedCurriculumProgress;
+  final PracticeProgressService? _seedPracticeProgress;
+
   late final PersistenceService persistence;
   late final CurriculumProgressService curriculumProgress;
   late final PracticeProgressService practiceProgress;
-  final RemoteContentService remoteContent = RemoteContentService();
   late final UnitDataRepository unitData;
   late final CurriculumRepository curriculum;
   late final AiContentRepository aiContent;
-  final TtsService tts = TtsService();
-  final SpeechService speech = SpeechService();
-  final ChimeService chime = ChimeService();
-  final PushService push = PushService();
   late final CloudTtsService cloudTts;
   late final AiTutorService aiTutor;
   late final PronunciationAssessmentService pronunciation;
@@ -43,20 +94,26 @@ class AppStateProvider extends ChangeNotifier {
   bool get ready => _ready;
 
   Future<void> init() async {
-    cloudTts = CloudTtsService(fallback: tts);
-    aiTutor = AiTutorService();
-    pronunciation = PronunciationAssessmentService();
-    unitData = UnitDataRepository(content: remoteContent);
-    curriculum = CurriculumRepository(content: remoteContent);
-    aiContent = AiContentRepository(content: remoteContent);
+    cloudTts = _seedCloudTts ?? CloudTtsService(fallback: tts);
+    aiTutor = _seedAiTutor ?? AiTutorService();
+    pronunciation = _seedPronunciation ?? PronunciationAssessmentService();
+    unitData = _seedUnitData ?? UnitDataRepository(content: remoteContent);
+    curriculum = _seedCurriculum ?? CurriculumRepository(content: remoteContent);
+    aiContent = _seedAiContent ?? AiContentRepository(content: remoteContent);
 
     // None of these depend on each other, so kick them all off together
     // instead of chaining sequential awaits — the persistence-box opens
     // (disk I/O) run alongside the content loads (network) and the speech
     // plugin init (platform channel), shaving real time off cold boot.
-    final persistenceFuture = PersistenceService.create();
-    final curriculumProgressFuture = CurriculumProgressService.create();
-    final practiceProgressFuture = PracticeProgressService.create();
+    final persistenceFuture = _seedPersistence != null
+        ? Future.value(_seedPersistence)
+        : PersistenceService.create();
+    final curriculumProgressFuture = _seedCurriculumProgress != null
+        ? Future.value(_seedCurriculumProgress)
+        : CurriculumProgressService.create();
+    final practiceProgressFuture = _seedPracticeProgress != null
+        ? Future.value(_seedPracticeProgress)
+        : PracticeProgressService.create();
     await Future.wait([
       unitData.loadAll(),
       curriculum.loadAll(),
