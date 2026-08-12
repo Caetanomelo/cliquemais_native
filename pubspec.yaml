@@ -48,6 +48,7 @@ dependencies:
 
   # Persistence
   shared_preferences: ^2.5.3
+  path_provider: ^2.1.5
 
   # Audio (chime playback)
   audioplayers: ^6.1.0
@@ -77,6 +78,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+
+  # Fakes PathProviderPlatform in remote_content_service_test.dart
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
 
 # Icone do app (logo Click+), gerado a partir de assets/icon/icon.png via
 # `dart run flutter_launcher_icons`.
