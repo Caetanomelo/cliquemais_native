@@ -115,6 +115,7 @@ class AppStateProvider extends ChangeNotifier {
     pronunciation.dispose();
     push.dispose();
     chime.dispose();
+    remoteContent.dispose();
     super.dispose();
   }
 }

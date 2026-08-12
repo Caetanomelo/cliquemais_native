@@ -11,13 +11,19 @@ import '../netlify_config.dart';
 /// keeping the install size small and content edits (new units, phrases,
 /// vocab) visible immediately without an app-store release.
 class RemoteContentService {
+  final http.Client _client;
+
+  RemoteContentService({http.Client? client}) : _client = client ?? http.Client();
+
   Future<String> loadString(String asset) async {
     final uri = Uri.parse('${NetlifyConfig.baseUrl}/data/$asset');
-    final res = await http.get(uri).timeout(const Duration(seconds: 15));
+    final res = await _client.get(uri).timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) {
       throw Exception('Failed to load $asset: HTTP ${res.statusCode}');
     }
     jsonDecode(res.body); // sanity check — surface malformed payloads early
     return res.body;
   }
+
+  void dispose() => _client.close();
 }
