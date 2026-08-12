@@ -1,9 +1,26 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../../core/services/remote_content_service.dart';
 import '../models/unit_meta.dart';
 import '../models/phrase.dart';
 import '../models/vocab_item.dart';
+
+// Top-level so compute() can ship them to a background isolate — drive_phrases.json
+// and vocab_items.json run into the hundreds of KB, and decoding + mapping them on
+// the main isolate happens right at boot, alongside every other loadAll() call.
+List<UnitPhrases> _parseDrivePhrases(String raw) {
+  final list = jsonDecode(raw) as List;
+  return list.map((e) => UnitPhrases.fromJson(e as Map<String, dynamic>)).toList()
+    ..sort((a, b) => a.unit.compareTo(b.unit));
+}
+
+List<UnitVocab> _parseVocabItems(String raw) {
+  final list = jsonDecode(raw) as List;
+  return list.map((e) => UnitVocab.fromJson(e as Map<String, dynamic>)).toList()
+    ..sort((a, b) => a.unit.compareTo(b.unit));
+}
 
 /// Loads the four data assets extracted from the web app:
 /// unit_meta.json (`_UNIT_MAP_5C`), drive_phrases.json (`_UNIT_PHRASES`),
@@ -37,16 +54,12 @@ class UnitDataRepository {
 
   Future<void> _loadDrivePhrases() async {
     final raw = await _content.loadString('drive_phrases.json');
-    final list = jsonDecode(raw) as List;
-    _drivePhrases = list.map((e) => UnitPhrases.fromJson(e as Map<String, dynamic>)).toList()
-      ..sort((a, b) => a.unit.compareTo(b.unit));
+    _drivePhrases = await compute(_parseDrivePhrases, raw);
   }
 
   Future<void> _loadVocabItems() async {
     final raw = await _content.loadString('vocab_items.json');
-    final list = jsonDecode(raw) as List;
-    _vocabItems = list.map((e) => UnitVocab.fromJson(e as Map<String, dynamic>)).toList()
-      ..sort((a, b) => a.unit.compareTo(b.unit));
+    _vocabItems = await compute(_parseVocabItems, raw);
   }
 
   Future<void> _loadEmojiMap() async {

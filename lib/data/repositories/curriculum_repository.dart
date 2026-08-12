@@ -1,9 +1,34 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../../core/services/remote_content_service.dart';
 import '../models/corp_track.dart';
 import '../models/lesson_unit.dart';
 import '../models/unit_curriculum_meta.dart';
+
+// Top-level so compute() can ship them to a background isolate — lessons.json
+// alone is 400+KB and this repository's loadAll() runs at boot alongside every
+// other content repository's, all racing to decode JSON on the main isolate.
+List<LessonUnit> _parseUnits(String raw) {
+  final map = jsonDecode(raw) as Map<String, dynamic>;
+  return map.entries
+      .map((e) => LessonUnit.fromJson(e.key, e.value as Map<String, dynamic>))
+      .toList()
+    ..sort((a, b) => a.unit.compareTo(b.unit));
+}
+
+Map<String, UnitCurriculumMeta> _parseProgression(String raw) {
+  final map = jsonDecode(raw) as Map<String, dynamic>;
+  return map.map(
+    (k, v) => MapEntry(k, UnitCurriculumMeta.fromJson(k, v as Map<String, dynamic>)),
+  );
+}
+
+List<CorpTrack> _parseCorpTracks(String raw) {
+  final list = jsonDecode(raw) as List;
+  return list.map((e) => CorpTrack.fromJson(e as Map<String, dynamic>)).toList();
+}
 
 /// Loads the full lesson curriculum: lessons.json (`UNITS`),
 /// unit_progression.json (`UNIT_META`), corp_tracks.json (`CORP_TRACKS`)
@@ -30,25 +55,17 @@ class CurriculumRepository {
 
   Future<void> _loadUnits() async {
     final raw = await _content.loadString('lessons.json');
-    final map = jsonDecode(raw) as Map<String, dynamic>;
-    _units = map.entries
-        .map((e) => LessonUnit.fromJson(e.key, e.value as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) => a.unit.compareTo(b.unit));
+    _units = await compute(_parseUnits, raw);
   }
 
   Future<void> _loadProgression() async {
     final raw = await _content.loadString('unit_progression.json');
-    final map = jsonDecode(raw) as Map<String, dynamic>;
-    _progression = map.map(
-      (k, v) => MapEntry(k, UnitCurriculumMeta.fromJson(k, v as Map<String, dynamic>)),
-    );
+    _progression = await compute(_parseProgression, raw);
   }
 
   Future<void> _loadCorpTracks() async {
     final raw = await _content.loadString('corp_tracks.json');
-    final list = jsonDecode(raw) as List;
-    _corpTracks = list.map((e) => CorpTrack.fromJson(e as Map<String, dynamic>)).toList();
+    _corpTracks = await compute(_parseCorpTracks, raw);
   }
 
   Future<void> _loadUnitEmojis() async {
