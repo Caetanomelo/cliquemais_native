@@ -133,14 +133,25 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
               ),
             ),
           Expanded(
-            child: ListView(
+            // ListView.builder instead of ListView(children: [...]) — chat
+            // history grows unbounded over a long conversation, so only the
+            // bubbles actually on screen should be built.
+            child: ListView.builder(
               controller: _scroll,
               padding: const EdgeInsets.all(16),
-              children: [
-                if (welcome.isNotEmpty) _AiBubble(text: welcome, isUser: false),
-                for (final m in _history) _AiBubble(text: m.content, isUser: m.role == 'user'),
-                if (_sending) const Padding(padding: EdgeInsets.only(top: 8), child: _TypingIndicator()),
-              ],
+              itemCount: (welcome.isNotEmpty ? 1 : 0) + _history.length + (_sending ? 1 : 0),
+              itemBuilder: (context, index) {
+                var i = index;
+                if (welcome.isNotEmpty) {
+                  if (i == 0) return _AiBubble(text: welcome, isUser: false);
+                  i -= 1;
+                }
+                if (i < _history.length) {
+                  final m = _history[i];
+                  return _AiBubble(text: m.content, isUser: m.role == 'user');
+                }
+                return const Padding(padding: EdgeInsets.only(top: 8), child: _TypingIndicator());
+              },
             ),
           ),
           if (suggestions.isNotEmpty)

@@ -34,65 +34,102 @@ class AllContentScreen extends StatelessWidget {
       }
     }
 
+    // Flattened into row descriptors (not pre-built widgets) so
+    // ListView.builder can lazily construct only the on-screen book
+    // headers/unit cards — the full curriculum here spans dozens of units
+    // across every book, previously all built eagerly inside one Column.
+    final rows = <_ContentRow>[];
+    final groupEntries = grouped.entries.toList();
+    for (var g = 0; g < groupEntries.length; g++) {
+      final entry = groupEntries[g];
+      final isLastGroup = g == groupEntries.length - 1;
+      rows.add(_BookHeaderRow(title: entry.key, isFirst: g == 0));
+      final units = entry.value;
+      for (var i = 0; i < units.length; i++) {
+        final isLastInGroup = i == units.length - 1;
+        rows.add(_UnitRow(
+          unit: units[i],
+          highlighted: units[i].id == highlightId,
+          bottomSpacing: isLastInGroup ? (isLastGroup ? 56 : 24) : 10,
+        ));
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.bgDashboard,
-      body: ListView(
+      body: ListView.builder(
         padding: EdgeInsets.zero,
-        children: [
-          _TopStrip(onBack: () => Navigator.of(context).maybePop()),
-          _Hero(
-            todayXp: app.todayXp,
-            weekXp: app.weekXp,
-            totalXp: app.totalXp,
-            streakDays: app.streakDays,
-            overallFraction: journey.overallFraction,
-            onContinue: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const StudySessionScreen()),
-            ),
-            onVocab: () => showLevelUnitPicker(
-              context,
-              units: app.unitData.unitMeta,
-              currentCefr: journey.cefr,
-              completedUnits: app.practiceProgress.vocabCompletedUnits,
-              onPicked: (units) => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
-              ),
-            ),
-            onPronunc: () => showLevelUnitPicker(
-              context,
-              units: app.unitData.unitMeta,
-              currentCefr: journey.cefr,
-              completedUnits: app.practiceProgress.driveCompletedUnits,
-              onPicked: (units) => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
-              ),
-            ),
-            onTutor: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AiTutorScreen()),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        itemCount: rows.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Column(
               children: [
-                for (final entry in grouped.entries) ...[
-                  _BookHeader(title: entry.key),
-                  const SizedBox(height: 10),
-                  for (final unit in entry.value) ...[
-                    _UnitCard(unit: unit, highlighted: unit.id == highlightId),
-                    const SizedBox(height: 10),
-                  ],
-                  const SizedBox(height: 14),
-                ],
+                _TopStrip(onBack: () => Navigator.of(context).maybePop()),
+                _Hero(
+                  todayXp: app.todayXp,
+                  weekXp: app.weekXp,
+                  totalXp: app.totalXp,
+                  streakDays: app.streakDays,
+                  overallFraction: journey.overallFraction,
+                  onContinue: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const StudySessionScreen()),
+                  ),
+                  onVocab: () => showLevelUnitPicker(
+                    context,
+                    units: app.unitData.unitMeta,
+                    currentCefr: journey.cefr,
+                    completedUnits: app.practiceProgress.vocabCompletedUnits,
+                    onPicked: (units) => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
+                    ),
+                  ),
+                  onPronunc: () => showLevelUnitPicker(
+                    context,
+                    units: app.unitData.unitMeta,
+                    currentCefr: journey.cefr,
+                    completedUnits: app.practiceProgress.driveCompletedUnits,
+                    onPicked: (units) => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
+                    ),
+                  ),
+                  onTutor: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AiTutorScreen()),
+                  ),
+                ),
               ],
-            ),
-          ),
-        ],
+            );
+          }
+          final row = rows[index - 1];
+          return switch (row) {
+            _BookHeaderRow(:final title, :final isFirst) => Padding(
+                padding: EdgeInsets.fromLTRB(18, isFirst ? 22 : 0, 18, 10),
+                child: _BookHeader(title: title),
+              ),
+            _UnitRow(:final unit, :final highlighted, :final bottomSpacing) => Padding(
+                padding: EdgeInsets.fromLTRB(18, 0, 18, bottomSpacing),
+                child: _UnitCard(unit: unit, highlighted: highlighted),
+              ),
+          };
+        },
       ),
       bottomNavigationBar: const AppBottomNav(current: AppTab.conteudos),
     );
   }
+}
+
+sealed class _ContentRow {}
+
+class _BookHeaderRow extends _ContentRow {
+  final String title;
+  final bool isFirst;
+  _BookHeaderRow({required this.title, required this.isFirst});
+}
+
+class _UnitRow extends _ContentRow {
+  final LessonUnit unit;
+  final bool highlighted;
+  final double bottomSpacing;
+  _UnitRow({required this.unit, required this.highlighted, required this.bottomSpacing});
 }
 
 class _TopStrip extends StatelessWidget {
