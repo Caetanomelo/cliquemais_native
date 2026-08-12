@@ -88,6 +88,12 @@ class AppTheme {
   static Color subOf(BuildContext ctx) => isDark(ctx) ? textSubDark : textSub;
 
   static ThemeData get dark {
+    // Sora/Inter ship bundled under assets/google_fonts/ (see pubspec.yaml),
+    // so disable google_fonts' runtime HTTP fetch fallback: without this,
+    // a fresh install with no network (or a captive/corporate portal that
+    // blocks fonts.gstatic.com) would silently stall the first font load.
+    GoogleFonts.config.allowRuntimeFetching = false;
+
     // ~100 call sites across the app hardcode `fontFamily: 'Sora'` on
     // TextStyle, but nothing ever called GoogleFonts.sora() to fetch and
     // register it — so Flutter silently fell back to the platform font
