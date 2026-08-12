@@ -61,56 +61,73 @@ class AppTheme {
   /// Glass-card look (blur is left to the caller via BackdropFilter;
   /// this supplies the matching fill/border/glow from the CSS).
   static BoxDecoration glassCard({double radius = radiusCard}) => BoxDecoration(
-        color: const Color(0xA6141B29), // rgba(20,27,41,.65)
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: borderDark, width: 1),
-        boxShadow: const [
-          BoxShadow(color: Color(0x3300F2FE), blurRadius: 24),
-          BoxShadow(color: Color(0x1400F2FE), blurRadius: 48),
-        ],
-      );
+    color: const Color(0xA6141B29), // rgba(20,27,41,.65)
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: borderDark, width: 1),
+    boxShadow: const [
+      BoxShadow(color: Color(0x3300F2FE), blurRadius: 24),
+      BoxShadow(color: Color(0x1400F2FE), blurRadius: 48),
+    ],
+  );
 
   static bool isDark(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark;
 
   static Color bgOf(BuildContext ctx) => isDark(ctx) ? bgDark : bg;
-  static Color surfaceOf(BuildContext ctx) => isDark(ctx) ? surfaceDark : surface;
+  static Color surfaceOf(BuildContext ctx) =>
+      isDark(ctx) ? surfaceDark : surface;
   static Color borderOf(BuildContext ctx) => isDark(ctx) ? borderDark : border;
-  static Color textOf(BuildContext ctx) => isDark(ctx) ? textMainDark : textMain;
+  static Color textOf(BuildContext ctx) =>
+      isDark(ctx) ? textMainDark : textMain;
   static Color subOf(BuildContext ctx) => isDark(ctx) ? textSubDark : textSub;
 
-  static ThemeData get dark => ThemeData(
-        useMaterial3: true,
+  static ThemeData get dark {
+    // ~100 call sites across the app hardcode `fontFamily: 'Sora'` on
+    // TextStyle, but nothing ever called GoogleFonts.sora() to fetch and
+    // register it — so Flutter silently fell back to the platform font
+    // everywhere. Triggering the load here (theme is built once at
+    // startup) registers 'Sora' under that exact family name, matching
+    // every existing explicit `fontFamily: 'Sora'` usage.
+    GoogleFonts.sora();
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.dark().textTheme,
+      ).apply(bodyColor: textMainDark, displayColor: textMainDark),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: accent,
         brightness: Brightness.dark,
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
-            .apply(bodyColor: textMainDark, displayColor: textMainDark),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: accent,
-          brightness: Brightness.dark,
-          surface: bgDark,
+        surface: bgDark,
+      ),
+      scaffoldBackgroundColor: bgDark,
+      appBarTheme: AppBarTheme(
+        backgroundColor: topbar,
+        foregroundColor: textMainDark,
+        elevation: 0,
+        titleTextStyle: GoogleFonts.inter(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: textMainDark,
         ),
-        scaffoldBackgroundColor: bgDark,
-        appBarTheme: AppBarTheme(
-          backgroundColor: topbar,
-          foregroundColor: textMainDark,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accent2,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusBtn),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           elevation: 0,
-          titleTextStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w800,
             fontSize: 15,
-            color: textMainDark,
           ),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: accent2,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusBtn)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-            elevation: 0,
-            textStyle: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 15),
-          ),
-        ),
-        dividerColor: borderDark,
-        dividerTheme: const DividerThemeData(color: borderDark, thickness: 1),
-      );
+      ),
+      dividerColor: borderDark,
+      dividerTheme: const DividerThemeData(color: borderDark, thickness: 1),
+    );
+  }
 }
