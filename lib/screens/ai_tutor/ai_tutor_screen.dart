@@ -94,9 +94,13 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppStateProvider>();
-    final suggestions = app.aiContent.quickSuggestionsFor(_mode);
-    final welcome = app.aiContent.welcomeMessageFor(_mode);
+    // Only depends on aiContent (static after boot) for the current _mode —
+    // select() avoids rebuilding this screen on unrelated notifyListeners()
+    // calls (e.g. XP changes) that context.watch<AppStateProvider>() would
+    // trigger on every message sent, even from this very screen.
+    final (suggestions, welcome) = context.select<AppStateProvider, (List<String>, String)>(
+      (app) => (app.aiContent.quickSuggestionsFor(_mode), app.aiContent.welcomeMessageFor(_mode)),
+    );
 
     return Scaffold(
       appBar: AppBar(

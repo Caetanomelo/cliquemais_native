@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../data/models/corp_track.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/info_card_row.dart';
@@ -14,7 +15,12 @@ class CorpPortalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tracks = context.watch<AppStateProvider>().curriculum.corpTracks;
+    // Only depends on curriculum.corpTracks (static after boot) — select()
+    // avoids rebuilding this screen on unrelated notifyListeners() calls
+    // (e.g. XP changes) that context.watch<AppStateProvider>() would trigger.
+    final tracks = context.select<AppStateProvider, List<CorpTrack>>(
+      (app) => app.curriculum.corpTracks,
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('Portal Corporativo')),
       body: ListView.separated(
