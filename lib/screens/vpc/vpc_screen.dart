@@ -9,6 +9,10 @@ import '../../core/services/scoring_service.dart';
 import '../../data/models/vocab_item.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/leave_while_recording_dialog.dart';
+import '../../widgets/live_transcript_text.dart';
+import '../../widgets/practice_result_overlay.dart';
+import '../../widgets/record_mic_button.dart';
 import '../../widgets/speech_bubble.dart';
 import '../../widgets/unit_complete_dialog.dart';
 import '../../widgets/vpc_ring_painter.dart';
@@ -38,8 +42,7 @@ class _VpcScreenState extends State<VpcScreen> {
   int _index = 0;
   bool _listening = false;
   bool _processing = false;
-  String _liveText = '';
-  bool _liveIsFinal = false;
+  final ValueNotifier<LiveTranscript> _liveTranscript = ValueNotifier(const LiveTranscript());
 
   int? _score;
   String? _spoken;
@@ -52,11 +55,16 @@ class _VpcScreenState extends State<VpcScreen> {
     _items = widget.units.expand((u) => _app.unitData.vocabForUnit(u)).toList();
     _index = widget.startIndex.clamp(0, _items.isEmpty ? 0 : _items.length - 1);
     _confetti = ConfettiController(duration: const Duration(milliseconds: 600));
+    // speech.init() is no longer awaited during boot (PERF-1) — warm it up
+    // here so it's ready by the time the user taps the mic, instead of
+    // eating that latency on the first listen() call.
+    unawaited(_app.speech.init());
   }
 
   @override
   void dispose() {
     _confetti.dispose();
+    _liveTranscript.dispose();
     _app.speech.cancel();
     _app.cloudTts.stop();
     super.dispose();
@@ -65,11 +73,10 @@ class _VpcScreenState extends State<VpcScreen> {
   VocabItem? get _current => _index < _items.length ? _items[_index] : null;
 
   void _resetUi() {
+    _liveTranscript.value = const LiveTranscript();
     setState(() {
       _score = null;
       _spoken = null;
-      _liveText = '';
-      _liveIsFinal = false;
       _overlay = _Overlay.none;
     });
   }
@@ -83,21 +90,15 @@ class _VpcScreenState extends State<VpcScreen> {
   Future<void> _record() async {
     final item = _current;
     if (item == null || _listening || _processing) return;
-    setState(() {
-      _listening = true;
-      _liveText = '';
-      _liveIsFinal = false;
-    });
+    _liveTranscript.value = const LiveTranscript();
+    setState(() => _listening = true);
     await _app.speech.listen(
       partialResults: true,
       listenFor: const Duration(seconds: 8),
       pauseFor: const Duration(seconds: 2),
       onResult: (text, isFinal) {
         if (!mounted) return;
-        setState(() {
-          _liveText = text;
-          _liveIsFinal = isFinal;
-        });
+        _liveTranscript.value = LiveTranscript(text: text, isFinal: isFinal);
         if (isFinal && text.trim().isNotEmpty) {
           _finishRecording(item, text);
         } else if (isFinal) {
@@ -110,6 +111,15 @@ class _VpcScreenState extends State<VpcScreen> {
   Future<void> _stopRecording() async {
     await _app.speech.stop();
   }
+
+  // Guards the bottom nav's tab switch (see AppBottomNav.onBeforeLeave):
+  // without this, tapping another tab mid-recording silently throws away
+  // whatever the user has already spoken.
+  Future<bool> _confirmLeaveWhileRecording() => confirmLeaveWhileRecording(
+        context,
+        listening: _listening,
+        onDiscard: _app.speech.cancel,
+      );
 
   void _finishRecording(VocabItem item, String spoken) {
     if (_processing) return;
@@ -152,11 +162,11 @@ class _VpcScreenState extends State<VpcScreen> {
         }
       } else {
         // Retry: never auto-advances on failure, no matter the attempt count.
+        _liveTranscript.value = const LiveTranscript();
         setState(() {
           _overlay = _Overlay.none;
           _score = null;
           _spoken = null;
-          _liveText = '';
         });
       }
     });
@@ -240,20 +250,10 @@ class _VpcScreenState extends State<VpcScreen> {
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(fontFamily: 'Sora', fontSize: 15, color: AppTheme.textSubDark)),
                               const SizedBox(height: 20),
-                              if (_liveText.isNotEmpty)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  child: Text(
-                                    '"$_liveText"',
-                                    style: TextStyle(
-                                      fontFamily: 'Sora',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      fontStyle: FontStyle.italic,
-                                      color: _liveIsFinal ? AppTheme.green : AppTheme.accentBright,
-                                    ),
-                                  ),
-                                ),
+                              LiveTranscriptText(
+                                listenable: _liveTranscript,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              ),
                               if (_score != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
@@ -263,10 +263,13 @@ class _VpcScreenState extends State<VpcScreen> {
                             ],
                           ),
                         ),
-                        if (!_listening) ...[
-                          const SpeechBubble(),
-                          const SizedBox(height: 12),
-                        ],
+                        // Fixed-height slot, see DriveModeScreen's identical comment:
+                        // reserves the bubble's space regardless of visibility so the
+                        // Expanded above doesn't re-center and jump the item text.
+                        SizedBox(
+                          height: 60,
+                          child: !_listening ? const Align(alignment: Alignment.topCenter, child: SpeechBubble()) : null,
+                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -276,24 +279,9 @@ class _VpcScreenState extends State<VpcScreen> {
                               label: const Text('Tutor', style: TextStyle(color: AppTheme.accentBright)),
                             ),
                             const SizedBox(width: 12),
-                            Semantics(
-                              button: true,
-                              label: _listening ? 'Parar gravação' : 'Gravar pronúncia',
-                              child: GestureDetector(
-                                onTap: _listening ? _stopRecording : _record,
-                                child: Container(
-                                  width: 76,
-                                  height: 76,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _listening ? AppTheme.red : AppTheme.accent,
-                                    boxShadow: _listening
-                                        ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
-                                        : null,
-                                  ),
-                                  child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
-                                ),
-                              ),
+                            RecordMicButton(
+                              listening: _listening,
+                              onTap: _listening ? _stopRecording : _record,
                             ),
                           ],
                         ),
@@ -314,58 +302,22 @@ class _VpcScreenState extends State<VpcScreen> {
                     colors: const [AppTheme.gold, AppTheme.green, AppTheme.accentBright, Colors.white],
                   ),
                 ),
-                if (_overlay != _Overlay.none) _VpcResultOverlay(kind: _overlay, score: _score ?? 0, spoken: _spoken),
+                if (_overlay != _Overlay.none) _resultOverlay(),
               ],
             ),
-      bottomNavigationBar: const AppBottomNav(),
+      bottomNavigationBar: AppBottomNav(onBeforeLeave: _confirmLeaveWhileRecording),
     );
   }
-}
 
-class _VpcResultOverlay extends StatelessWidget {
-  final _Overlay kind;
-  final int score;
-  final String? spoken;
-  const _VpcResultOverlay({required this.kind, required this.score, required this.spoken});
-
-  @override
-  Widget build(BuildContext context) {
-    final success = kind == _Overlay.celebrate;
-    final icon = success ? (score == 100 ? '🏆' : (score >= 90 ? '🌟' : '🎉')) : '✕';
-    final title = success ? 'Correto!' : '✕';
-    final sub = success ? (score == 100 ? 'Pronúncia perfeita!' : (score >= 90 ? 'Excelente pronúncia!' : 'Muito bem!')) : 'Tente novamente';
-    final color = success ? AppTheme.green : AppTheme.red;
-
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.55),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceDark,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: color, width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(icon, style: const TextStyle(fontSize: 40)),
-                const SizedBox(height: 10),
-                Text(title, style: TextStyle(fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.w700, color: color)),
-                const SizedBox(height: 6),
-                Text(sub, style: const TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.textSubDark)),
-                if (!success && spoken != null && spoken!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text('Você disse: "$spoken"',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontFamily: 'Sora', fontSize: 12, fontStyle: FontStyle.italic, color: AppTheme.textSubDark)),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
+  Widget _resultOverlay() {
+    final success = _overlay == _Overlay.celebrate;
+    final score = _score ?? 0;
+    return PracticeResultOverlay(
+      icon: success ? (score == 100 ? '🏆' : (score >= 90 ? '🌟' : '🎉')) : '✕',
+      title: success ? 'Correto!' : '✕',
+      subtitle: success ? (score == 100 ? 'Pronúncia perfeita!' : (score >= 90 ? 'Excelente pronúncia!' : 'Muito bem!')) : 'Tente novamente',
+      color: success ? AppTheme.green : AppTheme.red,
+      detail: !success && _spoken != null && _spoken!.trim().isNotEmpty ? 'Você disse: "$_spoken"' : null,
     );
   }
 }

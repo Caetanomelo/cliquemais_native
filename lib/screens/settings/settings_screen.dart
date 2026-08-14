@@ -50,7 +50,7 @@ class SettingsScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNav(current: AppTab.perfil),
+      bottomNavigationBar: const AppBottomNav(),
     );
   }
 }

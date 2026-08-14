@@ -202,7 +202,7 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNav(),
+      bottomNavigationBar: const AppBottomNav(current: AppTab.tutor),
     );
   }
 }

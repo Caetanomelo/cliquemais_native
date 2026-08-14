@@ -9,6 +9,10 @@ import '../../core/services/voice_command_service.dart';
 import '../../data/models/phrase.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/leave_while_recording_dialog.dart';
+import '../../widgets/live_transcript_text.dart';
+import '../../widgets/practice_result_overlay.dart';
+import '../../widgets/record_mic_button.dart';
 import '../../widgets/speech_bubble.dart';
 import '../../widgets/unit_complete_dialog.dart';
 
@@ -28,7 +32,7 @@ class DriveModeScreen extends StatefulWidget {
   State<DriveModeScreen> createState() => _DriveModeScreenState();
 }
 
-class _DriveModeScreenState extends State<DriveModeScreen> {
+class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingObserver {
   late final AppStateProvider _app;
   List<Phrase> _phrases = const [];
   int _index = 0;
@@ -37,9 +41,8 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   bool _busy = false;
   bool _listening = false;
   bool _processing = false;
-  String _statusText = 'Preparando…';
-  String _liveText = '';
-  bool _liveIsFinal = false;
+  String _statusText = 'Aperte para falar';
+  final ValueNotifier<LiveTranscript> _liveTranscript = ValueNotifier(const LiveTranscript());
 
   double? _lastScore;
   String? _lastTranscript;
@@ -50,11 +53,37 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
     super.initState();
     _app = context.read<AppStateProvider>();
     _phrases = widget.units.expand((u) => _app.unitData.phrasesForUnit(u)).toList();
+    WidgetsBinding.instance.addObserver(this);
+    // speech.init() is no longer awaited during boot (PERF-1) — warm it up
+    // here so it's ready by the time _speakAndListen's first listen() call
+    // needs it, instead of eating that latency on screen entry.
+    unawaited(_app.speech.init());
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakAndListen());
+  }
+
+  // Hands-free voice practice means the mic can be actively recording when
+  // the user switches apps or takes a call — without this, it keeps
+  // capturing audio in the background and the phrase never advances since
+  // no result callback fires while backgrounded.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) return;
+    _app.cloudTts.stop();
+    if (_listening) {
+      _app.speech.cancel();
+      if (mounted) {
+        setState(() {
+          _listening = false;
+          _statusText = 'Pausado — toque no microfone para continuar';
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _liveTranscript.dispose();
     _app.speech.cancel();
     _app.cloudTts.stop();
     super.dispose();
@@ -66,12 +95,15 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
     final phrase = _current;
     if (phrase == null) return;
     _processing = false;
+    _liveTranscript.value = const LiveTranscript();
+    // _busy still gates mic input (RecordMicButton's `enabled: !_busy`) and
+    // the bubble slot below, but no longer swaps in a distinct "listening"
+    // screen/status text — the phrase audio plays over the same ready-state
+    // layout the screen opens with, instead of visibly flashing through a
+    // separate loading state first.
     setState(() {
       _busy = true;
-      _statusText = '▶ Ouvindo a frase…';
       _resultKind = _ResultKind.none;
-      _liveText = '';
-      _liveIsFinal = false;
     });
 
     final baseRate = phrase.rate;
@@ -91,11 +123,10 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
 
   Future<void> _startListening() async {
     if (!mounted || _listening || _processing) return;
+    _liveTranscript.value = const LiveTranscript();
     setState(() {
       _listening = true;
       _statusText = '🎙️ Escutando…';
-      _liveText = '';
-      _liveIsFinal = false;
     });
     await _app.speech.listen(
       partialResults: true,
@@ -103,10 +134,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
       pauseFor: const Duration(seconds: 2),
       onResult: (text, isFinal) {
         if (!mounted) return;
-        setState(() {
-          _liveText = text;
-          _liveIsFinal = isFinal;
-        });
+        _liveTranscript.value = LiveTranscript(text: text, isFinal: isFinal);
         if (isFinal) _handleVoiceResult(text);
       },
     );
@@ -115,6 +143,15 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
   Future<void> _stopRecording() async {
     await _app.speech.stop();
   }
+
+  // Guards the bottom nav's tab switch (see AppBottomNav.onBeforeLeave):
+  // without this, tapping another tab mid-recording silently throws away
+  // whatever the user has already spoken.
+  Future<bool> _confirmLeaveWhileRecording() => confirmLeaveWhileRecording(
+        context,
+        listening: _listening,
+        onDiscard: _app.speech.cancel,
+      );
 
   void _handleVoiceResult(String transcript) {
     if (_processing || !mounted) return;
@@ -285,20 +322,10 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                                       fontFamily: 'Sora',
                                       fontSize: 13,
                                       color: _listening ? AppTheme.accentBright : AppTheme.textSubDark)),
-                              if (_liveText.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 12),
-                                  child: Text(
-                                    '"$_liveText"',
-                                    style: TextStyle(
-                                      fontFamily: 'Sora',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      fontStyle: FontStyle.italic,
-                                      color: _liveIsFinal ? AppTheme.green : AppTheme.accentBright,
-                                    ),
-                                  ),
-                                ),
+                              LiveTranscriptText(
+                                listenable: _liveTranscript,
+                                padding: const EdgeInsets.only(top: 12),
+                              ),
                               if (_lastScore != null && _lastTranscript != null) ...[
                                 const SizedBox(height: 20),
                                 Container(
@@ -317,29 +344,21 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                             ],
                           ),
                         ),
-                        if (!_busy && !_listening) ...[
-                          const SpeechBubble(),
-                          const SizedBox(height: 12),
-                        ],
-                        Semantics(
-                          button: true,
+                        // Fixed-height slot (bubble height + the 12px gap it used to
+                        // add) reserved regardless of whether the bubble is shown —
+                        // otherwise the Expanded above re-centers into the freed/taken
+                        // space every time _listening flips, and the phrase text
+                        // visibly jumps. Shown regardless of _busy too, matching the
+                        // rest of the screen staying on the same ready-state layout
+                        // while the phrase audio plays.
+                        SizedBox(
+                          height: 60,
+                          child: !_listening ? const Align(alignment: Alignment.topCenter, child: SpeechBubble()) : null,
+                        ),
+                        RecordMicButton(
+                          listening: _listening,
                           enabled: !_busy,
-                          label: _listening ? 'Parar gravação' : 'Gravar pronúncia',
-                          child: GestureDetector(
-                            onTap: _busy ? null : (_listening ? _stopRecording : _startListening),
-                            child: Container(
-                              width: 76,
-                              height: 76,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _listening ? AppTheme.red : AppTheme.accent,
-                                boxShadow: _listening
-                                    ? [BoxShadow(color: AppTheme.red.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
-                                    : null,
-                              ),
-                              child: Icon(_listening ? Icons.stop_rounded : Icons.mic_rounded, color: Colors.white, size: 32),
-                            ),
-                          ),
+                          onTap: _listening ? _stopRecording : _startListening,
                         ),
                         const SizedBox(height: 10),
                         Row(
@@ -369,52 +388,20 @@ class _DriveModeScreenState extends State<DriveModeScreen> {
                     ),
                   ),
                 ),
-                if (_resultKind != _ResultKind.none)
-                  _ResultOverlay(success: _resultKind == _ResultKind.success),
+                if (_resultKind != _ResultKind.none) _resultOverlay(),
               ],
             ),
-      bottomNavigationBar: const AppBottomNav(),
+      bottomNavigationBar: AppBottomNav(onBeforeLeave: _confirmLeaveWhileRecording),
     );
   }
-}
 
-class _ResultOverlay extends StatelessWidget {
-  final bool success;
-  const _ResultOverlay({required this.success});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.55),
-        child: Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceDark,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: success ? AppTheme.green : AppTheme.red, width: 2),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(success ? '🎉' : '🔁', style: const TextStyle(fontSize: 40)),
-                const SizedBox(height: 10),
-                Text(
-                  success ? 'Muito bem!' : 'Tente novamente!',
-                  style: TextStyle(
-                      fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.w700, color: success ? AppTheme.green : AppTheme.red),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  success ? 'Pronúncia correta!' : 'Vamos tentar mais uma vez',
-                  style: const TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.textSubDark),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+  Widget _resultOverlay() {
+    final success = _resultKind == _ResultKind.success;
+    return PracticeResultOverlay(
+      icon: success ? '🎉' : '🔁',
+      title: success ? 'Muito bem!' : 'Tente novamente!',
+      subtitle: success ? 'Pronúncia correta!' : 'Vamos tentar mais uma vez',
+      color: success ? AppTheme.green : AppTheme.red,
     );
   }
 }

@@ -73,6 +73,14 @@ Future<void> showLevelUnitPicker(
   ];
   final currentIndex = kCefrLevelOrder.indexOf(currentCefr).clamp(0, kCefrLevelOrder.length - 1);
 
+  // Every phase-group ListTile funnels through this one callback, so a
+  // single flag here guards the whole sheet: without it, a fast double-tap
+  // fires onPicked twice before the sheet finishes popping, pushing two
+  // DriveModeScreen/VpcScreen instances that both start speaking/listening
+  // independently (the reported "drive mode running twice" / TTS
+  // double-playback bug).
+  var picked = false;
+
   return showModalBottomSheet(
     context: context,
     backgroundColor: AppTheme.surfaceDark,
@@ -105,6 +113,8 @@ Future<void> showLevelUnitPicker(
                   currentCefr: currentCefr,
                   currentIndex: currentIndex,
                   onPicked: (units) {
+                    if (picked) return;
+                    picked = true;
                     Navigator.of(ctx).pop();
                     onPicked(units);
                   },

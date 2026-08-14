@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
@@ -6,12 +8,40 @@ import '../core/theme/app_theme.dart';
 /// button on every STT screen. STT never auto-starts — the user must always
 /// tap the mic icon — so this bubble is the visual cue for that ("Aperte
 /// para falar"), matching the house bubble style used in the AI Tutor chat.
-class SpeechBubble extends StatelessWidget {
+/// Held back by [delay] so it doesn't flash in the instant the mic button
+/// appears — it's a nudge for someone who hasn't tapped yet, not a label.
+/// Callers mount this conditionally (only while idle), so the delay restarts
+/// naturally each time it reappears.
+class SpeechBubble extends StatefulWidget {
   final String text;
-  const SpeechBubble({super.key, this.text = 'Aperte para falar'});
+  final Duration delay;
+  const SpeechBubble({super.key, this.text = 'Aperte para falar', this.delay = const Duration(seconds: 3)});
+
+  @override
+  State<SpeechBubble> createState() => _SpeechBubbleState();
+}
+
+class _SpeechBubbleState extends State<SpeechBubble> {
+  bool _visible = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(widget.delay, () {
+      if (mounted) setState(() => _visible = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -28,7 +58,7 @@ class SpeechBubble extends StatelessWidget {
               const Icon(Icons.mic_none_rounded, size: 16, color: AppTheme.accentBright),
               const SizedBox(width: 8),
               Text(
-                text,
+                widget.text,
                 style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMainDark),
               ),
             ],
