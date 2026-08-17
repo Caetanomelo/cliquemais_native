@@ -25,9 +25,33 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppStateProvider>();
-    final journey = app.journeyProgress;
-    final domains = app.domainProgress;
+    // Non-reactive handle: unitData/practiceProgress are stable service
+    // instances (only their internal fields mutate), and here they're only
+    // read inside onTap closures — not rendered — so watching them would
+    // just add rebuild triggers with no visible effect.
+    final app = context.read<AppStateProvider>();
+
+    // Each field is selected individually (rather than watching the whole
+    // provider, or selecting the JourneyProgress/DomainProgress objects
+    // wholesale) so this screen only rebuilds when a value it actually
+    // renders changes — e.g. a voiceGender or introDone update elsewhere
+    // no longer triggers a Dashboard rebuild while it sits underneath in
+    // the nav stack. JourneyProgress/DomainProgress are freshly-constructed
+    // plain objects with identity equality, so selecting them directly
+    // would defeat select's diffing; the primitive fields have real value
+    // equality.
+    final cefr = context.select<AppStateProvider, String>((a) => a.journeyProgress.cefr);
+    final levelFraction = context.select<AppStateProvider, double>((a) => a.journeyProgress.levelFraction);
+    final todayXp = context.select<AppStateProvider, int>((a) => a.todayXp);
+    final streakDays = context.select<AppStateProvider, int>((a) => a.streakDays);
+    final weekXp = context.select<AppStateProvider, int>((a) => a.weekXp);
+    final totalXp = context.select<AppStateProvider, int>((a) => a.totalXp);
+    final domains = DomainProgress(
+      pronuncia: context.select<AppStateProvider, double>((a) => a.domainProgress.pronuncia),
+      vocabulario: context.select<AppStateProvider, double>((a) => a.domainProgress.vocabulario),
+      fluencia: context.select<AppStateProvider, double>((a) => a.domainProgress.fluencia),
+      compreensao: context.select<AppStateProvider, double>((a) => a.domainProgress.compreensao),
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.bgDashboard,
@@ -39,16 +63,16 @@ class DashboardScreen extends StatelessWidget {
             const _TopBadge(),
             const SizedBox(height: 18),
             _GreetingHeader(
-              cefr: journey.cefr,
+              cefr: cefr,
               onBell: () => showComingSoonSnackbar(context),
               onSettings: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               ),
             ),
             const SizedBox(height: 18),
-            _LevelTrack(cefr: journey.cefr, levelFraction: journey.levelFraction),
+            _LevelTrack(cefr: cefr, levelFraction: levelFraction),
             const SizedBox(height: 22),
-            _XpDailySection(todayXp: app.todayXp, goal: AppStateProvider.dailyXpGoal),
+            _XpDailySection(todayXp: todayXp, goal: AppStateProvider.dailyXpGoal),
             const SizedBox(height: 16),
             _AiTutorPrimaryCard(
               onTap: () => Navigator.of(context).push(
@@ -62,7 +86,7 @@ class DashboardScreen extends StatelessWidget {
               onTap: () => showLevelUnitPicker(
                 context,
                 units: app.unitData.unitMeta,
-                currentCefr: journey.cefr,
+                currentCefr: cefr,
                 completedUnits: app.practiceProgress.driveCompletedUnits,
                 onPicked: (units) => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
@@ -77,7 +101,7 @@ class DashboardScreen extends StatelessWidget {
               onTap: () => showLevelUnitPicker(
                 context,
                 units: app.unitData.unitMeta,
-                currentCefr: journey.cefr,
+                currentCefr: cefr,
                 completedUnits: app.practiceProgress.vocabCompletedUnits,
                 onPicked: (units) => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
@@ -88,9 +112,9 @@ class DashboardScreen extends StatelessWidget {
             const _SectionLabel('ANALYTICS CORE'),
             const SizedBox(height: 12),
             _AnalyticsCore(
-              streakDays: app.streakDays,
-              weekXp: app.weekXp,
-              totalXp: app.totalXp,
+              streakDays: streakDays,
+              weekXp: weekXp,
+              totalXp: totalXp,
               domains: domains,
             ),
             const SizedBox(height: 26),

@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/services/remote_content_service.dart';
 import '../models/unit_meta.dart';
 import '../models/phrase.dart';
 import '../models/vocab_item.dart';
+import 'json_repository.dart';
 
 // Top-level so compute() can ship them to a background isolate — drive_phrases.json
 // and vocab_items.json run into the hundreds of KB, and decoding + mapping them on
@@ -26,10 +26,9 @@ List<UnitVocab> _parseVocabItems(String raw) {
 /// unit_meta.json (`_UNIT_MAP_5C`), drive_phrases.json (`_UNIT_PHRASES`),
 /// vocab_items.json (vocab-type lesson items in `UNITS`) and
 /// emoji_map.json (`EMOJI_MAP`). Content comes straight from
-/// [RemoteContentService] (Netlify/Supabase-hosted) — no offline fallback.
-class UnitDataRepository {
-  final RemoteContentService _content;
-  UnitDataRepository({RemoteContentService? content}) : _content = content ?? RemoteContentService();
+/// [JsonRepository.content] (Netlify/Supabase-hosted) — no offline fallback.
+class UnitDataRepository extends JsonRepository {
+  UnitDataRepository({super.content});
 
   List<UnitMeta>? _unitMeta;
   List<UnitPhrases>? _drivePhrases;
@@ -46,24 +45,24 @@ class UnitDataRepository {
   }
 
   Future<void> _loadUnitMeta() async {
-    final raw = await _content.loadString('unit_meta.json');
+    final raw = await content.loadString('unit_meta.json');
     final list = jsonDecode(raw) as List;
     _unitMeta = list.map((e) => UnitMeta.fromJson(e as Map<String, dynamic>)).toList()
       ..sort((a, b) => a.unit.compareTo(b.unit));
   }
 
   Future<void> _loadDrivePhrases() async {
-    final raw = await _content.loadString('drive_phrases.json');
+    final raw = await content.loadString('drive_phrases.json');
     _drivePhrases = await compute(_parseDrivePhrases, raw);
   }
 
   Future<void> _loadVocabItems() async {
-    final raw = await _content.loadString('vocab_items.json');
+    final raw = await content.loadString('vocab_items.json');
     _vocabItems = await compute(_parseVocabItems, raw);
   }
 
   Future<void> _loadEmojiMap() async {
-    final raw = await _content.loadString('emoji_map.json');
+    final raw = await content.loadString('emoji_map.json');
     final map = jsonDecode(raw) as Map<String, dynamic>;
     _emojiMap = map.map((k, v) => MapEntry(k, v as String));
   }

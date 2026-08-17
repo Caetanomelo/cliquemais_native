@@ -22,9 +22,20 @@ class AllContentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppStateProvider>();
+    // curriculum is a stable repository loaded once at boot (no runtime
+    // reload path), so reading it doesn't need to be reactive; only
+    // curriculumProgress (via `version` below) and the XP/streak primitives
+    // actually change while this screen can be visible.
+    final app = context.read<AppStateProvider>();
+    context.select<AppStateProvider, int>((a) => a.curriculumProgress.version);
+    final todayXp = context.select<AppStateProvider, int>((a) => a.todayXp);
+    final weekXp = context.select<AppStateProvider, int>((a) => a.weekXp);
+    final totalXp = context.select<AppStateProvider, int>((a) => a.totalXp);
+    final streakDays = context.select<AppStateProvider, int>((a) => a.streakDays);
+    final cefr = context.select<AppStateProvider, String>((a) => a.journeyProgress.cefr);
+    final overallFraction = context.select<AppStateProvider, double>((a) => a.journeyProgress.overallFraction);
+
     final grouped = app.curriculum.groupedByBook();
-    final journey = app.journeyProgress;
 
     String? highlightId;
     for (final u in app.curriculum.units) {
@@ -66,18 +77,18 @@ class AllContentScreen extends StatelessWidget {
               children: [
                 _TopStrip(onBack: () => Navigator.of(context).maybePop()),
                 _Hero(
-                  todayXp: app.todayXp,
-                  weekXp: app.weekXp,
-                  totalXp: app.totalXp,
-                  streakDays: app.streakDays,
-                  overallFraction: journey.overallFraction,
+                  todayXp: todayXp,
+                  weekXp: weekXp,
+                  totalXp: totalXp,
+                  streakDays: streakDays,
+                  overallFraction: overallFraction,
                   onContinue: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const StudySessionScreen()),
                   ),
                   onVocab: () => showLevelUnitPicker(
                     context,
                     units: app.unitData.unitMeta,
-                    currentCefr: journey.cefr,
+                    currentCefr: cefr,
                     completedUnits: app.practiceProgress.vocabCompletedUnits,
                     onPicked: (units) => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
@@ -86,7 +97,7 @@ class AllContentScreen extends StatelessWidget {
                   onPronunc: () => showLevelUnitPicker(
                     context,
                     units: app.unitData.unitMeta,
-                    currentCefr: journey.cefr,
+                    currentCefr: cefr,
                     completedUnits: app.practiceProgress.driveCompletedUnits,
                     onPicked: (units) => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
@@ -480,7 +491,9 @@ class _UnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppStateProvider>();
+    // curriculum is a stable repository loaded once at boot — no need to
+    // watch AppStateProvider just to read from it here.
+    final app = context.read<AppStateProvider>();
     final emoji = app.curriculum.emojiForUnit(unit.id);
     final label = unit.unit == 0 ? 'BOAS-VINDAS' : 'PASSO ${unit.unit}';
     final goal = unit.goals.isNotEmpty ? unit.goals.first : unit.subtitle;

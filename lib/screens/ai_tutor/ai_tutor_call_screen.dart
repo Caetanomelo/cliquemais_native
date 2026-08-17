@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../providers/app_state_provider.dart';
+import 'call_turn_assessor.dart';
 
 enum _CallState { idle, listening, thinking, speaking }
 
@@ -34,18 +35,33 @@ class AiTutorCallScreen extends StatefulWidget {
   State<AiTutorCallScreen> createState() => _AiTutorCallScreenState();
 }
 
-class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
+class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindingObserver {
   late final AppStateProvider _app;
   final AudioRecorder _recorder = AudioRecorder();
   final List<AiChatMessage> _history = [];
   _CallState _state = _CallState.idle;
   String _transcript = '';
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakWelcome());
+  }
+
+  // Hold-to-talk still leaves a raw AudioRecord session open if the user
+  // backgrounds the app mid-hold (e.g. a notification pulls focus away) —
+  // without this, the recorder keeps the mic reserved and TTS keeps
+  // playing while the app isn't in front of the user.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) return;
+    if (_state == _CallState.listening) {
+      unawaited(_cancelRecording());
+    }
+    _app.tts.stop();
   }
 
   Future<void> _speakWelcome() async {
@@ -67,6 +83,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
     setState(() {
       _state = _CallState.listening;
       _transcript = '';
+      _errorText = null;
     });
   }
 
@@ -120,36 +137,27 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
   }
 
   Future<void> _assessAndSend(List<int> wavBytes) async {
-    String transcript = '';
-    String feedback = '';
-    try {
-      final enResult = await _app.pronunciation.assess(wavBytes, lang: 'en-US');
-      if (enResult != null && enResult.isConfidentEnglish) {
-        transcript = enResult.recognizedText;
-        feedback = enResult.toFeedbackNote();
-      } else {
-        final ptResult = await _app.pronunciation.assess(wavBytes, lang: 'pt-BR');
-        transcript = ptResult?.recognizedText ?? '';
-      }
-    } catch (e, st) {
-      // Azure unreachable/misconfigured (missing keys, timeout, etc.) — try
-      // one plain pt-BR pass as a last resort; if that also fails, give up
-      // on this turn gracefully below rather than sending garbage upstream.
-      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._assessAndSend: en-US assess failed', fatal: false));
-      try {
-        final ptResult = await _app.pronunciation.assess(wavBytes, lang: 'pt-BR');
-        transcript = ptResult?.recognizedText ?? '';
-      } catch (e2, st2) {
-        unawaited(FirebaseCrashlytics.instance.recordError(e2, st2, reason: 'AiTutorCallScreen._assessAndSend: pt-BR fallback assess failed', fatal: false));
-      }
-    }
+    final result = await assessCallTurn(
+      _app.pronunciation,
+      wavBytes,
+      onError: (e, st, {required reason}) =>
+          unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._assessAndSend: $reason', fatal: false)),
+    );
 
-    if (transcript.trim().isEmpty) {
-      if (mounted) setState(() => _state = _CallState.idle);
+    if (result.transcript.trim().isEmpty) {
+      if (mounted) {
+        setState(() {
+          _state = _CallState.idle;
+          // Azure unreachable/misconfigured vs. a legitimately silent/noise
+          // turn (already filtered above by the byte-length gate) — only
+          // the former is worth surfacing as an error the user can act on.
+          _errorText = result.failed ? 'Não consegui processar o áudio. Toque no microfone para tentar de novo.' : null;
+        });
+      }
       return;
     }
-    if (mounted) setState(() => _transcript = transcript);
-    await _sendToAI(transcript, feedback);
+    if (mounted) setState(() { _transcript = result.transcript; _errorText = null; });
+    await _sendToAI(result.transcript, result.feedback);
   }
 
   Future<void> _sendToAI(String userText, String feedback) async {
@@ -167,7 +175,12 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
       await _speak(reply.isNotEmpty ? reply : 'Desculpe, pode repetir?');
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._sendToAI failed', fatal: false));
-      if (mounted) setState(() => _state = _CallState.idle);
+      if (mounted) {
+        setState(() {
+          _state = _CallState.idle;
+          _errorText = 'Não consegui responder agora. Toque no microfone para tentar de novo.';
+        });
+      }
     }
   }
 
@@ -194,6 +207,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // stop() must finish before dispose() runs — firing both unawaited let
     // dispose() tear down the plugin's native session while stop() was
     // still flushing the in-progress recording, which could throw inside
@@ -266,6 +280,15 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> {
                       )
                     : null,
               ),
+              if (_errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _errorText!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.red),
+                  ),
+                ),
               const SizedBox(height: 32),
               Semantics(
                 button: true,

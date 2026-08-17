@@ -1,16 +1,15 @@
 import 'dart:convert';
 
 import '../../core/services/ai_tutor_service.dart' show AiTutorMode;
-import '../../core/services/remote_content_service.dart';
+import 'json_repository.dart';
 
 /// Loads the AI Tutor's content (system prompts, quick-suggestion chips,
 /// welcome messages) — one entry per mode (chat/pronunciation), plus a
 /// standalone 'call' entry used by the voice-call screen (not a tab).
-/// Content comes straight from [RemoteContentService] (Netlify/Supabase-hosted)
+/// Content comes straight from [JsonRepository.content] (Netlify/Supabase-hosted)
 /// — no offline fallback.
-class AiContentRepository {
-  final RemoteContentService _content;
-  AiContentRepository({RemoteContentService? content}) : _content = content ?? RemoteContentService();
+class AiContentRepository extends JsonRepository {
+  AiContentRepository({super.content});
 
   Map<String, String>? _systemPrompts;
   Map<String, List<String>>? _quickSuggestions;
@@ -29,7 +28,7 @@ class AiContentRepository {
   }
 
   Future<void> _load(String asset, void Function(Map<String, dynamic>) apply) async {
-    final raw = await _content.loadString(asset);
+    final raw = await content.loadString(asset);
     apply(jsonDecode(raw) as Map<String, dynamic>);
   }
 

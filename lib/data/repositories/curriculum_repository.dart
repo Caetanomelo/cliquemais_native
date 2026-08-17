@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/services/remote_content_service.dart';
 import '../models/corp_track.dart';
 import '../models/lesson_unit.dart';
 import '../models/unit_curriculum_meta.dart';
+import 'json_repository.dart';
 
 // Top-level so compute() can ship them to a background isolate — lessons.json
 // alone is 400+KB and this repository's loadAll() runs at boot alongside every
@@ -33,10 +33,9 @@ List<CorpTrack> _parseCorpTracks(String raw) {
 /// Loads the full lesson curriculum: lessons.json (`UNITS`),
 /// unit_progression.json (`UNIT_META`), corp_tracks.json (`CORP_TRACKS`)
 /// and unit_emojis.json (`UNIT_EMOJIS`). Content comes straight from
-/// [RemoteContentService] (Netlify/Supabase-hosted) — no offline fallback.
-class CurriculumRepository {
-  final RemoteContentService _content;
-  CurriculumRepository({RemoteContentService? content}) : _content = content ?? RemoteContentService();
+/// [JsonRepository.content] (Netlify/Supabase-hosted) — no offline fallback.
+class CurriculumRepository extends JsonRepository {
+  CurriculumRepository({super.content});
 
   List<LessonUnit>? _units;
   Map<String, UnitCurriculumMeta>? _progression;
@@ -54,22 +53,22 @@ class CurriculumRepository {
   }
 
   Future<void> _loadUnits() async {
-    final raw = await _content.loadString('lessons.json');
+    final raw = await content.loadString('lessons.json');
     _units = await compute(_parseUnits, raw);
   }
 
   Future<void> _loadProgression() async {
-    final raw = await _content.loadString('unit_progression.json');
+    final raw = await content.loadString('unit_progression.json');
     _progression = await compute(_parseProgression, raw);
   }
 
   Future<void> _loadCorpTracks() async {
-    final raw = await _content.loadString('corp_tracks.json');
+    final raw = await content.loadString('corp_tracks.json');
     _corpTracks = await compute(_parseCorpTracks, raw);
   }
 
   Future<void> _loadUnitEmojis() async {
-    final raw = await _content.loadString('unit_emojis.json');
+    final raw = await content.loadString('unit_emojis.json');
     final map = jsonDecode(raw) as Map<String, dynamic>;
     _unitEmojis = map.map((k, v) => MapEntry(k, v as String));
   }

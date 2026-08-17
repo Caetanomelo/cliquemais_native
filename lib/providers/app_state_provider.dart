@@ -118,7 +118,6 @@ class AppStateProvider extends ChangeNotifier {
       unitData.loadAll(),
       curriculum.loadAll(),
       aiContent.loadAll(),
-      speech.init(),
     ]);
     persistence = await persistenceFuture;
     curriculumProgress = await curriculumProgressFuture;
