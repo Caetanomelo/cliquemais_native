@@ -402,6 +402,9 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
       title: success ? 'Muito bem!' : 'Tente novamente!',
       subtitle: success ? 'Pronúncia correta!' : 'Vamos tentar mais uma vez',
       color: success ? AppTheme.green : AppTheme.red,
+      // Below the phrase card, near the mic/nav row — centered would sit on
+      // top of the phrase text and the score badge.
+      alignment: const Alignment(0, 0.8),
     );
   }
 }

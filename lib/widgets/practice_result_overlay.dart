@@ -14,6 +14,7 @@ class PracticeResultOverlay extends StatelessWidget {
   final String subtitle;
   final Color color;
   final String? detail;
+  final Alignment alignment;
   const PracticeResultOverlay({
     super.key,
     required this.icon,
@@ -21,6 +22,7 @@ class PracticeResultOverlay extends StatelessWidget {
     required this.subtitle,
     required this.color,
     this.detail,
+    this.alignment = Alignment.center,
   });
 
   @override
@@ -28,7 +30,8 @@ class PracticeResultOverlay extends StatelessWidget {
     return Positioned.fill(
       child: Container(
         color: Colors.black.withValues(alpha: 0.55),
-        child: Center(
+        child: Align(
+          alignment: alignment,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
             decoration: BoxDecoration(
