@@ -141,6 +141,18 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
   }
 
   Future<void> _stopRecording() async {
+    // Flip the button off on this tap itself — waiting for speech.stop() to
+    // resolve via the plugin's final onResult callback left the mic showing
+    // red/"listening" on silence (no speech captured => no final result
+    // ever fires), so a second tap didn't visibly turn it off. Any transcript
+    // still in flight keeps landing in _handleVoiceResult as before; it just
+    // re-sets _listening (already false) rather than being the first setter.
+    if (mounted) {
+      setState(() {
+        _listening = false;
+        _statusText = 'Toque para falar';
+      });
+    }
     await _app.speech.stop();
   }
 
