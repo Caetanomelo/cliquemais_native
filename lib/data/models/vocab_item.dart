@@ -1,9 +1,13 @@
 class VocabItem {
+  // Stable vocab_items.id from Supabase — see the same field on [Phrase]
+  // for why it's nullable and what it's used for.
+  final int? id;
   final String en;
   final String pt;
-  const VocabItem({required this.en, required this.pt});
+  const VocabItem({this.id, required this.en, required this.pt});
 
   factory VocabItem.fromJson(Map<String, dynamic> j) => VocabItem(
+        id: j['id'] as int?,
         en: j['en'] as String,
         pt: j['pt'] as String,
       );
