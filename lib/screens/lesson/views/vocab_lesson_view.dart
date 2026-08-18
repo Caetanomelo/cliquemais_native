@@ -34,20 +34,32 @@ class VocabLessonView extends StatefulWidget {
 class _VocabLessonViewState extends State<VocabLessonView> {
   late final AppStateProvider _app;
   int _index = 0;
+  // Fase 7: positions in widget.items that aren't already mastered — the
+  // deck only shows these, but VPC/completions still need the item's real
+  // position (content_id, VpcScreen.startIndex), so every place that used
+  // to read _index against widget.items now goes through _indices[_index].
+  // Falls back to every position if filtering would leave nothing to show
+  // (same don't-strand-the-student rule as web's renderVocab).
+  late List<int> _indices;
 
   @override
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
+    _indices = [
+      for (var i = 0; i < widget.items.length; i++)
+        if (!_app.completions.isCompleted(CompletionsService.curriculumContentId(widget.unit, 'vocab', widget.blockIndex, i))) i,
+    ];
+    if (_indices.isEmpty) _indices = [for (var i = 0; i < widget.items.length; i++) i];
     _reportCurrent(0);
   }
 
-  VocabItem get _current => widget.items[_index];
+  VocabItem get _current => widget.items[_indices[_index]];
 
   void _go(int i) {
-    if (i < 0 || i >= widget.items.length) return;
+    if (i < 0 || i >= _indices.length) return;
     setState(() => _index = i);
-    widget.onSpeak(widget.items[i].en);
+    widget.onSpeak(widget.items[_indices[i]].en);
     _reportCurrent(i);
   }
 
@@ -58,15 +70,17 @@ class _VocabLessonViewState extends State<VocabLessonView> {
   void _reportCurrent(int i) {
     unawaited(_app.completions.record(
       module: 'curriculum',
-      contentId: CompletionsService.curriculumContentId(widget.unit, 'vocab', widget.blockIndex, i),
+      contentId: CompletionsService.curriculumContentId(widget.unit, 'vocab', widget.blockIndex, _indices[i]),
       unit: widget.unit,
       domain: 'vocabulary',
     ));
   }
 
   Future<void> _testPronunciation() async {
+    // Direct tap on a specific word — never filtered, mirrors web's
+    // VPC.openAndRecord (the student explicitly chose this exact word).
     await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => VpcScreen(units: [widget.unit], startIndex: _index),
+      builder: (_) => VpcScreen(units: [widget.unit], startIndex: _indices[_index], filterCompleted: false),
     ));
   }
 
@@ -76,7 +90,7 @@ class _VocabLessonViewState extends State<VocabLessonView> {
 
   @override
   Widget build(BuildContext context) {
-    final total = widget.items.length;
+    final total = _indices.length;
     final item = _current;
     final emoji = _app.unitData.emojiFor(item.en) ?? '📝';
 

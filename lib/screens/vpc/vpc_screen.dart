@@ -28,7 +28,12 @@ enum _Overlay { none, celebrate, fail }
 class VpcScreen extends StatefulWidget {
   final List<int> units;
   final int startIndex;
-  const VpcScreen({super.key, required this.units, this.startIndex = 0});
+  // Fase 7: skip already-mastered words when building the session queue.
+  // Direct single-word entry (VocabLessonView._testPronunciation) passes
+  // false — the student explicitly chose that word, so it must never be
+  // filtered out from under them, mirroring web's VPC.openAndRecord.
+  final bool filterCompleted;
+  const VpcScreen({super.key, required this.units, this.startIndex = 0, this.filterCompleted = true});
 
   @override
   State<VpcScreen> createState() => _VpcScreenState();
@@ -63,8 +68,24 @@ class _VpcScreenState extends State<VpcScreen> {
       items.addAll(vs);
       itemUnits.addAll(List.filled(vs.length, u));
     }
-    _items = items;
-    _itemUnits = itemUnits;
+    if (widget.filterCompleted) {
+      final fi = <VocabItem>[];
+      final fu = <int>[];
+      for (var i = 0; i < items.length; i++) {
+        final it = items[i];
+        if (it.id == null || !_app.completions.isCompleted('vocab:${it.id}')) {
+          fi.add(it);
+          fu.add(itemUnits[i]);
+        }
+      }
+      // Don't strand the student: if every word here is already mastered,
+      // fall back to the full unfiltered list instead of an empty session.
+      _items = fi.isNotEmpty ? fi : items;
+      _itemUnits = fi.isNotEmpty ? fu : itemUnits;
+    } else {
+      _items = items;
+      _itemUnits = itemUnits;
+    }
     _index = widget.startIndex.clamp(0, _items.isEmpty ? 0 : _items.length - 1);
     _confetti = ConfettiController(duration: const Duration(milliseconds: 600));
     // speech.init() is no longer awaited during boot (PERF-1) — warm it up

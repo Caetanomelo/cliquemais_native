@@ -66,8 +66,20 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
       phrases.addAll(ps);
       phraseUnits.addAll(List.filled(ps.length, u));
     }
-    _phrases = phrases;
-    _phraseUnits = phraseUnits;
+    // Fase 7: skip phrases already mastered on this (or a synced) device.
+    // Don't strand the student: if every phrase here is already mastered,
+    // fall back to the full unfiltered list instead of an empty session.
+    final fp = <Phrase>[];
+    final fu = <int>[];
+    for (var i = 0; i < phrases.length; i++) {
+      final p = phrases[i];
+      if (p.id == null || !_app.completions.isCompleted('drive:${p.id}')) {
+        fp.add(p);
+        fu.add(phraseUnits[i]);
+      }
+    }
+    _phrases = fp.isNotEmpty ? fp : phrases;
+    _phraseUnits = fp.isNotEmpty ? fu : phraseUnits;
     WidgetsBinding.instance.addObserver(this);
     // speech.init() is no longer awaited during boot (PERF-1) — warm it up
     // here so it's ready by the time _speakAndListen's first listen() call
