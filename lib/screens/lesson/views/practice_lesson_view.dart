@@ -1,7 +1,12 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/services/completions_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/lesson_content.dart';
+import '../../../providers/app_state_provider.dart';
 
 enum _OptState { neutral, correct, wrong }
 
@@ -9,11 +14,15 @@ enum _OptState { neutral, correct, wrong }
 /// Mirrors the source app's real completion rule — the lesson unlocks
 /// "continue" on the first correct answer, not on answering every question.
 class PracticeLessonView extends StatefulWidget {
+  final int unit;
+  final int blockIndex;
   final List<PracticeQuestion> questions;
   final ValueChanged<bool> onCanCompleteChanged;
   final ValueChanged<int> onCorrectAnswer;
   const PracticeLessonView({
     super.key,
+    required this.unit,
+    required this.blockIndex,
     required this.questions,
     required this.onCanCompleteChanged,
     required this.onCorrectAnswer,
@@ -32,6 +41,12 @@ class _PracticeLessonViewState extends State<PracticeLessonView> {
     setState(() => _selected[qIndex] = optIndex);
     if (optIndex == widget.questions[qIndex].correct) {
       widget.onCorrectAnswer(10);
+      unawaited(context.read<AppStateProvider>().completions.record(
+            module: 'curriculum',
+            contentId: CompletionsService.curriculumContentId(widget.unit, 'practice', widget.blockIndex, qIndex),
+            unit: widget.unit,
+            domain: 'fluency',
+          ));
       if (!_anyCorrect) {
         _anyCorrect = true;
         widget.onCanCompleteChanged(true);

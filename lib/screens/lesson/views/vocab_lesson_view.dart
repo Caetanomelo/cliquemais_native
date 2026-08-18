@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/services/completions_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/vocab_item.dart';
 import '../../../providers/app_state_provider.dart';
@@ -13,16 +16,31 @@ import '../../vpc/vpc_screen.dart';
 /// Palavras" button that opens the full VPC session for the unit.
 class VocabLessonView extends StatefulWidget {
   final int unit;
+  final int blockIndex;
   final List<VocabItem> items;
   final void Function(String text) onSpeak;
-  const VocabLessonView({super.key, required this.unit, required this.items, required this.onSpeak});
+  const VocabLessonView({
+    super.key,
+    required this.unit,
+    required this.blockIndex,
+    required this.items,
+    required this.onSpeak,
+  });
 
   @override
   State<VocabLessonView> createState() => _VocabLessonViewState();
 }
 
 class _VocabLessonViewState extends State<VocabLessonView> {
+  late final AppStateProvider _app;
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _app = context.read<AppStateProvider>();
+    _reportCurrent(0);
+  }
 
   VocabItem get _current => widget.items[_index];
 
@@ -30,6 +48,20 @@ class _VocabLessonViewState extends State<VocabLessonView> {
     if (i < 0 || i >= widget.items.length) return;
     setState(() => _index = i);
     widget.onSpeak(widget.items[i].en);
+    _reportCurrent(i);
+  }
+
+  // Viewing the card is this lesson type's completion signal (mirrors
+  // web's renderVocab — see its comment on why there's no flip step
+  // anymore). Shares its content_id with VPC's pronunciation-lab entry for
+  // the same word, so acing it there already covers this and vice-versa.
+  void _reportCurrent(int i) {
+    unawaited(_app.completions.record(
+      module: 'curriculum',
+      contentId: CompletionsService.curriculumContentId(widget.unit, 'vocab', widget.blockIndex, i),
+      unit: widget.unit,
+      domain: 'vocabulary',
+    ));
   }
 
   Future<void> _testPronunciation() async {
@@ -44,10 +76,9 @@ class _VocabLessonViewState extends State<VocabLessonView> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.read<AppStateProvider>();
     final total = widget.items.length;
     final item = _current;
-    final emoji = app.unitData.emojiFor(item.en) ?? '📝';
+    final emoji = _app.unitData.emojiFor(item.en) ?? '📝';
 
     return Column(
       children: [

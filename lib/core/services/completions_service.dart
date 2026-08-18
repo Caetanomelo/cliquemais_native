@@ -17,6 +17,12 @@ import 'auth_service.dart';
 ///                 so there's no shared item identity to key off between
 ///                 platforms here; see WEB_BASE's src/supabase-client.js
 ///                 content_id convention comment for the web side's reasons)
+///   Currículo  -> "unitN:type:blockIndex:itemIndex" via [curriculumContentId] —
+///                 same composite key web's src/main.js _contentId() builds.
+///                 The curriculum's own vocab lesson type shares this key
+///                 with VPC's entry for the same word (both read the same
+///                 lessons.json/curriculum vocab block), so finishing one
+///                 already covers the other.
 class CompletionEvent {
   final String module;
   final String contentId;
@@ -85,6 +91,13 @@ class CompletionsService {
   /// PersistenceService/PracticeProgressService already make for XP/unit
   /// progress on this device.
   bool isCompleted(String contentId) => _localIds.contains(contentId);
+
+  /// Builds the composite content_id for one curriculum item — mirrors
+  /// web's src/main.js _contentId(unitId, type, blockIdx, itemIdx) exactly
+  /// (unitId there is the "unitN" string; unit here is the bare int, so the
+  /// prefix is rebuilt as "unit$unit").
+  static String curriculumContentId(int unit, String type, int blockIndex, int itemIndex) =>
+      'unit$unit:$type:$blockIndex:$itemIndex';
 
   Future<void> record({
     required String module,

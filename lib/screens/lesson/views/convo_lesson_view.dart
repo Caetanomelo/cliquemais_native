@@ -1,21 +1,63 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/services/completions_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/dialogue_line.dart';
+import '../../../providers/app_state_provider.dart';
 
-class ConvoLessonView extends StatelessWidget {
+/// unit/blockIndex are only known for curriculum lessons — CorpTrackDetailScreen
+/// reuses this same widget for a corp track's dialogues, which aren't part of
+/// the unit.lessons content_completions scheme (no matching content_id
+/// convention), so they're left null there and no completion is recorded.
+class ConvoLessonView extends StatefulWidget {
   final List<List<DialogueLine>> dialogues;
   final void Function(String text) onSpeak;
   final bool shrinkWrap;
+  final int? unit;
+  final int? blockIndex;
   const ConvoLessonView({
     super.key,
     required this.dialogues,
     required this.onSpeak,
     this.shrinkWrap = false,
+    this.unit,
+    this.blockIndex,
   });
 
   @override
+  State<ConvoLessonView> createState() => _ConvoLessonViewState();
+}
+
+class _ConvoLessonViewState extends State<ConvoLessonView> {
+  @override
+  void initState() {
+    super.initState();
+    final unit = widget.unit;
+    final blockIndex = widget.blockIndex;
+    if (unit == null || blockIndex == null) return;
+    final completions = context.read<AppStateProvider>().completions;
+    // di indexes widget.dialogues directly — native's dialoguesFromJson
+    // already concatenates dialogues+extraDialogues at parse time, unlike
+    // web's renderConvo which does that concatenation itself (see its
+    // comment on why convo's itemIdx isn't per-source-array).
+    for (var di = 0; di < widget.dialogues.length; di++) {
+      unawaited(completions.record(
+        module: 'curriculum',
+        contentId: CompletionsService.curriculumContentId(unit, 'convo', blockIndex, di),
+        unit: unit,
+        domain: 'fluency',
+      ));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dialogues = widget.dialogues;
+    final onSpeak = widget.onSpeak;
+    final shrinkWrap = widget.shrinkWrap;
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       shrinkWrap: shrinkWrap,

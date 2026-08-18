@@ -144,17 +144,22 @@ class _UnitLessonScreenState extends State<UnitLessonScreen> {
 
   Widget _buildContent() {
     final lesson = _lesson;
+    final unit = widget.unit.unit;
     return switch (lesson.content) {
-      VocabLessonContent c => VocabLessonView(unit: widget.unit.unit, items: c.items, onSpeak: _speak),
-      ConvoLessonContent c => ConvoLessonView(dialogues: c.dialogues, onSpeak: _speak),
-      GrammarLessonContent c => GrammarLessonView(content: c),
+      VocabLessonContent c => VocabLessonView(unit: unit, blockIndex: _index, items: c.items, onSpeak: _speak),
+      ConvoLessonContent c =>
+        ConvoLessonView(unit: unit, blockIndex: _index, dialogues: c.dialogues, onSpeak: _speak),
+      GrammarLessonContent c => GrammarLessonView(unit: unit, blockIndex: _index, content: c),
       PracticeLessonContent c => PracticeLessonView(
+          unit: unit,
+          blockIndex: _index,
           questions: c.questions,
           onCanCompleteChanged: (v) => setState(() => _canComplete = v),
           onCorrectAnswer: (xp) => _app.addXp(xp),
         ),
-      PronuncLessonContent c => PronuncLessonView(items: c.items, onSpeak: _speak),
-      StrategyLessonContent c => StrategyLessonView(items: c.items, onSpeak: _speak),
+      PronuncLessonContent c => PronuncLessonView(unit: unit, blockIndex: _index, items: c.items, onSpeak: _speak),
+      StrategyLessonContent c =>
+        StrategyLessonView(unit: unit, blockIndex: _index, items: c.items, onSpeak: _speak),
       UnknownLessonContent _ => const Center(
           child: Text('Tipo de lição não suportado.', style: TextStyle(color: AppTheme.textSubDark)),
         ),

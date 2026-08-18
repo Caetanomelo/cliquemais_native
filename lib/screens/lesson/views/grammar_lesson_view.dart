@@ -1,14 +1,44 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../../core/services/completions_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/lesson_content.dart';
+import '../../../providers/app_state_provider.dart';
 
-class GrammarLessonView extends StatelessWidget {
+/// No per-item interaction exists for this lesson type (all rules render
+/// at once, no quiz) — per the feature plan's design decision, being
+/// displayed IS the completion signal, recorded once per rule in initState.
+class GrammarLessonView extends StatefulWidget {
+  final int unit;
+  final int blockIndex;
   final GrammarLessonContent content;
-  const GrammarLessonView({super.key, required this.content});
+  const GrammarLessonView({super.key, required this.unit, required this.blockIndex, required this.content});
+
+  @override
+  State<GrammarLessonView> createState() => _GrammarLessonViewState();
+}
+
+class _GrammarLessonViewState extends State<GrammarLessonView> {
+  @override
+  void initState() {
+    super.initState();
+    final completions = context.read<AppStateProvider>().completions;
+    for (var ri = 0; ri < widget.content.rules.length; ri++) {
+      unawaited(completions.record(
+        module: 'curriculum',
+        contentId: CompletionsService.curriculumContentId(widget.unit, 'grammar', widget.blockIndex, ri),
+        unit: widget.unit,
+        domain: 'comprehension',
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final content = widget.content;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
