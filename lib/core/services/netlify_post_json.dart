@@ -13,11 +13,21 @@ Future<Map<String, dynamic>> postJson(
   Map<String, dynamic> body, {
   required String errorLabel,
 }) async {
-  final uri = Uri.parse('${NetlifyConfig.baseUrl}/.netlify/functions/$functionName');
+  final uri = Uri.parse(
+    '${NetlifyConfig.baseUrl}/.netlify/functions/$functionName',
+  );
   final res = await client
       .post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        // The functions' checkOrigin() (WEB_BASE netlify/functions/lib/http-utils.js)
+        // rejects any request without an Origin/Referer matching the deployed
+        // site — a browser sends Origin automatically, but package:http never
+        // does, so every native call was silently getting a bare 403 until
+        // this was set explicitly.
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': NetlifyConfig.baseUrl,
+        },
         body: jsonEncode(body),
       )
       // Netlify functions themselves cap out at ~10-12s server-side; give
