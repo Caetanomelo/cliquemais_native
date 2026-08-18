@@ -67,6 +67,10 @@ dependencies:
   firebase_messaging: ^16.5.0
   firebase_crashlytics: ^5.2.7
 
+  # Login do aluno (email/senha) + sincronizacao de progresso por item,
+  # mesmo projeto Supabase do WEB_BASE (supabase/migrations/006_content_completions.sql)
+  supabase_flutter: ^2.9.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

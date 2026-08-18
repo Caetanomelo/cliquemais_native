@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
 import '../core/dashboard_stats.dart';
+import '../core/services/auth_service.dart';
 import '../core/services/persistence_service.dart';
 import '../core/services/tts_service.dart';
 import '../core/services/speech_service.dart';
@@ -36,6 +38,7 @@ class AppStateProvider extends ChangeNotifier {
     SpeechService? speech,
     ChimeService? chime,
     PushService? push,
+    AuthService? auth,
     CloudTtsService? cloudTts,
     AiTutorService? aiTutor,
     PronunciationAssessmentService? pronunciation,
@@ -50,6 +53,7 @@ class AppStateProvider extends ChangeNotifier {
         speech = speech ?? SpeechService(),
         chime = chime ?? ChimeService(),
         push = push ?? PushService(),
+        auth = auth ?? AuthService(),
         _seedCloudTts = cloudTts,
         _seedAiTutor = aiTutor,
         _seedPronunciation = pronunciation,
@@ -65,6 +69,9 @@ class AppStateProvider extends ChangeNotifier {
   final SpeechService speech;
   final ChimeService chime;
   final PushService push;
+  final AuthService auth;
+
+  StreamSubscription<AuthState>? _authSub;
 
   // Built (or adopted from the constructor) in init(), since the real
   // implementations need an async factory (persistence/progress) or depend
@@ -128,7 +135,18 @@ class AppStateProvider extends ChangeNotifier {
     // Fire-and-forget: push permission/token registration must never block
     // or fail boot.
     unawaited(push.register());
+    // Same reasoning as push: login is optional, must never block cold
+    // boot or crash it on a misconfigured/unreachable Supabase project.
+    unawaited(_initAuth());
   }
+
+  Future<void> _initAuth() async {
+    await auth.init();
+    _authSub = auth.onAuthStateChange.listen((_) => notifyListeners());
+    notifyListeners();
+  }
+
+  bool get isLoggedIn => auth.isLoggedIn;
 
   static const int dailyXpGoal = 50;
 
@@ -183,6 +201,7 @@ class AppStateProvider extends ChangeNotifier {
     push.dispose();
     chime.dispose();
     remoteContent.dispose();
+    unawaited(_authSub?.cancel());
     super.dispose();
   }
 }
