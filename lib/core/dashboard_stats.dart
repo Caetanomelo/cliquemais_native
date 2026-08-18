@@ -1,6 +1,8 @@
+import '../data/models/lesson_content.dart';
 import '../data/models/lesson_unit.dart';
 import 'services/curriculum_progress_service.dart';
 import '../data/repositories/curriculum_repository.dart';
+import '../data/repositories/unit_data_repository.dart';
 
 /// Where the learner is in the curriculum: current CEFR level, step within
 /// the full sequence, and progress fractions for the Dashboard's level
@@ -46,7 +48,12 @@ class DomainProgress {
     required this.compreensao,
   });
 
-  static const empty = DomainProgress(pronuncia: 0, vocabulario: 0, fluencia: 0, compreensao: 0);
+  static const empty = DomainProgress(
+    pronuncia: 0,
+    vocabulario: 0,
+    fluencia: 0,
+    compreensao: 0,
+  );
 }
 
 JourneyProgress computeJourneyProgress(
@@ -70,11 +77,15 @@ JourneyProgress computeJourneyProgress(
   final currentStep = steps[current]!;
   final cefr = curriculum.progressionFor(current.id)?.cefr ?? 'A1';
 
-  final stepsInLevel = sorted.where((u) => (curriculum.progressionFor(u.id)?.cefr ?? 'A1') == cefr).map((u) => steps[u]!);
+  final stepsInLevel = sorted
+      .where((u) => (curriculum.progressionFor(u.id)?.cefr ?? 'A1') == cefr)
+      .map((u) => steps[u]!);
   final minLevelStep = stepsInLevel.reduce((a, b) => a < b ? a : b);
   final maxLevelStep = stepsInLevel.reduce((a, b) => a > b ? a : b);
   final levelSpan = (maxLevelStep - minLevelStep + 1);
-  final levelFraction = levelSpan <= 0 ? 0.0 : ((currentStep - minLevelStep) / levelSpan).clamp(0.0, 1.0);
+  final levelFraction = levelSpan <= 0
+      ? 0.0
+      : ((currentStep - minLevelStep) / levelSpan).clamp(0.0, 1.0);
 
   return JourneyProgress(
     cefr: cefr,
@@ -113,5 +124,82 @@ DomainProgress computeDomainProgress(
     vocabulario: fractionFor([LessonType.vocab]),
     fluencia: fractionFor([LessonType.practice, LessonType.convo]),
     compreensao: fractionFor([LessonType.grammar, LessonType.strategy]),
+  );
+}
+
+/// Denominators for the real, per-item Analytics Core (Fase 8): every
+/// completable item across the curriculum's 6 lesson types plus Drive Mode
+/// phrases and VPC's separate vocab_items table — mirrors WEB_BASE's
+/// _computeDomainTotals in index.html. Curriculum `vocab` items and VPC's
+/// vocab_items.json are two distinct sets on native (unlike web, where VPC
+/// reads the same lessons.json items — see CompletionsService's doc
+/// comment), so both are counted into `vocabulary`.
+class DomainTotals {
+  final int pronunciation;
+  final int vocabulary;
+  final int fluency;
+  final int comprehension;
+  const DomainTotals({
+    required this.pronunciation,
+    required this.vocabulary,
+    required this.fluency,
+    required this.comprehension,
+  });
+}
+
+DomainTotals computeDomainTotals(
+  CurriculumRepository curriculum,
+  UnitDataRepository unitData,
+) {
+  var pronunciation = 0, vocabulary = 0, fluency = 0, comprehension = 0;
+  for (final unit in curriculum.units) {
+    for (final lesson in unit.lessons) {
+      switch (lesson.content) {
+        case VocabLessonContent c:
+          vocabulary += c.items.length;
+        case GrammarLessonContent c:
+          comprehension += c.rules.length;
+        case ConvoLessonContent c:
+          fluency += c.dialogues.length;
+        case PracticeLessonContent c:
+          fluency += c.questions.length;
+        case PronuncLessonContent c:
+          pronunciation += c.items.length;
+        case StrategyLessonContent c:
+          comprehension += c.items.length;
+        case UnknownLessonContent _:
+          break;
+      }
+    }
+  }
+  for (final u in unitData.drivePhrases) {
+    pronunciation += u.phrases.where((p) => p.id != null).length;
+  }
+  for (final u in unitData.vocabItems) {
+    vocabulary += u.items.where((it) => it.id != null).length;
+  }
+  return DomainTotals(
+    pronunciation: pronunciation,
+    vocabulary: vocabulary,
+    fluency: fluency,
+    comprehension: comprehension,
+  );
+}
+
+/// Real completion counts (from Supabase, keyed like content_completions.domain)
+/// against [DomainTotals] denominators -> the same 0..1 fractions
+/// [DomainProgress] already uses, so this is a drop-in replacement for
+/// [computeDomainProgress] once real counts are available.
+DomainProgress domainProgressFromCounts(
+  DomainTotals totals,
+  Map<String, int> counts,
+) {
+  double pct(int count, int total) =>
+      total == 0 ? 0 : (count / total).clamp(0.0, 1.0);
+  return DomainProgress(
+    pronuncia: pct(counts['pronunciation'] ?? 0, totals.pronunciation),
+    vocabulario: pct(counts['vocabulary'] ?? 0, totals.vocabulary),
+    fluencia: pct(counts['fluency'] ?? 0, totals.fluency),
+    compreensao: pct(counts['comprehension'] ?? 0, totals.comprehension),
   );
 }

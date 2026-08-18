@@ -37,16 +37,40 @@ class CompletionEvent {
     this.xp = 5,
   });
 
-  Map<String, dynamic> toJson() =>
-      {'module': module, 'contentId': contentId, 'unit': unit, 'domain': domain, 'xp': xp};
+  Map<String, dynamic> toJson() => {
+    'module': module,
+    'contentId': contentId,
+    'unit': unit,
+    'domain': domain,
+    'xp': xp,
+  };
 
   factory CompletionEvent.fromJson(Map<String, dynamic> j) => CompletionEvent(
-        module: j['module'] as String,
-        contentId: j['contentId'] as String,
-        unit: j['unit'] as int,
-        domain: j['domain'] as String,
-        xp: j['xp'] as int? ?? 5,
-      );
+    module: j['module'] as String,
+    contentId: j['contentId'] as String,
+    unit: j['unit'] as int,
+    domain: j['domain'] as String,
+    xp: j['xp'] as int? ?? 5,
+  );
+}
+
+/// Aggregated per-student analytics — native counterpart of WEB_BASE's
+/// src/supabase-client.js getAnalyticsSummary(). domainCounts keys are
+/// 'pronunciation'/'vocabulary'/'fluency'/'comprehension', matching
+/// content_completions.domain values exactly.
+class AnalyticsSummary {
+  final Map<String, int> domainCounts;
+  final int xpTotal;
+  final int xpWeek;
+  final int streak;
+  final int completions;
+  const AnalyticsSummary({
+    required this.domainCounts,
+    required this.xpTotal,
+    required this.xpWeek,
+    required this.streak,
+    required this.completions,
+  });
 }
 
 /// Per-item completion tracking (Drive Mode phrases, VPC words, later the
@@ -79,7 +103,10 @@ class CompletionsService {
     final prefs = await SharedPreferences.getInstance();
     final localIds = (prefs.getStringList(_kLocalIds) ?? const []).toSet();
     final pending = (prefs.getStringList(_kPending) ?? const [])
-        .map((s) => CompletionEvent.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .map(
+          (s) =>
+              CompletionEvent.fromJson(jsonDecode(s) as Map<String, dynamic>),
+        )
         .toList();
     final svc = CompletionsService._(auth, prefs, localIds, pending);
     unawaited(svc.flushPending());
@@ -96,8 +123,12 @@ class CompletionsService {
   /// web's src/main.js _contentId(unitId, type, blockIdx, itemIdx) exactly
   /// (unitId there is the "unitN" string; unit here is the bare int, so the
   /// prefix is rebuilt as "unit$unit").
-  static String curriculumContentId(int unit, String type, int blockIndex, int itemIndex) =>
-      'unit$unit:$type:$blockIndex:$itemIndex';
+  static String curriculumContentId(
+    int unit,
+    String type,
+    int blockIndex,
+    int itemIndex,
+  ) => 'unit$unit:$type:$blockIndex:$itemIndex';
 
   Future<void> record({
     required String module,
@@ -111,7 +142,13 @@ class CompletionsService {
     _localIds.add(contentId);
     await _prefs.setStringList(_kLocalIds, _localIds.toList());
     await _pushOrQueue(
-      CompletionEvent(module: module, contentId: contentId, unit: unit, domain: domain, xp: xp),
+      CompletionEvent(
+        module: module,
+        contentId: contentId,
+        unit: unit,
+        domain: domain,
+        xp: xp,
+      ),
     );
   }
 
@@ -138,18 +175,20 @@ class CompletionsService {
     final user = _auth.currentUser;
     if (user == null) return false;
     try {
-      await Supabase.instance.client.from('content_completions').upsert(
-        {
-          'user_id': user.id,
-          'module': event.module,
-          'content_id': event.contentId,
-          'unit': event.unit,
-          'domain': event.domain,
-          'xp': event.xp,
-        },
-        onConflict: 'user_id,content_id',
-        ignoreDuplicates: true,
-      );
+      await Supabase.instance.client
+          .from('content_completions')
+          .upsert(
+            {
+              'user_id': user.id,
+              'module': event.module,
+              'content_id': event.contentId,
+              'unit': event.unit,
+              'domain': event.domain,
+              'xp': event.xp,
+            },
+            onConflict: 'user_id,content_id',
+            ignoreDuplicates: true,
+          );
       return true;
     } catch (_) {
       return false;
@@ -157,6 +196,76 @@ class CompletionsService {
   }
 
   Future<void> _savePending() async {
-    await _prefs.setStringList(_kPending, _pending.map((e) => jsonEncode(e.toJson())).toList());
+    await _prefs.setStringList(
+      _kPending,
+      _pending.map((e) => jsonEncode(e.toJson())).toList(),
+    );
+  }
+
+  /// Live per-student rollup straight from Supabase (domain counts, XP,
+  /// streak) — mirrors WEB_BASE's getAnalyticsSummary exactly, including the
+  /// "consecutive calendar days ending today or yesterday" streak rule, so
+  /// the two platforms never disagree about a shared student's numbers.
+  /// Returns null when logged out or on any read failure (caller falls back
+  /// to local-only figures, same as isLoggedIn-gated call sites elsewhere).
+  Future<AnalyticsSummary?> fetchAnalyticsSummary() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    try {
+      final rows =
+          await Supabase.instance.client
+                  .from('content_completions')
+                  .select('domain, xp, completed_at')
+                  .eq('user_id', user.id)
+              as List;
+
+      final domains = {
+        'pronunciation': 0,
+        'vocabulary': 0,
+        'fluency': 0,
+        'comprehension': 0,
+      };
+      var xpTotal = 0;
+      var xpWeek = 0;
+      final days = <String>{};
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+
+      for (final r in rows) {
+        final row = r as Map<String, dynamic>;
+        final domain = row['domain'] as String;
+        domains[domain] = (domains[domain] ?? 0) + 1;
+        final xp = row['xp'] as int;
+        xpTotal += xp;
+        final t = DateTime.parse(row['completed_at'] as String);
+        if (!t.isBefore(weekAgo)) xpWeek += xp;
+        days.add(_utcDayKey(t));
+      }
+
+      var streak = 0;
+      var cursor = DateTime.now();
+      cursor = DateTime(cursor.year, cursor.month, cursor.day);
+      if (!days.contains(_utcDayKey(cursor))) {
+        cursor = cursor.subtract(const Duration(days: 1));
+      }
+      while (days.contains(_utcDayKey(cursor))) {
+        streak++;
+        cursor = cursor.subtract(const Duration(days: 1));
+      }
+
+      return AnalyticsSummary(
+        domainCounts: domains,
+        xpTotal: xpTotal,
+        xpWeek: xpWeek,
+        streak: streak,
+        completions: rows.length,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _utcDayKey(DateTime d) {
+    final u = d.toUtc();
+    return '${u.year.toString().padLeft(4, '0')}-${u.month.toString().padLeft(2, '0')}-${u.day.toString().padLeft(2, '0')}';
   }
 }

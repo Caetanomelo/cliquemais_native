@@ -41,113 +41,155 @@ class DashboardScreen extends StatelessWidget {
     // plain objects with identity equality, so selecting them directly
     // would defeat select's diffing; the primitive fields have real value
     // equality.
-    final cefr = context.select<AppStateProvider, String>((a) => a.journeyProgress.cefr);
-    final levelFraction = context.select<AppStateProvider, double>((a) => a.journeyProgress.levelFraction);
+    final cefr = context.select<AppStateProvider, String>(
+      (a) => a.journeyProgress.cefr,
+    );
+    final levelFraction = context.select<AppStateProvider, double>(
+      (a) => a.journeyProgress.levelFraction,
+    );
     final todayXp = context.select<AppStateProvider, int>((a) => a.todayXp);
-    final streakDays = context.select<AppStateProvider, int>((a) => a.streakDays);
-    final weekXp = context.select<AppStateProvider, int>((a) => a.weekXp);
-    final totalXp = context.select<AppStateProvider, int>((a) => a.totalXp);
-    final isLoggedIn = context.select<AppStateProvider, bool>((a) => a.isLoggedIn);
+    // Analytics Core only renders once logged in (see the isLoggedIn branch
+    // below), so these read the real, Supabase-backed figures (Fase 8) —
+    // realStreakDays/realWeekXp/realTotalXp/realDomainProgress fall back to
+    // the local-only numbers on their own until the first fetch resolves.
+    final streakDays = context.select<AppStateProvider, int>(
+      (a) => a.realStreakDays,
+    );
+    final weekXp = context.select<AppStateProvider, int>((a) => a.realWeekXp);
+    final totalXp = context.select<AppStateProvider, int>((a) => a.realTotalXp);
+    final isLoggedIn = context.select<AppStateProvider, bool>(
+      (a) => a.isLoggedIn,
+    );
     final domains = DomainProgress(
-      pronuncia: context.select<AppStateProvider, double>((a) => a.domainProgress.pronuncia),
-      vocabulario: context.select<AppStateProvider, double>((a) => a.domainProgress.vocabulario),
-      fluencia: context.select<AppStateProvider, double>((a) => a.domainProgress.fluencia),
-      compreensao: context.select<AppStateProvider, double>((a) => a.domainProgress.compreensao),
+      pronuncia: context.select<AppStateProvider, double>(
+        (a) => a.realDomainProgress.pronuncia,
+      ),
+      vocabulario: context.select<AppStateProvider, double>(
+        (a) => a.realDomainProgress.vocabulario,
+      ),
+      fluencia: context.select<AppStateProvider, double>(
+        (a) => a.realDomainProgress.fluencia,
+      ),
+      compreensao: context.select<AppStateProvider, double>(
+        (a) => a.realDomainProgress.compreensao,
+      ),
     );
 
     return Scaffold(
       backgroundColor: AppTheme.bgDashboard,
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 108),
-          children: [
-            const _TopBadge(),
-            const SizedBox(height: 18),
-            _GreetingHeader(
-              cefr: cefr,
-              onBell: () => showComingSoonSnackbar(context),
-              onSettings: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              ),
-            ),
-            const SizedBox(height: 18),
-            _LevelTrack(cefr: cefr, levelFraction: levelFraction),
-            const SizedBox(height: 22),
-            _XpDailySection(todayXp: todayXp, goal: AppStateProvider.dailyXpGoal),
-            const SizedBox(height: 16),
-            _AiTutorPrimaryCard(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AiTutorScreen()),
-              ),
-            ),
-            const SizedBox(height: 26),
-            const _SectionLabel('DRIVE MODE'),
-            const SizedBox(height: 12),
-            _DriveModePrimaryCard(
-              onTap: () => showLevelUnitPicker(
-                context,
-                units: app.unitData.unitMeta,
-                currentCefr: cefr,
-                completedUnits: app.practiceProgress.driveCompletedUnits,
-                onPicked: (units) => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
+        // Fase 8: completions.record() never pushes a live update back into
+        // realDomainProgress/realStreakDays/etc (that would mean a Supabase
+        // round-trip on every single answer) — pull-to-refresh is the
+        // explicit way to see fresh Analytics Core numbers after finishing a
+        // practice session, on top of the automatic refresh on login.
+        child: RefreshIndicator(
+          onRefresh: () =>
+              context.read<AppStateProvider>().refreshRealAnalytics(),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 108),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              const _TopBadge(),
+              const SizedBox(height: 18),
+              _GreetingHeader(
+                cefr: cefr,
+                onBell: () => showComingSoonSnackbar(context),
+                onSettings: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            _SecondaryCard(
-              icon: Icons.style_rounded,
-              title: 'Vocabulário',
-              subtitle: 'Flashcards com gravação e comparação de pronúncia',
-              onTap: () => showLevelUnitPicker(
-                context,
-                units: app.unitData.unitMeta,
-                currentCefr: cefr,
-                completedUnits: app.practiceProgress.vocabCompletedUnits,
-                onPicked: (units) => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
-                ),
+              const SizedBox(height: 18),
+              _LevelTrack(cefr: cefr, levelFraction: levelFraction),
+              const SizedBox(height: 22),
+              _XpDailySection(
+                todayXp: todayXp,
+                goal: AppStateProvider.dailyXpGoal,
               ),
-            ),
-            const SizedBox(height: 26),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const _SectionLabel('ANALYTICS CORE'),
-                if (isLoggedIn)
-                  GestureDetector(
-                    onTap: () => context.read<AppStateProvider>().auth.signOut(),
-                    child: const Text('Sair',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (isLoggedIn)
-              _AnalyticsCore(
-                streakDays: streakDays,
-                weekXp: weekXp,
-                totalXp: totalXp,
-                domains: domains,
-              )
-            else
-              _AnalyticsLoginCta(
+              const SizedBox(height: 16),
+              _AiTutorPrimaryCard(
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  MaterialPageRoute(builder: (_) => const AiTutorScreen()),
                 ),
               ),
-            const SizedBox(height: 26),
-            _ContentBanner(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AllContentScreen()),
+              const SizedBox(height: 26),
+              const _SectionLabel('DRIVE MODE'),
+              const SizedBox(height: 12),
+              _DriveModePrimaryCard(
+                onTap: () => showLevelUnitPicker(
+                  context,
+                  units: app.unitData.unitMeta,
+                  currentCefr: cefr,
+                  completedUnits: app.practiceProgress.driveCompletedUnits,
+                  onPicked: (units) => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => DriveModeScreen(units: units),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 26),
-            const _SectionLabel('SEUS DOMÍNIOS'),
-            const SizedBox(height: 12),
-            _DomainGrid(domains: domains),
-          ],
+              const SizedBox(height: 12),
+              _SecondaryCard(
+                icon: Icons.style_rounded,
+                title: 'Vocabulário',
+                subtitle: 'Flashcards com gravação e comparação de pronúncia',
+                onTap: () => showLevelUnitPicker(
+                  context,
+                  units: app.unitData.unitMeta,
+                  currentCefr: cefr,
+                  completedUnits: app.practiceProgress.vocabCompletedUnits,
+                  onPicked: (units) => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 26),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const _SectionLabel('ANALYTICS CORE'),
+                  if (isLoggedIn)
+                    GestureDetector(
+                      onTap: () =>
+                          context.read<AppStateProvider>().auth.signOut(),
+                      child: const Text(
+                        'Sair',
+                        style: TextStyle(
+                          fontFamily: 'Sora',
+                          fontSize: 12,
+                          color: AppTheme.textSubDark,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (isLoggedIn)
+                _AnalyticsCore(
+                  streakDays: streakDays,
+                  weekXp: weekXp,
+                  totalXp: totalXp,
+                  domains: domains,
+                )
+              else
+                _AnalyticsLoginCta(
+                  onTap: () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const AuthScreen())),
+                ),
+              const SizedBox(height: 26),
+              _ContentBanner(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AllContentScreen()),
+                ),
+              ),
+              const SizedBox(height: 26),
+              const _SectionLabel('SEUS DOMÍNIOS'),
+              const SizedBox(height: 12),
+              _DomainGrid(domains: domains),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: const AppBottomNav(current: AppTab.inicio),
@@ -164,13 +206,21 @@ class _TopBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [AppTheme.navyMid, AppTheme.navy]),
+          gradient: const LinearGradient(
+            colors: [AppTheme.navyMid, AppTheme.navy],
+          ),
           borderRadius: BorderRadius.circular(AppTheme.radiusBtn),
           border: Border.all(color: AppTheme.navBorder),
         ),
         child: const Text(
           'CLIQUE+',
-          style: TextStyle(fontFamily: 'Sora', fontSize: 12, fontWeight: FontWeight.w800, color: AppTheme.accentBright, letterSpacing: 2),
+          style: TextStyle(
+            fontFamily: 'Sora',
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.accentBright,
+            letterSpacing: 2,
+          ),
         ),
       ),
     );
@@ -181,7 +231,11 @@ class _GreetingHeader extends StatelessWidget {
   final String cefr;
   final VoidCallback onBell;
   final VoidCallback onSettings;
-  const _GreetingHeader({required this.cefr, required this.onBell, required this.onSettings});
+  const _GreetingHeader({
+    required this.cefr,
+    required this.onBell,
+    required this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +249,10 @@ class _GreetingHeader extends StatelessWidget {
             child: Container(
               width: 48,
               height: 48,
-              decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                gradient: AppTheme.primaryButtonGradient,
+                shape: BoxShape.circle,
+              ),
               child: const Icon(Icons.person_rounded, color: Colors.white),
             ),
           ),
@@ -205,23 +262,46 @@ class _GreetingHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Bem-vindo(a) de volta',
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark)),
+              const Text(
+                'Bem-vindo(a) de volta',
+                style: TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 12,
+                  color: AppTheme.textSubDark,
+                ),
+              ),
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Text('Sua jornada',
-                      style: TextStyle(fontFamily: 'Sora', fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
+                  const Text(
+                    'Sua jornada',
+                    style: TextStyle(
+                      fontFamily: 'Sora',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textMainDark,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.accentBright.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       border: Border.all(color: AppTheme.borderDark),
                     ),
-                    child: Text(cefr,
-                        style: const TextStyle(fontFamily: 'Sora', fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.accentBright)),
+                    child: Text(
+                      cefr,
+                      style: const TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.accentBright,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -230,7 +310,10 @@ class _GreetingHeader extends StatelessWidget {
         ),
         IconButton(
           onPressed: onBell,
-          icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.textMainDark),
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppTheme.textMainDark,
+          ),
           tooltip: 'Notificações',
         ),
       ],
@@ -254,13 +337,17 @@ class _LevelTrack extends StatelessWidget {
           Expanded(
             child: Column(
               children: [
-                Text(_levels[i],
-                    style: TextStyle(
-                      fontFamily: 'Sora',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: i <= currentIndex ? AppTheme.accentBright : AppTheme.textSubDark,
-                    )),
+                Text(
+                  _levels[i],
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: i <= currentIndex
+                        ? AppTheme.accentBright
+                        : AppTheme.textSubDark,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
@@ -270,7 +357,11 @@ class _LevelTrack extends StatelessWidget {
                       children: [
                         Container(color: AppTheme.navBorder),
                         FractionallySizedBox(
-                          widthFactor: i < currentIndex ? 1.0 : (i == currentIndex ? levelFraction.clamp(0.06, 1.0) : 0.0),
+                          widthFactor: i < currentIndex
+                              ? 1.0
+                              : (i == currentIndex
+                                    ? levelFraction.clamp(0.06, 1.0)
+                                    : 0.0),
                           child: Container(color: AppTheme.accentBright),
                         ),
                       ],
@@ -303,10 +394,25 @@ class _XpDailySection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('XP DIÁRIO',
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.textSubDark, letterSpacing: 1)),
-              Text('$todayXp / $goal XP',
-                  style: const TextStyle(fontFamily: 'Sora', fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.gold)),
+              const Text(
+                'XP DIÁRIO',
+                style: TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textSubDark,
+                  letterSpacing: 1,
+                ),
+              ),
+              Text(
+                '$todayXp / $goal XP',
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.gold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -331,14 +437,16 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text,
-        style: const TextStyle(
-          fontFamily: 'Sora',
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.4,
-          color: AppTheme.textSubDark,
-        ));
+    return Text(
+      text,
+      style: const TextStyle(
+        fontFamily: 'Sora',
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.4,
+        color: AppTheme.textSubDark,
+      ),
+    );
   }
 }
 
@@ -361,7 +469,10 @@ class _DriveModePrimaryCard extends StatelessWidget {
       leading: Container(
         width: 56,
         height: 56,
-        decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
+        decoration: const BoxDecoration(
+          gradient: AppTheme.primaryButtonGradient,
+          shape: BoxShape.circle,
+        ),
         child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
       ),
       title: 'Drive Mode',
@@ -389,8 +500,15 @@ class _AiTutorPrimaryCard extends StatelessWidget {
       leading: Container(
         width: 56,
         height: 56,
-        decoration: const BoxDecoration(gradient: AppTheme.primaryButtonGradient, shape: BoxShape.circle),
-        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 28),
+        decoration: const BoxDecoration(
+          gradient: AppTheme.primaryButtonGradient,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.smart_toy_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
       title: 'Tutor IA',
       subtitle: 'Converse e pratique pronúncia com o professor de IA',
@@ -403,7 +521,12 @@ class _SecondaryCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  const _SecondaryCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _SecondaryCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +542,10 @@ class _SecondaryCard extends StatelessWidget {
       leading: Container(
         width: 44,
         height: 44,
-        decoration: BoxDecoration(color: AppTheme.green.withValues(alpha: 0.15), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: AppTheme.green.withValues(alpha: 0.15),
+          shape: BoxShape.circle,
+        ),
         child: Icon(icon, color: AppTheme.green),
       ),
       title: title,
@@ -444,7 +570,12 @@ class _AnalyticsLoginCta extends StatelessWidget {
           const Text(
             'Entre para salvar seu progresso e ver sua análise completa',
             textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.textSubDark, height: 1.4),
+            style: TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 13,
+              color: AppTheme.textSubDark,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 12),
           ElevatedButton(
@@ -467,7 +598,12 @@ class _AnalyticsCore extends StatelessWidget {
   final int weekXp;
   final int totalXp;
   final DomainProgress domains;
-  const _AnalyticsCore({required this.streakDays, required this.weekXp, required this.totalXp, required this.domains});
+  const _AnalyticsCore({
+    required this.streakDays,
+    required this.weekXp,
+    required this.totalXp,
+    required this.domains,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -480,11 +616,26 @@ class _AnalyticsCore extends StatelessWidget {
           Expanded(
             child: Column(
               children: [
-                _StatMiniCard(icon: Icons.local_fire_department_rounded, color: AppTheme.red, value: '$streakDays', label: 'dias seguidos'),
+                _StatMiniCard(
+                  icon: Icons.local_fire_department_rounded,
+                  color: AppTheme.red,
+                  value: '$streakDays',
+                  label: 'dias seguidos',
+                ),
                 const SizedBox(height: 8),
-                _StatMiniCard(icon: Icons.bolt_rounded, color: AppTheme.accentBright, value: '$weekXp', label: 'XP na semana'),
+                _StatMiniCard(
+                  icon: Icons.bolt_rounded,
+                  color: AppTheme.accentBright,
+                  value: '$weekXp',
+                  label: 'XP na semana',
+                ),
                 const SizedBox(height: 8),
-                _StatMiniCard(icon: Icons.emoji_events_rounded, color: AppTheme.gold, value: '$totalXp', label: 'XP total'),
+                _StatMiniCard(
+                  icon: Icons.emoji_events_rounded,
+                  color: AppTheme.gold,
+                  value: '$totalXp',
+                  label: 'XP total',
+                ),
               ],
             ),
           ),
@@ -509,7 +660,12 @@ class _StatMiniCard extends StatelessWidget {
   final Color color;
   final String value;
   final String label;
-  const _StatMiniCard({required this.icon, required this.color, required this.value, required this.label});
+  const _StatMiniCard({
+    required this.icon,
+    required this.color,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -528,8 +684,23 @@ class _StatMiniCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value, style: const TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textMainDark)),
-                Text(label, style: const TextStyle(fontFamily: 'Sora', fontSize: 9, color: AppTheme.textSubDark)),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textMainDark,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 9,
+                    color: AppTheme.textSubDark,
+                  ),
+                ),
               ],
             ),
           ),
@@ -551,7 +722,12 @@ class _DiamondChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2 - 6);
     final radius = math.min(size.width, size.height) / 2 - 18;
-    final values = [domains.pronuncia, domains.vocabulario, domains.fluencia, domains.compreensao];
+    final values = [
+      domains.pronuncia,
+      domains.vocabulario,
+      domains.fluencia,
+      domains.compreensao,
+    ];
 
     Offset pointAt(int i, double fraction) {
       final angle = -math.pi / 2 + i * (math.pi * 2 / 4);
@@ -593,7 +769,10 @@ class _DiamondChartPainter extends CustomPainter {
       }
     }
     fillPath.close();
-    canvas.drawPath(fillPath, Paint()..color = AppTheme.accentBright.withValues(alpha: 0.22));
+    canvas.drawPath(
+      fillPath,
+      Paint()..color = AppTheme.accentBright.withValues(alpha: 0.22),
+    );
     canvas.drawPath(
       fillPath,
       Paint()
@@ -610,7 +789,12 @@ class _DiamondChartPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: _labels[i],
-          style: const TextStyle(fontFamily: 'Sora', fontSize: 9, color: AppTheme.textSubDark, fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: 'Sora',
+            fontSize: 9,
+            color: AppTheme.textSubDark,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
@@ -644,7 +828,10 @@ class _ContentBanner extends StatelessWidget {
       leading: Container(
         width: 48,
         height: 48,
-        decoration: BoxDecoration(color: AppTheme.accent2.withValues(alpha: 0.18), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: AppTheme.accent2.withValues(alpha: 0.18),
+          shape: BoxShape.circle,
+        ),
         child: const Icon(Icons.school_rounded, color: AppTheme.accent2),
       ),
       title: 'Todo o Conteúdo',
@@ -660,10 +847,30 @@ class _DomainGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (icon: Icons.record_voice_over_rounded, label: 'Pronúncia', color: AppTheme.accent, value: domains.pronuncia),
-      (icon: Icons.style_rounded, label: 'Vocabulário', color: AppTheme.green, value: domains.vocabulario),
-      (icon: Icons.forum_rounded, label: 'Fluência', color: AppTheme.accent2, value: domains.fluencia),
-      (icon: Icons.menu_book_rounded, label: 'Compreensão', color: AppTheme.gold, value: domains.compreensao),
+      (
+        icon: Icons.record_voice_over_rounded,
+        label: 'Pronúncia',
+        color: AppTheme.accent,
+        value: domains.pronuncia,
+      ),
+      (
+        icon: Icons.style_rounded,
+        label: 'Vocabulário',
+        color: AppTheme.green,
+        value: domains.vocabulario,
+      ),
+      (
+        icon: Icons.forum_rounded,
+        label: 'Fluência',
+        color: AppTheme.accent2,
+        value: domains.fluencia,
+      ),
+      (
+        icon: Icons.menu_book_rounded,
+        label: 'Compreensão',
+        color: AppTheme.gold,
+        value: domains.compreensao,
+      ),
     ];
     return Row(
       children: [
@@ -688,7 +895,12 @@ class _DomainRingCard extends StatelessWidget {
   final String label;
   final Color color;
   final double value;
-  const _DomainRingCard({required this.icon, required this.label, required this.color, required this.value});
+  const _DomainRingCard({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -710,12 +922,25 @@ class _DomainRingCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text('${(value * 100).round()}%',
-              style: TextStyle(fontFamily: 'Sora', fontSize: 12, fontWeight: FontWeight.w800, color: color)),
+          Text(
+            '${(value * 100).round()}%',
+            style: TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontFamily: 'Sora', fontSize: 9, color: AppTheme.textSubDark)),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 9,
+              color: AppTheme.textSubDark,
+            ),
+          ),
         ],
       ),
     );
@@ -756,4 +981,3 @@ class _RingPainter extends CustomPainter {
   bool shouldRepaint(covariant _RingPainter oldDelegate) =>
       oldDelegate.fraction != fraction || oldDelegate.color != color;
 }
-

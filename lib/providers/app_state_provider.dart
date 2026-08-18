@@ -50,22 +50,22 @@ class AppStateProvider extends ChangeNotifier {
     CurriculumProgressService? curriculumProgress,
     PracticeProgressService? practiceProgress,
     CompletionsService? completions,
-  })  : remoteContent = remoteContent ?? RemoteContentService(),
-        tts = tts ?? TtsService(),
-        speech = speech ?? SpeechService(),
-        chime = chime ?? ChimeService(),
-        push = push ?? PushService(),
-        auth = auth ?? AuthService(),
-        _seedCloudTts = cloudTts,
-        _seedAiTutor = aiTutor,
-        _seedPronunciation = pronunciation,
-        _seedUnitData = unitData,
-        _seedCurriculum = curriculum,
-        _seedAiContent = aiContent,
-        _seedPersistence = persistence,
-        _seedCurriculumProgress = curriculumProgress,
-        _seedPracticeProgress = practiceProgress,
-        _seedCompletions = completions;
+  }) : remoteContent = remoteContent ?? RemoteContentService(),
+       tts = tts ?? TtsService(),
+       speech = speech ?? SpeechService(),
+       chime = chime ?? ChimeService(),
+       push = push ?? PushService(),
+       auth = auth ?? AuthService(),
+       _seedCloudTts = cloudTts,
+       _seedAiTutor = aiTutor,
+       _seedPronunciation = pronunciation,
+       _seedUnitData = unitData,
+       _seedCurriculum = curriculum,
+       _seedAiContent = aiContent,
+       _seedPersistence = persistence,
+       _seedCurriculumProgress = curriculumProgress,
+       _seedPracticeProgress = practiceProgress,
+       _seedCompletions = completions;
 
   final RemoteContentService remoteContent;
   final TtsService tts;
@@ -105,12 +105,21 @@ class AppStateProvider extends ChangeNotifier {
   bool _ready = false;
   bool get ready => _ready;
 
+  // Fase 8: real per-domain/XP/streak analytics, fetched live from Supabase
+  // (see CompletionsService.fetchAnalyticsSummary). null until the first
+  // successful fetch after login — every getter below falls back to the
+  // local-only figures until then, same as the web dashboard's behavior
+  // before _refreshRealAnalytics() resolves.
+  DomainTotals? _domainTotals;
+  AnalyticsSummary? _analyticsSummary;
+
   Future<void> init() async {
     cloudTts = _seedCloudTts ?? CloudTtsService(fallback: tts);
     aiTutor = _seedAiTutor ?? AiTutorService();
     pronunciation = _seedPronunciation ?? PronunciationAssessmentService();
     unitData = _seedUnitData ?? UnitDataRepository(content: remoteContent);
-    curriculum = _seedCurriculum ?? CurriculumRepository(content: remoteContent);
+    curriculum =
+        _seedCurriculum ?? CurriculumRepository(content: remoteContent);
     aiContent = _seedAiContent ?? AiContentRepository(content: remoteContent);
 
     // None of these depend on each other, so kick them all off together
@@ -138,6 +147,7 @@ class AppStateProvider extends ChangeNotifier {
     curriculumProgress = await curriculumProgressFuture;
     practiceProgress = await practiceProgressFuture;
     completions = await completionsFuture;
+    _domainTotals = computeDomainTotals(curriculum, unitData);
 
     _ready = true;
     notifyListeners();
@@ -157,10 +167,29 @@ class AppStateProvider extends ChangeNotifier {
     // and again on every future sign-in so anything queued while logged out
     // gets pushed as soon as there's somewhere to push it to.
     unawaited(completions.flushPending());
+    unawaited(refreshRealAnalytics());
     _authSub = auth.onAuthStateChange.listen((_) {
       unawaited(completions.flushPending());
+      unawaited(refreshRealAnalytics());
       notifyListeners();
     });
+    notifyListeners();
+  }
+
+  /// Re-fetches the Analytics Core numbers from Supabase — called on login
+  /// and on every auth state change; also safe to call from a pull-to-refresh
+  /// (see DashboardScreen) after finishing a practice session, since
+  /// completions.record() itself doesn't push a live update here.
+  Future<void> refreshRealAnalytics() async {
+    if (!isLoggedIn) {
+      if (_analyticsSummary != null) {
+        _analyticsSummary = null;
+        notifyListeners();
+      }
+      return;
+    }
+    final summary = await completions.fetchAnalyticsSummary();
+    _analyticsSummary = summary;
     notifyListeners();
   }
 
@@ -176,8 +205,25 @@ class AppStateProvider extends ChangeNotifier {
   bool get introDone => persistence.introDone;
   String get voiceGender => persistence.voiceGender;
 
-  JourneyProgress get journeyProgress => computeJourneyProgress(curriculum, curriculumProgress);
-  DomainProgress get domainProgress => computeDomainProgress(curriculum, curriculumProgress);
+  JourneyProgress get journeyProgress =>
+      computeJourneyProgress(curriculum, curriculumProgress);
+  DomainProgress get domainProgress =>
+      computeDomainProgress(curriculum, curriculumProgress);
+
+  // Fase 8: real per-item Analytics Core figures. Fall back to the local,
+  // curriculum-block/persistence-based numbers above until the first
+  // Supabase fetch resolves (or if it fails/user is logged out) — same
+  // graceful-degradation shape as the web dashboard's _refreshRealAnalytics.
+  DomainProgress get realDomainProgress {
+    final summary = _analyticsSummary;
+    final totals = _domainTotals;
+    if (summary == null || totals == null) return domainProgress;
+    return domainProgressFromCounts(totals, summary.domainCounts);
+  }
+
+  int get realStreakDays => _analyticsSummary?.streak ?? streakDays;
+  int get realWeekXp => _analyticsSummary?.xpWeek ?? weekXp;
+  int get realTotalXp => _analyticsSummary?.xpTotal ?? totalXp;
 
   Future<void> addXp(int amount) async {
     await persistence.addXp(amount);
