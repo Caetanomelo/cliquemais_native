@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
 import '../core/dashboard_stats.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/completions_service.dart';
 import '../core/services/persistence_service.dart';
 import '../core/services/tts_service.dart';
 import '../core/services/speech_service.dart';
@@ -48,6 +49,7 @@ class AppStateProvider extends ChangeNotifier {
     PersistenceService? persistence,
     CurriculumProgressService? curriculumProgress,
     PracticeProgressService? practiceProgress,
+    CompletionsService? completions,
   })  : remoteContent = remoteContent ?? RemoteContentService(),
         tts = tts ?? TtsService(),
         speech = speech ?? SpeechService(),
@@ -62,7 +64,8 @@ class AppStateProvider extends ChangeNotifier {
         _seedAiContent = aiContent,
         _seedPersistence = persistence,
         _seedCurriculumProgress = curriculumProgress,
-        _seedPracticeProgress = practiceProgress;
+        _seedPracticeProgress = practiceProgress,
+        _seedCompletions = completions;
 
   final RemoteContentService remoteContent;
   final TtsService tts;
@@ -86,10 +89,12 @@ class AppStateProvider extends ChangeNotifier {
   final PersistenceService? _seedPersistence;
   final CurriculumProgressService? _seedCurriculumProgress;
   final PracticeProgressService? _seedPracticeProgress;
+  final CompletionsService? _seedCompletions;
 
   late final PersistenceService persistence;
   late final CurriculumProgressService curriculumProgress;
   late final PracticeProgressService practiceProgress;
+  late final CompletionsService completions;
   late final UnitDataRepository unitData;
   late final CurriculumRepository curriculum;
   late final AiContentRepository aiContent;
@@ -121,6 +126,9 @@ class AppStateProvider extends ChangeNotifier {
     final practiceProgressFuture = _seedPracticeProgress != null
         ? Future.value(_seedPracticeProgress)
         : PracticeProgressService.create();
+    final completionsFuture = _seedCompletions != null
+        ? Future.value(_seedCompletions)
+        : CompletionsService.create(auth);
     await Future.wait([
       unitData.loadAll(),
       curriculum.loadAll(),
@@ -129,6 +137,7 @@ class AppStateProvider extends ChangeNotifier {
     persistence = await persistenceFuture;
     curriculumProgress = await curriculumProgressFuture;
     practiceProgress = await practiceProgressFuture;
+    completions = await completionsFuture;
 
     _ready = true;
     notifyListeners();
@@ -142,7 +151,16 @@ class AppStateProvider extends ChangeNotifier {
 
   Future<void> _initAuth() async {
     await auth.init();
-    _authSub = auth.onAuthStateChange.listen((_) => notifyListeners());
+    // auth.init() resolves after CompletionsService.create() already tried
+    // (and no-op'd, since isLoggedIn was still false at that point) its own
+    // startup flush — retry now that a session may have just been restored,
+    // and again on every future sign-in so anything queued while logged out
+    // gets pushed as soon as there's somewhere to push it to.
+    unawaited(completions.flushPending());
+    _authSub = auth.onAuthStateChange.listen((_) {
+      unawaited(completions.flushPending());
+      notifyListeners();
+    });
     notifyListeners();
   }
 

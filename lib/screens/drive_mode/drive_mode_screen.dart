@@ -35,6 +35,13 @@ class DriveModeScreen extends StatefulWidget {
 class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingObserver {
   late final AppStateProvider _app;
   List<Phrase> _phrases = const [];
+  // Parallel to _phrases (same index) — a multi-unit session concatenates
+  // several units' phrase lists, so the phrase's own index in _phrases can't
+  // tell _handleVoiceResult which unit it came from, but
+  // content_completions.unit needs that. Phrase itself has no unit field
+  // (it's shared with the single-unit lookup in UnitDataRepository), so this
+  // is tracked alongside instead of on the model.
+  List<int> _phraseUnits = const [];
   int _index = 0;
   int _attemptCount = 0;
   final Set<int> _correctIndices = {};
@@ -52,7 +59,15 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
-    _phrases = widget.units.expand((u) => _app.unitData.phrasesForUnit(u)).toList();
+    final phrases = <Phrase>[];
+    final phraseUnits = <int>[];
+    for (final u in widget.units) {
+      final ps = _app.unitData.phrasesForUnit(u);
+      phrases.addAll(ps);
+      phraseUnits.addAll(List.filled(ps.length, u));
+    }
+    _phrases = phrases;
+    _phraseUnits = phraseUnits;
     WidgetsBinding.instance.addObserver(this);
     // speech.init() is no longer awaited during boot (PERF-1) — warm it up
     // here so it's ready by the time _speakAndListen's first listen() call
@@ -195,7 +210,20 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
 
     final correct = score >= 0.40;
     _app.chime.play(correct);
-    if (correct) _correctIndices.add(_index);
+    if (correct) {
+      _correctIndices.add(_index);
+      // Only phrases sourced live from Supabase have a stable id (an
+      // on-disk cache from before Fase 4a won't) — record() itself also
+      // no-ops silently when logged out.
+      if (phrase.id != null) {
+        unawaited(_app.completions.record(
+          module: 'drive_mode',
+          contentId: 'drive:${phrase.id}',
+          unit: _phraseUnits[_index],
+          domain: 'pronunciation',
+        ));
+      }
+    }
     setState(() => _resultKind = correct ? _ResultKind.success : _ResultKind.retry);
 
     Future.delayed(const Duration(milliseconds: 5000), () async {

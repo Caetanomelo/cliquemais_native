@@ -38,6 +38,10 @@ class _VpcScreenState extends State<VpcScreen> {
   late final AppStateProvider _app;
   late final ConfettiController _confetti;
   List<VocabItem> _items = const [];
+  // Parallel to _items (same index) — see the identical _phraseUnits field
+  // on DriveModeScreen for why a multi-unit session needs this tracked
+  // alongside instead of on the model.
+  List<int> _itemUnits = const [];
   final Set<int> _correctIndices = {};
   int _index = 0;
   bool _listening = false;
@@ -52,7 +56,15 @@ class _VpcScreenState extends State<VpcScreen> {
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
-    _items = widget.units.expand((u) => _app.unitData.vocabForUnit(u)).toList();
+    final items = <VocabItem>[];
+    final itemUnits = <int>[];
+    for (final u in widget.units) {
+      final vs = _app.unitData.vocabForUnit(u);
+      items.addAll(vs);
+      itemUnits.addAll(List.filled(vs.length, u));
+    }
+    _items = items;
+    _itemUnits = itemUnits;
     _index = widget.startIndex.clamp(0, _items.isEmpty ? 0 : _items.length - 1);
     _confetti = ConfettiController(duration: const Duration(milliseconds: 600));
     // speech.init() is no longer awaited during boot (PERF-1) — warm it up
@@ -132,7 +144,18 @@ class _VpcScreenState extends State<VpcScreen> {
   void _showResult(int sc, String spoken, bool exact) {
     final xp = sc >= 85 ? 15 : (sc >= 50 ? 8 : 3);
     _app.addXp(xp);
-    if (exact) _correctIndices.add(_index);
+    if (exact) {
+      _correctIndices.add(_index);
+      final item = _items[_index];
+      if (item.id != null) {
+        unawaited(_app.completions.record(
+          module: 'vocab_lab',
+          contentId: 'vocab:${item.id}',
+          unit: _itemUnits[_index],
+          domain: 'vocabulary',
+        ));
+      }
+    }
 
     setState(() {
       _score = sc;
