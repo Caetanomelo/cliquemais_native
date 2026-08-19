@@ -23,13 +23,16 @@ class CloudTtsService {
   })  : _fallback = fallback,
         _client = client ?? http.Client();
 
+  /// [language] defaults to English; pass 'pt-BR' to use the Portuguese
+  /// voice pair (matches the web app's GOOGLE_TTS_VOICES in tts-shared.js).
   Future<void> speak(
     String text, {
     double rate = 0.5,
     String voiceGender = 'female',
+    String language = 'en-US',
   }) async {
     try {
-      final bytes = await _speakGoogleViaNetlify(text, voiceGender);
+      final bytes = await _speakGoogleViaNetlify(text, voiceGender, language);
       await _player.stop();
       await _player.play(BytesSource(bytes));
     } catch (e, st) {
@@ -37,20 +40,24 @@ class CloudTtsService {
       // leaving the user with silence, but still gets recorded so a spike
       // in Netlify/Google TTS failures shows up in Crashlytics.
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speak failed', fatal: false));
-      await _fallback.speak(text, rate: rate, voiceGender: voiceGender);
+      await _fallback.speak(text, rate: rate, voiceGender: voiceGender, language: language);
     }
   }
 
-  Future<Uint8List> _speakGoogleViaNetlify(String text, String voiceGender) async {
+  Future<Uint8List> _speakGoogleViaNetlify(String text, String voiceGender, String language) async {
+    final isFemale = voiceGender == 'female';
+    final voiceName = language == 'pt-BR'
+        ? (isFemale ? 'pt-BR-Wavenet-A' : 'pt-BR-Neural2-B')
+        : (isFemale ? 'en-US-Neural2-F' : 'en-US-Neural2-D');
     final json = await postJson(
       _client,
       'tts',
       {
         'input': {'text': text},
         'voice': {
-          'languageCode': 'en-US',
-          'name': voiceGender == 'female' ? 'en-US-Neural2-F' : 'en-US-Neural2-D',
-          'ssmlGender': voiceGender == 'female' ? 'FEMALE' : 'MALE',
+          'languageCode': language,
+          'name': voiceName,
+          'ssmlGender': isFemale ? 'FEMALE' : 'MALE',
         },
         'audioConfig': {'audioEncoding': 'MP3'},
       },
