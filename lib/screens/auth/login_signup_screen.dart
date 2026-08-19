@@ -34,6 +34,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _cpfCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -41,6 +42,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _phoneCtrl.dispose();
+    _cpfCtrl.dispose();
     super.dispose();
   }
 
@@ -60,6 +62,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
       setState(() => _error = 'Preencha e-mail e senha.');
       return;
     }
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+    final cpf = _cpfCtrl.text.trim();
+    if (_signupMode) {
+      if (name.isEmpty || phone.isEmpty || cpf.isEmpty) {
+        setState(() => _error = 'Preencha nome, telefone e CPF.');
+        return;
+      }
+      if (!isValidCpf(cpf)) {
+        setState(() => _error = 'CPF inválido.');
+        return;
+      }
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -67,7 +82,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     final app = context.read<AppStateProvider>();
     try {
       if (_signupMode) {
-        await app.auth.signUp(email, password, displayName: _nameCtrl.text.trim());
+        await app.auth.signUp(email, password, displayName: name);
+        await app.auth.updateProfile(phone: phone, cpf: cpf);
       } else {
         await app.auth.signIn(email, password);
       }
@@ -150,6 +166,20 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       if (_contactMode == _ContactMode.email) ...[
                         if (_signupMode) ...[
                           _AuthField(controller: _nameCtrl, hint: 'Seu nome', keyboardType: TextInputType.name),
+                          const SizedBox(height: 10),
+                          _AuthField(
+                            controller: _phoneCtrl,
+                            hint: '(00) 00000-0000',
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [PhoneInputFormatter()],
+                          ),
+                          const SizedBox(height: 10),
+                          _AuthField(
+                            controller: _cpfCtrl,
+                            hint: '000.000.000-00',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [CpfInputFormatter()],
+                          ),
                           const SizedBox(height: 10),
                         ],
                         _AuthField(controller: _emailCtrl, hint: 'E-mail', keyboardType: TextInputType.emailAddress),

@@ -9,12 +9,14 @@ void main() {
 
   testWidgets('shows the default hint text', (tester) async {
     await tester.pumpWidget(wrap(const SpeechBubble()));
+    await tester.pump(const Duration(seconds: 3));
     expect(find.text('Aperte para falar'), findsOneWidget);
     expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
   });
 
   testWidgets('shows custom text when provided', (tester) async {
     await tester.pumpWidget(wrap(const SpeechBubble(text: 'Grave sua resposta')));
+    await tester.pump(const Duration(seconds: 3));
     expect(find.text('Grave sua resposta'), findsOneWidget);
     expect(find.text('Aperte para falar'), findsNothing);
   });
