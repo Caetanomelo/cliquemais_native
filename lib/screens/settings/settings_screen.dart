@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/info_card_row.dart';
+import '../../widgets/profile_completion_dialog.dart';
 import '../ai_tutor/ai_tutor_screen.dart';
 import '../content/study_session_screen.dart';
 import '../corp/corp_portal_screen.dart';
@@ -19,6 +20,16 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const Text('Conta',
+              style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textSubDark)),
+          const SizedBox(height: 10),
+          _ResourceRow(
+            icon: Icons.badge_rounded,
+            title: 'Meus dados',
+            subtitle: 'Nome, e-mail, celular, CPF, endereço e foto',
+            onTap: () => showProfileCompletionDialog(context, cancelLabel: 'Fechar'),
+          ),
+          const SizedBox(height: 22),
           const Text('Recursos',
               style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textSubDark)),
           const SizedBox(height: 10),

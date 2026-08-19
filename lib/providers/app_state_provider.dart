@@ -138,10 +138,16 @@ class AppStateProvider extends ChangeNotifier {
     final completionsFuture = _seedCompletions != null
         ? Future.value(_seedCompletions)
         : CompletionsService.create(auth);
+    // auth.init() (Supabase.initialize() + session restore) must resolve
+    // before init() returns and _ready flips true — SplashScreen reads
+    // isLoggedIn immediately after boot to decide whether to skip Hero+Login,
+    // and that read was unreliable when auth.init() only ran inside the
+    // fire-and-forget _initAuth() below, after _ready was already set.
     await Future.wait([
       unitData.loadAll(),
       curriculum.loadAll(),
       aiContent.loadAll(),
+      auth.init(),
     ]);
     persistence = await persistenceFuture;
     curriculumProgress = await curriculumProgressFuture;
@@ -154,13 +160,13 @@ class AppStateProvider extends ChangeNotifier {
     // Fire-and-forget: push permission/token registration must never block
     // or fail boot.
     unawaited(push.register());
-    // Same reasoning as push: login is optional, must never block cold
-    // boot or crash it on a misconfigured/unreachable Supabase project.
+    // auth.init() already ran above — this only wires up the listener and
+    // does the post-boot flush/refresh, it must never call auth.init() again
+    // (Supabase.initialize() cannot be called twice).
     unawaited(_initAuth());
   }
 
   Future<void> _initAuth() async {
-    await auth.init();
     // auth.init() resolves after CompletionsService.create() already tried
     // (and no-op'd, since isLoggedIn was still false at that point) its own
     // startup flush — retry now that a session may have just been restored,

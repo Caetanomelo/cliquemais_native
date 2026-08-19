@@ -11,9 +11,9 @@ import '../../widgets/coming_soon.dart';
 import '../../widgets/info_card_row.dart';
 import '../../widgets/level_unit_picker.dart';
 import '../ai_tutor/ai_tutor_screen.dart';
-import '../auth/auth_screen.dart';
 import '../content/all_content_screen.dart';
 import '../drive_mode/drive_mode_screen.dart';
+import '../hero/hero_screen.dart';
 import '../settings/settings_screen.dart';
 import '../vpc/vpc_screen.dart';
 
@@ -57,9 +57,6 @@ class DashboardScreen extends StatelessWidget {
     );
     final weekXp = context.select<AppStateProvider, int>((a) => a.realWeekXp);
     final totalXp = context.select<AppStateProvider, int>((a) => a.realTotalXp);
-    final isLoggedIn = context.select<AppStateProvider, bool>(
-      (a) => a.isLoggedIn,
-    );
     final domains = DomainProgress(
       pronuncia: context.select<AppStateProvider, double>(
         (a) => a.realDomainProgress.pronuncia,
@@ -149,35 +146,34 @@ class DashboardScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const _SectionLabel('ANALYTICS CORE'),
-                  if (isLoggedIn)
-                    GestureDetector(
-                      onTap: () =>
-                          context.read<AppStateProvider>().auth.signOut(),
-                      child: const Text(
-                        'Sair',
-                        style: TextStyle(
-                          fontFamily: 'Sora',
-                          fontSize: 12,
-                          color: AppTheme.textSubDark,
-                        ),
+                  GestureDetector(
+                    onTap: () async {
+                      await context.read<AppStateProvider>().auth.signOut();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const HeroScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    child: const Text(
+                      'Sair',
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 12,
+                        color: AppTheme.textSubDark,
                       ),
                     ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              if (isLoggedIn)
-                _AnalyticsCore(
-                  streakDays: streakDays,
-                  weekXp: weekXp,
-                  totalXp: totalXp,
-                  domains: domains,
-                )
-              else
-                _AnalyticsLoginCta(
-                  onTap: () => Navigator.of(
-                    context,
-                  ).push(MaterialPageRoute(builder: (_) => const AuthScreen())),
-                ),
+              _AnalyticsCore(
+                streakDays: streakDays,
+                weekXp: weekXp,
+                totalXp: totalXp,
+                domains: domains,
+              ),
               const SizedBox(height: 26),
               _ContentBanner(
                 onTap: () => Navigator.of(context).push(
@@ -550,45 +546,6 @@ class _SecondaryCard extends StatelessWidget {
       ),
       title: title,
       subtitle: subtitle,
-    );
-  }
-}
-
-/// Shown instead of [_AnalyticsCore] when the student isn't logged in —
-/// same CTA/copy as the web dashboard's `#db-analytics-login-cta`.
-class _AnalyticsLoginCta extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AnalyticsLoginCta({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: AppTheme.glassCard(),
-      child: Column(
-        children: [
-          const Text(
-            'Entre para salvar seu progresso e ver sua análise completa',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Sora',
-              fontSize: 13,
-              color: AppTheme.textSubDark,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: onTap,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accentBright,
-              foregroundColor: AppTheme.navyDeep,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-            ),
-            child: const Text('Entrar / Criar conta'),
-          ),
-        ],
-      ),
     );
   }
 }

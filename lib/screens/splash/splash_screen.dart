@@ -4,14 +4,16 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../providers/app_state_provider.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../hero/hero_screen.dart';
 
 /// First of the app's two initial screens (web's `#splash-screen`):
 /// initializes [AppStateProvider] (persistence, data assets, speech
-/// engine) then hands off to [HeroScreen] — the web's `#main-stage`,
-/// shown on every launch right after the logo. Simpler than the web
-/// app's animated "neural orb" splash — that flourish is deferred,
-/// Phase 1 focuses on functional parity.
+/// engine, auth session restore) then hands off either to [DashboardScreen]
+/// (already-logged-in users skip Hero+Login on every cold boot after the
+/// first) or [HeroScreen] (first launch / logged-out — the web's
+/// `#main-stage`). Simpler than the web app's animated "neural orb" splash
+/// — that flourish is deferred, Phase 1 focuses on functional parity.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -58,7 +60,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     }
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HeroScreen()),
+      MaterialPageRoute(
+        builder: (_) => app.isLoggedIn ? const DashboardScreen() : const HeroScreen(),
+      ),
     );
   }
 

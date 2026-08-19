@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,5 +59,46 @@ class AuthService {
   Future<void> signOut() async {
     if (!_available) return;
     await Supabase.instance.client.auth.signOut();
+  }
+
+  /// Partial update of the caller's own `profiles` row (see
+  /// supabase/migrations/007_profile_fields.sql) — only non-null arguments
+  /// are written, so callers can pass just what the user actually filled in
+  /// on the profile-completion popup without clobbering other columns.
+  Future<void> updateProfile({
+    String? fullName,
+    String? phone,
+    String? cpf,
+    String? address,
+    String? avatarUrl,
+  }) async {
+    if (!_available) throw StateError('supabase-not-configured');
+    final uid = currentUser?.id;
+    if (uid == null) throw StateError('not-logged-in');
+    final patch = <String, dynamic>{
+      if (fullName != null) 'display_name': fullName,
+      if (phone != null) 'phone': phone,
+      if (cpf != null) 'cpf': cpf,
+      if (address != null) 'address': address,
+      if (avatarUrl != null) 'avatar_url': avatarUrl,
+    };
+    if (patch.isEmpty) return;
+    await Supabase.instance.client.from('profiles').update(patch).eq('id', uid);
+  }
+
+  /// Uploads avatar bytes to the `avatars` Storage bucket at
+  /// `<uid>/avatar.<ext>` (upsert, so re-uploads overwrite in place instead
+  /// of accumulating orphaned files) and returns the public URL. Does not
+  /// itself write `profiles.avatar_url` — callers pass the result into
+  /// [updateProfile] so the profile row update stays a single round trip.
+  Future<String> uploadAvatar(Uint8List bytes, {required String fileExt}) async {
+    if (!_available) throw StateError('supabase-not-configured');
+    final uid = currentUser?.id;
+    if (uid == null) throw StateError('not-logged-in');
+    final path = '$uid/avatar.$fileExt';
+    await Supabase.instance.client.storage
+        .from('avatars')
+        .uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true));
+    return Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
   }
 }

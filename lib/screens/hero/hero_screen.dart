@@ -1,19 +1,42 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../auth/login_signup_screen.dart';
 
 /// Second of the app's two initial screens (web's `#main-stage`, shown
-/// right after the splash logo on every app launch): brand logo with a
-/// glow, headline + subhead, and a single CTA that hands off to the
-/// Dashboard (web's `showDashboard()`).
-class HeroScreen extends StatelessWidget {
+/// right after the splash logo on every first-time launch): brand logo with
+/// a glow, headline + subhead, then a timed loading bar that hands off to
+/// [LoginSignupScreen] — login is mandatory, so there is no CTA here to skip
+/// ahead. Returning logged-in users never see this screen at all
+/// ([SplashScreen] routes them straight to the Dashboard).
+class HeroScreen extends StatefulWidget {
   const HeroScreen({super.key});
 
-  void _enter(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
+  @override
+  State<HeroScreen> createState() => _HeroScreenState();
+}
+
+class _HeroScreenState extends State<HeroScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _loadController;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadController = AnimationController(vsync: this, duration: const Duration(milliseconds: 4000))
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginSignupScreen()),
+          );
+        }
+      })
+      ..forward();
+  }
+
+  @override
+  void dispose() {
+    _loadController.dispose();
+    super.dispose();
   }
 
   @override
@@ -77,25 +100,39 @@ class HeroScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 52),
-              Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(2),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(2),
-                  onTap: () => _enter(context),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 18),
-                    child: Text(
-                      'EU QUERO FALAR INGLÊS',
-                      style: TextStyle(
-                        fontFamily: 'Sora',
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 2.5,
-                        color: Colors.black,
+              AnimatedBuilder(
+                animation: _loadController,
+                builder: (context, _) => ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: _loadController.value,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(colors: [AppTheme.accentBright, AppTheme.accent2]),
+                          borderRadius: BorderRadius.all(Radius.circular(50)),
+                        ),
                       ),
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'PREPARANDO SUA EXPERIÊNCIA…',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 2.5,
+                  color: AppTheme.textSubDark.withValues(alpha: 0.6),
                 ),
               ),
             ],
