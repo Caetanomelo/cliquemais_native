@@ -88,7 +88,13 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         await app.auth.signIn(email, password);
       }
       if (!mounted) return;
-      await showProfileCompletionDialog(context);
+      final profile = await app.auth.getProfile();
+      if (!mounted) return;
+      final alreadyPrompted = profile != null && profile['profile_prompt_seen'] == true;
+      if (!alreadyPrompted) {
+        await showProfileCompletionDialog(context);
+        if (mounted) await app.auth.markProfilePromptSeen();
+      }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const DashboardScreen()),

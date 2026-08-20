@@ -101,4 +101,37 @@ class AuthService {
         .uploadBinary(path, bytes, fileOptions: const FileOptions(upsert: true));
     return Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
   }
+
+  /// Fetches the caller's own `profiles` row so the post-login completion
+  /// prompt can be skipped once [markProfilePromptSeen] has already run for
+  /// this user — mirrors `getProfile()` in the web app's supabase-client.js.
+  /// Returns null if logged out or on any fetch error (treated as "nothing
+  /// known yet", never a hard failure).
+  Future<Map<String, dynamic>?> getProfile() async {
+    if (!_available) return null;
+    final uid = currentUser?.id;
+    if (uid == null) return null;
+    try {
+      return await Supabase.instance.client
+          .from('profiles')
+          .select('display_name, phone, cpf, address, avatar_url, profile_prompt_seen')
+          .eq('id', uid)
+          .single();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Marks the post-login profile-completion prompt as seen (see
+  /// `supabase/migrations/008_profile_prompt_seen.sql` in WEB_BASE) so it
+  /// stops auto-opening after every login, whether or not the user actually
+  /// filled it in. Fire-and-forget from the caller's point of view.
+  Future<void> markProfilePromptSeen() async {
+    if (!_available) return;
+    final uid = currentUser?.id;
+    if (uid == null) return;
+    try {
+      await Supabase.instance.client.from('profiles').update({'profile_prompt_seen': true}).eq('id', uid);
+    } catch (_) {}
+  }
 }
