@@ -74,3 +74,33 @@ bool isValidCpf(String raw) {
   final d2 = calcCheckDigit(base9 + d1.toString());
   return digits == '$base9$d1$d2';
 }
+
+/// LGPD display masking — mirrors WEB_BASE's `BrFormat.maskCpf`/`maskPhone`/
+/// `maskEmail` (index.html). Keeps just enough of the value for the owner
+/// to recognize it, never enough to reconstruct it from a screen/log; for
+/// use anywhere this data might render to someone other than its owner
+/// (e.g. a future admin surface) or reach a log.
+String maskCpf(String raw) {
+  final digits = _onlyDigits(raw);
+  if (digits.length != 11) return '***.***.***-**';
+  return '${digits.substring(0, 3)}.***.***-${digits.substring(9, 11)}';
+}
+
+String maskPhone(String raw) {
+  final digits = _onlyDigits(raw);
+  if (digits.length < 8) return '(**) *****-****';
+  final ddd = digits.substring(0, 2);
+  final last4 = digits.substring(digits.length - 4);
+  final midLen = digits.length - 2 - 4;
+  return '($ddd) ${'*' * midLen}-$last4';
+}
+
+String maskEmail(String raw) {
+  final s = raw.trim();
+  final at = s.indexOf('@');
+  if (at <= 0) return '***';
+  final local = s.substring(0, at);
+  final domain = s.substring(at + 1);
+  final visible = local.isNotEmpty ? local[0] : '*';
+  return '$visible***@$domain';
+}
