@@ -52,6 +52,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     if (msg.contains('invalid login')) return 'E-mail ou senha incorretos.';
     if (msg.contains('password') && msg.contains('least')) return 'Senha muito curta (mínimo 6 caracteres).';
     if (msg.contains('supabase-not-configured')) return 'Login indisponível no momento. Tente novamente mais tarde.';
+    if (msg.contains('profiles_cpf_unique')) return 'Este CPF já está cadastrado.';
+    if (msg.contains('profiles_phone_unique')) return 'Este telefone já está cadastrado.';
     return 'Não foi possível concluir. Tente novamente.';
   }
 
@@ -82,6 +84,15 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     final app = context.read<AppStateProvider>();
     try {
       if (_signupMode) {
+        final avail = await app.auth.checkContactAvailable(cpf: cpf, phone: phone);
+        if (avail.cpfTaken) {
+          setState(() => _error = 'Este CPF já está cadastrado.');
+          return;
+        }
+        if (avail.phoneTaken) {
+          setState(() => _error = 'Este telefone já está cadastrado.');
+          return;
+        }
         await app.auth.signUp(email, password, displayName: name);
         await app.auth.updateProfile(phone: phone, cpf: cpf);
       } else {

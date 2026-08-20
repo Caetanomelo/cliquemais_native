@@ -122,6 +122,31 @@ class AuthService {
     }
   }
 
+  /// Pre-signup duplicate check for CPF/phone (see WEB_BASE's
+  /// supabase/migrations/010_profile_contact_uniqueness.sql) -- call before
+  /// [signUp] so a taken CPF/phone is caught with a friendly message
+  /// instead of leaving a confirmed auth.users row behind with no
+  /// phone/cpf (which is what happens if the unique-index violation is
+  /// only caught at [updateProfile], since signUp() itself would have
+  /// already succeeded by then). Works while logged out -- the RPC is
+  /// security definer and bypasses profiles' RLS for this one yes/no
+  /// check. Returns both false if Supabase isn't configured.
+  Future<({bool cpfTaken, bool phoneTaken})> checkContactAvailable({
+    String? cpf,
+    String? phone,
+  }) async {
+    if (!_available) return (cpfTaken: false, phoneTaken: false);
+    final result = await Supabase.instance.client.rpc(
+      'check_contact_available',
+      params: {'p_cpf': cpf, 'p_phone': phone},
+    );
+    final map = result as Map<String, dynamic>;
+    return (
+      cpfTaken: map['cpf_taken'] as bool? ?? false,
+      phoneTaken: map['phone_taken'] as bool? ?? false,
+    );
+  }
+
   /// Marks the post-login profile-completion prompt as seen (see
   /// `supabase/migrations/008_profile_prompt_seen.sql` in WEB_BASE) so it
   /// stops auto-opening after every login, whether or not the user actually
