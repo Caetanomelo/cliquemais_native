@@ -48,6 +48,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
   final _addressCtrl = TextEditingController();
 
   XFile? _pickedAvatar;
+  String? _existingAvatarUrl;
   bool _saving = false;
   String? _error;
 
@@ -58,6 +59,28 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
     final displayName = user?.userMetadata?['display_name'];
     if (displayName is String) _nameCtrl.text = displayName;
     _emailCtrl.text = user?.email ?? '';
+    _loadExistingProfile();
+  }
+
+  /// Pre-fills already-saved fields (phone/cpf/address/avatar) so reopening
+  /// this dialog -- from the post-login flow a second time, or from Settings
+  /// > "Meus dados" -- doesn't wipe out what the user filled in before.
+  /// Mirrors ProfilePage.open() in WEB_BASE's index.html, which does the
+  /// same fetch-then-prefill before this dialog existed with this bug.
+  Future<void> _loadExistingProfile() async {
+    final auth = context.read<AppStateProvider>().auth;
+    final profile = await auth.getProfile();
+    if (!mounted || profile == null) return;
+    setState(() {
+      final phone = profile['phone'];
+      if (phone is String && phone.isNotEmpty) _phoneCtrl.text = phone;
+      final cpf = profile['cpf'];
+      if (cpf is String && cpf.isNotEmpty) _cpfCtrl.text = cpf;
+      final address = profile['address'];
+      if (address is String && address.isNotEmpty) _addressCtrl.text = address;
+      final avatarUrl = profile['avatar_url'];
+      if (avatarUrl is String && avatarUrl.isNotEmpty) _existingAvatarUrl = avatarUrl;
+    });
   }
 
   @override
@@ -151,8 +174,10 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
                     CircleAvatar(
                       radius: 42,
                       backgroundColor: AppTheme.surfaceDark,
-                      backgroundImage: _pickedAvatar != null ? FileImage(_pickedAvatarAsFile()) : null,
-                      child: _pickedAvatar == null
+                      backgroundImage: _pickedAvatar != null
+                          ? FileImage(_pickedAvatarAsFile())
+                          : (_existingAvatarUrl != null ? NetworkImage(_existingAvatarUrl!) : null) as ImageProvider?,
+                      child: _pickedAvatar == null && _existingAvatarUrl == null
                           ? const Icon(Icons.person_rounded, size: 42, color: AppTheme.textSubDark)
                           : null,
                     ),
