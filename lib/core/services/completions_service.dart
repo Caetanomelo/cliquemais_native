@@ -73,6 +73,23 @@ class AnalyticsSummary {
   });
 }
 
+/// One row of `module_progress` (see WEB_BASE's
+/// supabase/migrations/009_module_progress.sql) — the last content_id
+/// completed in [module] and the running XP total for it, kept in sync by a
+/// DB trigger on content_completions. Not a replacement for
+/// [AnalyticsSummary] (that still needs the full per-item ledger for
+/// streak/domain math) — this is just "current progress per module".
+class ModuleProgress {
+  final String module;
+  final String lastContentId;
+  final int xpTotal;
+  const ModuleProgress({
+    required this.module,
+    required this.lastContentId,
+    required this.xpTotal,
+  });
+}
+
 /// Per-item completion tracking (Drive Mode phrases, VPC words, later the
 /// curriculum) — the native counterpart of WEB_BASE's
 /// src/supabase-client.js Auth.recordCompletion.
@@ -267,5 +284,34 @@ class CompletionsService {
   static String _utcDayKey(DateTime d) {
     final u = d.toUtc();
     return '${u.year.toString().padLeft(4, '0')}-${u.month.toString().padLeft(2, '0')}-${u.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Per-module rollup straight from `module_progress` — native counterpart
+  /// of WEB_BASE's src/supabase-client.js getModuleProgress(). Returns an
+  /// empty list when logged out or on any read failure (same
+  /// null-becomes-empty pattern getCompletedIds already uses on the web
+  /// side, so callers never need a null check here).
+  Future<List<ModuleProgress>> fetchModuleProgress() async {
+    final user = _auth.currentUser;
+    if (user == null) return const [];
+    try {
+      final rows =
+          await Supabase.instance.client
+                  .from('module_progress')
+                  .select('module, last_content_id, xp_total')
+                  .eq('user_id', user.id)
+              as List;
+      return rows
+          .map(
+            (r) => ModuleProgress(
+              module: r['module'] as String,
+              lastContentId: r['last_content_id'] as String,
+              xpTotal: r['xp_total'] as int,
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return const [];
+    }
   }
 }
