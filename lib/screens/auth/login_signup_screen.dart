@@ -54,6 +54,11 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     if (msg.contains('supabase-not-configured')) return 'Login indisponível no momento. Tente novamente mais tarde.';
     if (msg.contains('profiles_cpf_unique')) return 'Este CPF já está cadastrado.';
     if (msg.contains('profiles_phone_unique')) return 'Este telefone já está cadastrado.';
+    if (msg.contains('rate limit')) return 'Muitos cadastros em pouco tempo — aguarde alguns minutos e tente novamente.';
+    if (msg.contains('email address') && msg.contains('invalid')) return 'E-mail inválido — confira e tente de novo.';
+    if (msg.contains('check_contact_available') || (msg.contains('function') && msg.contains('does not exist'))) {
+      return 'Cadastro temporariamente indisponível — tente novamente em instantes.';
+    }
     return 'Não foi possível concluir. Tente novamente.';
   }
 
