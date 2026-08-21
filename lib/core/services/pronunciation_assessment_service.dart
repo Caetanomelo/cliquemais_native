@@ -74,7 +74,7 @@ class PronunciationAssessmentService {
       final wpa = wm['PronunciationAssessment'] as Map<String, dynamic>? ?? const {};
       final accuracy = (wpa['AccuracyScore'] as num?)?.toDouble() ?? 100.0;
       final errorType = wpa['ErrorType'] as String? ?? 'None';
-      if (accuracy < 60 || errorType == 'Mispronunciation' || errorType == 'Omission') {
+      if (accuracy < 80 || errorType == 'Mispronunciation' || errorType == 'Omission') {
         lowScoreWords.add(PronWord(word: wm['Word'] as String? ?? '', accuracyScore: accuracy, errorType: errorType));
       }
     }
