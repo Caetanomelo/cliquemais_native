@@ -83,7 +83,6 @@ class _AiTutorScreenState extends State<AiTutorScreen>
       );
       _sending = true;
     });
-    _scrollToBottom();
     try {
       final priorHistory = _history.sublist(0, _history.length - 1);
       final outgoing = feedback.isEmpty ? text : '$text\n\n$feedback';
@@ -119,7 +118,6 @@ class _AiTutorScreenState extends State<AiTutorScreen>
       }
     } finally {
       if (mounted) setState(() => _sending = false);
-      _scrollToBottom();
     }
   }
 
@@ -246,18 +244,6 @@ class _AiTutorScreenState extends State<AiTutorScreen>
     }
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -320,8 +306,18 @@ class _AiTutorScreenState extends State<AiTutorScreen>
             // ListView.builder instead of ListView(children: [...]) — chat
             // history grows unbounded over a long conversation, so only the
             // bubbles actually on screen should be built.
+            //
+            // reverse: true anchors content to the bottom (next to the
+            // composer) instead of the top, matching every mainstream chat
+            // app: with only the welcome bubble on screen there's no dead
+            // gap between it and the input, and new messages stay pinned in
+            // view for free (no manual scroll-to-bottom animation needed —
+            // see _scrollToBottom's removal). itemBuilder walks the visual
+            // order back-to-front: newest (typing indicator, then history
+            // newest-first) at index 0, welcome bubble last.
             child: ListView.builder(
               controller: _scroll,
+              reverse: true,
               padding: const EdgeInsets.all(16),
               itemCount:
                   (welcome.isNotEmpty ? 1 : 0) +
@@ -329,12 +325,17 @@ class _AiTutorScreenState extends State<AiTutorScreen>
                   (_sending ? 1 : 0),
               itemBuilder: (context, index) {
                 var i = index;
-                if (welcome.isNotEmpty) {
-                  if (i == 0) return _AiBubble(text: welcome, isUser: false);
+                if (_sending) {
+                  if (i == 0) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: _TypingIndicator(),
+                    );
+                  }
                   i -= 1;
                 }
                 if (i < _history.length) {
-                  final m = _history[i];
+                  final m = _history[_history.length - 1 - i];
                   if (m.role == 'user' && m.pronScore != null) {
                     return _PronCard(
                       text: m.content,
@@ -344,10 +345,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
                   }
                   return _AiBubble(text: m.content, isUser: m.role == 'user');
                 }
-                return const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: _TypingIndicator(),
-                );
+                return _AiBubble(text: welcome, isUser: false);
               },
             ),
           ),
