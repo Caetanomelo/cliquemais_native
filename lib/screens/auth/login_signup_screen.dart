@@ -14,7 +14,9 @@ import '../dashboard/dashboard_screen.dart';
 /// first. Only e-mail/senha is functional today; telefone/Google/Apple/
 /// Facebook render as visible "em breve" options (no credentials configured
 /// for any of them yet) so the full intended auth surface is in place
-/// without pretending it already works.
+/// without pretending it already works. Signup only collects e-mail/senha —
+/// name, phone, CPF, address and photo are completed afterwards in
+/// [showProfileCompletionDialog].
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
 
@@ -30,22 +32,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   bool _submitting = false;
   bool _obscurePassword = true;
   String? _error;
-  String? _cpfError;
   String? _phoneError;
 
-  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _passwordConfirmCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _cpfCtrl = TextEditingController();
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _passwordConfirmCtrl.dispose();
     _phoneCtrl.dispose();
-    _cpfCtrl.dispose();
     super.dispose();
   }
 
@@ -58,24 +57,15 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
       return 'Senha muito curta (mínimo 6 caracteres).';
     if (msg.contains('supabase-not-configured'))
       return 'Login indisponível no momento. Tente novamente mais tarde.';
-    if (msg.contains('profiles_cpf_unique'))
-      return 'Este CPF já está cadastrado.';
-    if (msg.contains('profiles_phone_unique'))
-      return 'Este telefone já está cadastrado.';
     if (msg.contains('rate limit'))
       return 'Muitos cadastros em pouco tempo — aguarde alguns minutos e tente novamente.';
     if (msg.contains('email address') && msg.contains('invalid'))
       return 'E-mail inválido — confira e tente de novo.';
-    if (msg.contains('check_contact_available') ||
-        (msg.contains('function') && msg.contains('does not exist'))) {
-      return 'Cadastro temporariamente indisponível — tente novamente em instantes.';
-    }
     return 'Não foi possível concluir. Tente novamente.';
   }
 
   void _clearErrors() {
     _error = null;
-    _cpfError = null;
     _phoneError = null;
   }
 
@@ -89,24 +79,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
       });
       return;
     }
-    final name = _nameCtrl.text.trim();
-    final phone = _phoneCtrl.text.trim();
-    final cpf = _cpfCtrl.text.trim();
-    if (_signupMode) {
-      if (name.isEmpty || phone.isEmpty || cpf.isEmpty) {
-        setState(() {
-          _clearErrors();
-          _error = 'Preencha nome, telefone e CPF.';
-        });
-        return;
-      }
-      if (!isValidCpf(cpf)) {
-        setState(() {
-          _clearErrors();
-          _error = 'CPF inválido.';
-        });
-        return;
-      }
+    if (_signupMode && password != _passwordConfirmCtrl.text) {
+      setState(() {
+        _clearErrors();
+        _error = 'As senhas não coincidem.';
+      });
+      return;
     }
     setState(() {
       _submitting = true;
@@ -115,20 +93,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     final app = context.read<AppStateProvider>();
     try {
       if (_signupMode) {
-        final avail = await app.auth.checkContactAvailable(
-          cpf: cpf,
-          phone: phone,
-        );
-        if (avail.cpfTaken) {
-          setState(() => _cpfError = 'Este CPF já está cadastrado.');
-          return;
-        }
-        if (avail.phoneTaken) {
-          setState(() => _phoneError = 'Este telefone já está cadastrado.');
-          return;
-        }
-        await app.auth.signUp(email, password, displayName: name);
-        await app.auth.updateProfile(phone: phone, cpf: cpf);
+        // Só e-mail/senha aqui -- nome, telefone, CPF e endereço são
+        // coletados depois na tela "completar cadastro".
+        await app.auth.signUp(email, password);
       } else {
         await app.auth.signIn(email, password);
       }
@@ -147,17 +114,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString().toLowerCase();
-      // A raw Postgres unique-violation surfaces here as a fallback path --
-      // the primary path is checkContactAvailable() above, which already
-      // routes to the field error before this ever runs.
-      if (msg.contains('profiles_cpf_unique')) {
-        setState(() => _cpfError = 'Este CPF já está cadastrado.');
-      } else if (msg.contains('profiles_phone_unique')) {
-        setState(() => _phoneError = 'Este telefone já está cadastrado.');
-      } else {
-        setState(() => _error = _friendlyError(e));
-      }
+      setState(() => _error = _friendlyError(e));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -256,33 +213,6 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       ),
                       const SizedBox(height: 16),
                       if (_contactMode == _ContactMode.email) ...[
-                        if (_signupMode) ...[
-                          _AuthField(
-                            controller: _nameCtrl,
-                            label: 'Nome completo',
-                            hint: 'Seu nome',
-                            keyboardType: TextInputType.name,
-                          ),
-                          const SizedBox(height: 10),
-                          _AuthField(
-                            controller: _phoneCtrl,
-                            label: 'Celular',
-                            hint: '(00) 00000-0000',
-                            keyboardType: TextInputType.phone,
-                            inputFormatters: [PhoneInputFormatter()],
-                            errorText: _phoneError,
-                          ),
-                          const SizedBox(height: 10),
-                          _AuthField(
-                            controller: _cpfCtrl,
-                            label: 'CPF',
-                            hint: '000.000.000-00',
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [CpfInputFormatter()],
-                            errorText: _cpfError,
-                          ),
-                          const SizedBox(height: 10),
-                        ],
                         _AuthField(
                           controller: _emailCtrl,
                           label: 'E-mail',
@@ -313,6 +243,15 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                             ),
                           ),
                         ),
+                        if (_signupMode) ...[
+                          const SizedBox(height: 10),
+                          _AuthField(
+                            controller: _passwordConfirmCtrl,
+                            label: 'Confirmar senha',
+                            hint: 'Repita a senha',
+                            obscureText: _obscurePassword,
+                          ),
+                        ],
                         if (_error != null) ...[
                           const SizedBox(height: 10),
                           Text(

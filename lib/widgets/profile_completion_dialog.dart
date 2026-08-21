@@ -51,6 +51,8 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
   String? _existingAvatarUrl;
   bool _saving = false;
   String? _error;
+  String? _phoneError;
+  String? _cpfError;
 
   @override
   void initState() {
@@ -79,7 +81,8 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
       final address = profile['address'];
       if (address is String && address.isNotEmpty) _addressCtrl.text = address;
       final avatarUrl = profile['avatar_url'];
-      if (avatarUrl is String && avatarUrl.isNotEmpty) _existingAvatarUrl = avatarUrl;
+      if (avatarUrl is String && avatarUrl.isNotEmpty)
+        _existingAvatarUrl = avatarUrl;
     });
   }
 
@@ -105,35 +108,73 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
   }
 
   Future<void> _save() async {
-    if (_cpfCtrl.text.isNotEmpty && !isValidCpf(_cpfCtrl.text)) {
-      setState(() => _error = 'CPF inválido.');
+    final phone = _phoneCtrl.text.trim();
+    final cpf = _cpfCtrl.text.trim();
+    setState(() {
+      _error = null;
+      _phoneError = null;
+      _cpfError = null;
+    });
+    if (cpf.isNotEmpty && !isValidCpf(cpf)) {
+      setState(() => _cpfError = 'CPF inválido.');
       return;
     }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+    setState(() => _saving = true);
     final auth = context.read<AppStateProvider>().auth;
     try {
+      // CPF/telefone são únicos por conta (uma conta por CPF) -- checa
+      // disponibilidade antes de salvar. check_contact_available() exclui a
+      // própria linha do usuário logado (ver migration 012 em WEB_BASE), então
+      // resalvar o CPF/telefone já salvos não gera falso positivo aqui.
+      if (cpf.isNotEmpty || phone.isNotEmpty) {
+        final avail = await auth.checkContactAvailable(
+          cpf: cpf.isEmpty ? null : cpf,
+          phone: phone.isEmpty ? null : phone,
+        );
+        if (avail.cpfTaken) {
+          setState(() => _cpfError = 'Este CPF já está cadastrado.');
+          return;
+        }
+        if (avail.phoneTaken) {
+          setState(() => _phoneError = 'Este telefone já está cadastrado.');
+          return;
+        }
+      }
       String? avatarUrl;
       final picked = _pickedAvatar;
       if (picked != null) {
         final bytes = await picked.readAsBytes();
-        final ext = picked.path.contains('.') ? picked.path.split('.').last : 'jpg';
+        final ext = picked.path.contains('.')
+            ? picked.path.split('.').last
+            : 'jpg';
         avatarUrl = await auth.uploadAvatar(bytes, fileExt: ext);
       }
       await auth.updateProfile(
         fullName: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-        cpf: _cpfCtrl.text.trim().isEmpty ? null : _cpfCtrl.text.trim(),
-        address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+        phone: phone.isEmpty ? null : phone,
+        cpf: cpf.isEmpty ? null : cpf,
+        address: _addressCtrl.text.trim().isEmpty
+            ? null
+            : _addressCtrl.text.trim(),
         avatarUrl: avatarUrl,
       );
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
-      // Saving is optional data — a failure must not trap the user here.
-      if (mounted) {
-        setState(() => _error = 'Não foi possível salvar agora. Tente de novo ou complete depois.');
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().toLowerCase();
+      // A raw Postgres unique-violation surfaces here as a fallback path --
+      // the primary path is checkContactAvailable() above, which already
+      // routes to the field error before this ever runs.
+      if (msg.contains('profiles_cpf_unique')) {
+        setState(() => _cpfError = 'Este CPF já está cadastrado.');
+      } else if (msg.contains('profiles_phone_unique')) {
+        setState(() => _phoneError = 'Este telefone já está cadastrado.');
+      } else {
+        // Saving is optional data — a failure must not trap the user here.
+        setState(
+          () => _error =
+              'Não foi possível salvar agora. Tente de novo ou complete depois.',
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -163,7 +204,12 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
             const Text(
               'Esses dados são opcionais e ajudam a personalizar sua experiência.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark, height: 1.4),
+              style: TextStyle(
+                fontFamily: 'Sora',
+                fontSize: 12,
+                color: AppTheme.textSubDark,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
             Center(
@@ -176,9 +222,16 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
                       backgroundColor: AppTheme.surfaceDark,
                       backgroundImage: _pickedAvatar != null
                           ? FileImage(_pickedAvatarAsFile())
-                          : (_existingAvatarUrl != null ? NetworkImage(_existingAvatarUrl!) : null) as ImageProvider?,
+                          : (_existingAvatarUrl != null
+                                    ? NetworkImage(_existingAvatarUrl!)
+                                    : null)
+                                as ImageProvider?,
                       child: _pickedAvatar == null && _existingAvatarUrl == null
-                          ? const Icon(Icons.person_rounded, size: 42, color: AppTheme.textSubDark)
+                          ? const Icon(
+                              Icons.person_rounded,
+                              size: 42,
+                              color: AppTheme.textSubDark,
+                            )
                           : null,
                     ),
                     Positioned(
@@ -191,7 +244,11 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
                           gradient: AppTheme.primaryButtonGradient,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt_rounded, size: 15, color: Colors.white),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          size: 15,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -200,10 +257,18 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
             ),
             const SizedBox(height: 20),
             _FieldLabel('Nome completo'),
-            _CompletionField(controller: _nameCtrl, hint: 'Seu nome completo', keyboardType: TextInputType.name),
+            _CompletionField(
+              controller: _nameCtrl,
+              hint: 'Seu nome completo',
+              keyboardType: TextInputType.name,
+            ),
             const SizedBox(height: 12),
             _FieldLabel('E-mail'),
-            _CompletionField(controller: _emailCtrl, hint: 'E-mail', enabled: false),
+            _CompletionField(
+              controller: _emailCtrl,
+              hint: 'E-mail',
+              enabled: false,
+            ),
             const SizedBox(height: 12),
             _FieldLabel('Celular'),
             _CompletionField(
@@ -211,6 +276,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               hint: '(00) 00000-0000',
               keyboardType: TextInputType.phone,
               inputFormatters: [PhoneInputFormatter()],
+              errorText: _phoneError,
             ),
             const SizedBox(height: 12),
             _FieldLabel('CPF'),
@@ -219,21 +285,41 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               hint: '000.000.000-00',
               keyboardType: TextInputType.number,
               inputFormatters: [CpfInputFormatter()],
+              errorText: _cpfError,
             ),
             const SizedBox(height: 12),
             _FieldLabel('Endereço'),
-            _CompletionField(controller: _addressCtrl, hint: 'Rua, número, bairro, cidade', maxLines: 2),
+            _CompletionField(
+              controller: _addressCtrl,
+              hint: 'Rua, número, bairro, cidade',
+              maxLines: 2,
+            ),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.red)),
+              Text(
+                _error!,
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 12,
+                  color: AppTheme.red,
+                ),
+              ),
             ],
             const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: _saving ? null : () => Navigator.of(context).pop(),
-                    child: Text(widget.cancelLabel, style: const TextStyle(fontFamily: 'Sora', color: AppTheme.textSubDark)),
+                    onPressed: _saving
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: Text(
+                      widget.cancelLabel,
+                      style: const TextStyle(
+                        fontFamily: 'Sora',
+                        color: AppTheme.textSubDark,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -241,7 +327,14 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
                   child: ElevatedButton(
                     onPressed: _saving ? null : _save,
                     child: _saving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : const Text('Salvar'),
                   ),
                 ),
@@ -264,7 +357,12 @@ class _FieldLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: const TextStyle(fontFamily: 'Sora', fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSubDark),
+        style: const TextStyle(
+          fontFamily: 'Sora',
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.textSubDark,
+        ),
       ),
     );
   }
@@ -277,6 +375,7 @@ class _CompletionField extends StatelessWidget {
   final int maxLines;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final String? errorText;
   const _CompletionField({
     required this.controller,
     required this.hint,
@@ -284,6 +383,7 @@ class _CompletionField extends StatelessWidget {
     this.maxLines = 1,
     this.keyboardType,
     this.inputFormatters,
+    this.errorText,
   });
 
   @override
@@ -305,7 +405,16 @@ class _CompletionField extends StatelessWidget {
         fillColor: Colors.white.withValues(alpha: enabled ? 0.05 : 0.02),
         hintText: hint,
         hintStyle: const TextStyle(color: AppTheme.textSubDark),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        errorText: errorText,
+        errorStyle: const TextStyle(
+          fontFamily: 'Sora',
+          fontSize: 11,
+          color: AppTheme.red,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: const BorderSide(color: AppTheme.borderDark),
@@ -316,11 +425,21 @@ class _CompletionField extends StatelessWidget {
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          borderSide: BorderSide(color: AppTheme.borderDark.withValues(alpha: 0.4)),
+          borderSide: BorderSide(
+            color: AppTheme.borderDark.withValues(alpha: 0.4),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           borderSide: const BorderSide(color: AppTheme.accentBright),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          borderSide: const BorderSide(color: AppTheme.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          borderSide: const BorderSide(color: AppTheme.red),
         ),
       ),
     );
