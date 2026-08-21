@@ -1,13 +1,24 @@
 import 'package:http/http.dart' as http;
 
 import 'netlify_post_json.dart';
+import 'pronunciation_assessment_service.dart';
 
 enum AiTutorMode { chat, pronunciation }
 
 class AiChatMessage {
   final String role; // 'user' or 'assistant'
   final String content;
-  const AiChatMessage({required this.role, required this.content});
+  // Set only for a user turn that came from the mic (pronunciation
+  // assessment succeeded) — lets the feed render a score card for that
+  // bubble instead of a plain one. Null/empty for every typed turn.
+  final double? pronScore;
+  final List<PronWord> lowScoreWords;
+  const AiChatMessage({
+    required this.role,
+    required this.content,
+    this.pronScore,
+    this.lowScoreWords = const [],
+  });
 }
 
 /// AI Tutor backend: proxies through `/.netlify/functions/ai-chat` (Claude,
@@ -23,16 +34,13 @@ class AiTutorService {
     required List<AiChatMessage> history,
     required String userMessage,
   }) async {
-    final json = await postJson(
-      _client,
-      'ai-chat',
-      {
-        'systemPrompt': systemPrompt,
-        'history': history.map((m) => {'role': m.role, 'content': m.content}).toList(),
-        'userMessage': userMessage,
-      },
-      errorLabel: 'AI Tutor request',
-    );
+    final json = await postJson(_client, 'ai-chat', {
+      'systemPrompt': systemPrompt,
+      'history': history
+          .map((m) => {'role': m.role, 'content': m.content})
+          .toList(),
+      'userMessage': userMessage,
+    }, errorLabel: 'AI Tutor request');
     return json['reply'] as String? ?? '';
   }
 

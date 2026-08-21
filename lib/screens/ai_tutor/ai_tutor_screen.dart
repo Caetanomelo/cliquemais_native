@@ -1,19 +1,28 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:record/record.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
+import '../../core/services/pronunciation_assessment_service.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'ai_tutor_call_screen.dart';
+import 'call_turn_assessor.dart';
+
+enum _MicState { idle, recording, processing }
 
 /// IA Tutor — Claude-backed chat (via the shared Netlify `ai-chat` function)
-/// with 2 modes (chat/pronunciation), matching the web app's merged `AiTutor`
-/// module. Pronúncia mode also offers a live voice call with the AI. No API
-/// key required from the user.
+/// in a single merged feed: typed messages and mic-recorded pronunciation
+/// turns share one history. A mic turn is assessed via Azure Pronunciation
+/// Assessment (same unscripted pass used by [AiTutorCallScreen]) and shows
+/// up as a score card instead of a plain bubble. Live voice calls are still
+/// reachable via the floating action button. No API key required from the
+/// user.
 class AiTutorScreen extends StatefulWidget {
   const AiTutorScreen({super.key});
 
@@ -21,54 +30,219 @@ class AiTutorScreen extends StatefulWidget {
   State<AiTutorScreen> createState() => _AiTutorScreenState();
 }
 
-class _AiTutorScreenState extends State<AiTutorScreen> {
+class _AiTutorScreenState extends State<AiTutorScreen>
+    with WidgetsBindingObserver {
   late final AppStateProvider _app;
-  AiTutorMode _mode = AiTutorMode.chat;
-  final Map<AiTutorMode, List<AiChatMessage>> _historyByMode = {
-    for (final m in AiTutorMode.values) m: <AiChatMessage>[],
-  };
+  final AudioRecorder _recorder = AudioRecorder();
+  final List<AiChatMessage> _history = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scroll = ScrollController();
   bool _sending = false;
+  _MicState _micState = _MicState.idle;
 
   @override
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
+    WidgetsBinding.instance.addObserver(this);
   }
 
-  List<AiChatMessage> get _history => _historyByMode[_mode]!;
+  // A hold-to-talk gesture left mid-press when the app backgrounds (e.g. a
+  // notification pulls focus away) would otherwise leave the mic's
+  // AudioRecord session reserved indefinitely.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) return;
+    if (_micState == _MicState.recording) {
+      unawaited(_cancelMicRecording());
+    }
+  }
 
   Future<void> _send(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty || _sending) return;
+    _controller.clear();
+    await _sendMessage(trimmed);
+  }
+
+  Future<void> _sendMessage(
+    String text, {
+    String feedback = '',
+    double? pronScore,
+    List<PronWord> lowScoreWords = const [],
+  }) async {
+    if (_sending) return;
     setState(() {
-      _history.add(AiChatMessage(role: 'user', content: trimmed));
+      _history.add(
+        AiChatMessage(
+          role: 'user',
+          content: text,
+          pronScore: pronScore,
+          lowScoreWords: lowScoreWords,
+        ),
+      );
       _sending = true;
     });
-    _controller.clear();
     _scrollToBottom();
     try {
       final priorHistory = _history.sublist(0, _history.length - 1);
+      final outgoing = feedback.isEmpty ? text : '$text\n\n$feedback';
       final reply = await _app.aiTutor.send(
-        systemPrompt: _app.aiContent.systemPromptFor(_mode),
+        systemPrompt: _app.aiContent.systemPromptForKey('chat'),
         history: priorHistory,
-        userMessage: trimmed,
+        userMessage: outgoing,
       );
       if (!mounted) return;
-      setState(() => _history.add(AiChatMessage(role: 'assistant', content: reply)));
+      setState(
+        () => _history.add(AiChatMessage(role: 'assistant', content: reply)),
+      );
       await _app.addXp(8);
     } catch (e, st) {
-      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorScreen._send failed', fatal: false));
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'AiTutorScreen._sendMessage failed',
+          fatal: false,
+        ),
+      );
       if (mounted) {
-        setState(() => _history.add(const AiChatMessage(
+        setState(
+          () => _history.add(
+            const AiChatMessage(
               role: 'assistant',
-              content: 'Ops, não consegui responder agora. Verifique sua conexão e tente novamente.',
-            )));
+              content:
+                  'Ops, não consegui responder agora. Verifique sua conexão e tente novamente.',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _sending = false);
       _scrollToBottom();
+    }
+  }
+
+  Future<void> _startMicRecording() async {
+    if (_micState != _MicState.idle || _sending) return;
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) return;
+    final path =
+        '${Directory.systemTemp.path}/tutor_mic_${DateTime.now().millisecondsSinceEpoch}.wav';
+    await _recorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.wav,
+        sampleRate: 16000,
+        numChannels: 1,
+      ),
+      path: path,
+    );
+    if (!mounted) return;
+    setState(() => _micState = _MicState.recording);
+  }
+
+  Future<void> _cancelMicRecording() async {
+    if (_micState != _MicState.recording) return;
+    try {
+      final path = await _recorder.stop();
+      if (path != null) await _safeDeleteAudio(path);
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'AiTutorScreen._cancelMicRecording failed',
+          fatal: false,
+        ),
+      );
+    }
+    if (mounted) setState(() => _micState = _MicState.idle);
+  }
+
+  Future<void> _stopMicRecordingAndAssess() async {
+    if (_micState != _MicState.recording) return;
+    String? path;
+    try {
+      path = await _recorder.stop();
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason:
+              'AiTutorScreen._stopMicRecordingAndAssess: recorder.stop failed',
+          fatal: false,
+        ),
+      );
+    }
+    setState(() => _micState = _MicState.processing);
+    if (path == null) {
+      if (mounted) setState(() => _micState = _MicState.idle);
+      return;
+    }
+    try {
+      final bytes = await File(path).readAsBytes();
+      unawaited(_safeDeleteAudio(path));
+      // ~0.25s of 16kHz/16-bit/mono PCM — filters out accidental taps
+      // without any real speech before spending an Azure call on them.
+      if (bytes.length < 8000) {
+        if (mounted) setState(() => _micState = _MicState.idle);
+        return;
+      }
+      final result = await assessCallTurn(
+        _app.pronunciation,
+        bytes,
+        onError: (e, st, {required reason}) => unawaited(
+          FirebaseCrashlytics.instance.recordError(
+            e,
+            st,
+            reason: 'AiTutorScreen._stopMicRecordingAndAssess: $reason',
+            fatal: false,
+          ),
+        ),
+      );
+      if (mounted) setState(() => _micState = _MicState.idle);
+      if (result.transcript.trim().isEmpty) {
+        if (result.failed && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não consegui processar o áudio. Tente novamente.'),
+            ),
+          );
+        }
+        return;
+      }
+      await _sendMessage(
+        result.transcript,
+        feedback: result.feedback,
+        pronScore: result.pronScore,
+        lowScoreWords: result.lowScoreWords,
+      );
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'AiTutorScreen._stopMicRecordingAndAssess failed',
+          fatal: false,
+        ),
+      );
+      if (mounted) setState(() => _micState = _MicState.idle);
+    }
+  }
+
+  Future<void> _safeDeleteAudio(String path) async {
+    try {
+      await File(path).delete();
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'AiTutorScreen._safeDeleteAudio failed',
+          fatal: false,
+        ),
+      );
     }
   }
 
@@ -84,54 +258,64 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
     });
   }
 
-  void _switchMode(AiTutorMode m) {
-    if (m == _mode) return;
-    setState(() => _mode = m);
-  }
-
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // stop() must finish before dispose() runs — firing both unawaited let
+    // dispose() tear down the plugin's native session while stop() was
+    // still flushing the in-progress recording.
+    unawaited(_stopThenDisposeRecorder());
     _controller.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
+  Future<void> _stopThenDisposeRecorder() async {
+    try {
+      if (await _recorder.isRecording()) {
+        await _recorder.stop();
+      }
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'AiTutorScreen._stopThenDisposeRecorder: stop failed',
+          fatal: false,
+        ),
+      );
+    }
+    await _recorder.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Only depends on aiContent (static after boot) for the current _mode —
-    // select() avoids rebuilding this screen on unrelated notifyListeners()
-    // calls (e.g. XP changes) that context.watch<AppStateProvider>() would
-    // trigger on every message sent, even from this very screen.
-    final (suggestions, welcome) = context.select<AppStateProvider, (List<String>, String)>(
-      (app) => (app.aiContent.quickSuggestionsFor(_mode), app.aiContent.welcomeMessageFor(_mode)),
-    );
+    // Only depends on aiContent (static after boot) — select() avoids
+    // rebuilding this screen on unrelated notifyListeners() calls (e.g. XP
+    // changes) that context.watch<AppStateProvider>() would trigger on
+    // every message sent, even from this very screen.
+    final (suggestions, welcome) = context
+        .select<AppStateProvider, (List<String>, String)>(
+          (app) => (
+            app.aiContent.quickSuggestionsFor(AiTutorMode.chat),
+            app.aiContent.welcomeMessageForKey('chat'),
+          ),
+        );
+    final micBusy = _micState != _MicState.idle;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('IA Tutor'),
+      appBar: AppBar(title: const Text('IA Tutor')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AiTutorCallScreen())),
+        backgroundColor: AppTheme.accentBright,
+        foregroundColor: Colors.black,
+        tooltip: 'Chamada de Voz com o Tutor IA',
+        child: const Icon(Icons.call_rounded),
       ),
       body: Column(
         children: [
-          _ModeTabs(mode: _mode, onChanged: _switchMode),
-          if (_mode == AiTutorMode.pronunciation)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AiTutorCallScreen()),
-                  ),
-                  icon: const Icon(Icons.call_rounded, size: 18),
-                  label: const Text('Chamada de Voz com o Tutor IA', style: TextStyle(fontFamily: 'Sora', fontSize: 13)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.accentBright,
-                    side: const BorderSide(color: AppTheme.accentBright),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-            ),
           Expanded(
             // ListView.builder instead of ListView(children: [...]) — chat
             // history grows unbounded over a long conversation, so only the
@@ -139,7 +323,10 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
             child: ListView.builder(
               controller: _scroll,
               padding: const EdgeInsets.all(16),
-              itemCount: (welcome.isNotEmpty ? 1 : 0) + _history.length + (_sending ? 1 : 0),
+              itemCount:
+                  (welcome.isNotEmpty ? 1 : 0) +
+                  _history.length +
+                  (_sending ? 1 : 0),
               itemBuilder: (context, index) {
                 var i = index;
                 if (welcome.isNotEmpty) {
@@ -148,9 +335,19 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                 }
                 if (i < _history.length) {
                   final m = _history[i];
+                  if (m.role == 'user' && m.pronScore != null) {
+                    return _PronCard(
+                      text: m.content,
+                      pronScore: m.pronScore!,
+                      lowScoreWords: m.lowScoreWords,
+                    );
+                  }
                   return _AiBubble(text: m.content, isUser: m.role == 'user');
                 }
-                return const Padding(padding: EdgeInsets.only(top: 8), child: _TypingIndicator());
+                return const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: _TypingIndicator(),
+                );
               },
             ),
           ),
@@ -159,11 +356,17 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
               height: 44,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 itemCount: suggestions.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) => ActionChip(
-                  label: Text(suggestions[i], style: const TextStyle(fontFamily: 'Sora', fontSize: 12)),
+                  label: Text(
+                    suggestions[i],
+                    style: const TextStyle(fontFamily: 'Sora', fontSize: 12),
+                  ),
                   backgroundColor: AppTheme.surfaceDark,
                   side: const BorderSide(color: AppTheme.borderDark),
                   onPressed: !_sending ? () => _send(suggestions[i]) : null,
@@ -179,11 +382,15 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      enabled: !_sending,
-                      style: const TextStyle(fontFamily: 'Sora', fontSize: 14, color: AppTheme.textMainDark),
+                      enabled: !_sending && !micBusy,
+                      style: const TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 14,
+                        color: AppTheme.textMainDark,
+                      ),
                       decoration: const InputDecoration(
                         isDense: true,
-                        hintText: 'Escreva sua mensagem...',
+                        hintText: 'Escreva ou segure o microfone...',
                         border: OutlineInputBorder(),
                       ),
                       onSubmitted: _send,
@@ -191,8 +398,18 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  _MicButton(
+                    state: _micState,
+                    disabled: _sending,
+                    onStart: _startMicRecording,
+                    onStop: _stopMicRecordingAndAssess,
+                    onCancel: _cancelMicRecording,
+                  ),
+                  const SizedBox(width: 8),
                   IconButton.filled(
-                    onPressed: !_sending ? () => _send(_controller.text) : null,
+                    onPressed: (!_sending && !micBusy)
+                        ? () => _send(_controller.text)
+                        : null,
                     icon: const Icon(Icons.send_rounded),
                     tooltip: 'Enviar mensagem',
                   ),
@@ -207,39 +424,69 @@ class _AiTutorScreenState extends State<AiTutorScreen> {
   }
 }
 
-class _ModeTabs extends StatelessWidget {
-  final AiTutorMode mode;
-  final void Function(AiTutorMode) onChanged;
-  const _ModeTabs({required this.mode, required this.onChanged});
-
-  static const _labels = {
-    AiTutorMode.chat: ('Conversa', Icons.chat_bubble_outline_rounded),
-    AiTutorMode.pronunciation: ('Pronúncia', Icons.record_voice_over_rounded),
-  };
+class _MicButton extends StatelessWidget {
+  final _MicState state;
+  final bool disabled;
+  final VoidCallback onStart;
+  final VoidCallback onStop;
+  final VoidCallback onCancel;
+  const _MicButton({
+    required this.state,
+    required this.disabled,
+    required this.onStart,
+    required this.onStop,
+    required this.onCancel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        itemCount: AiTutorMode.values.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final m = AiTutorMode.values[i];
-          final (label, icon) = _labels[m]!;
-          final selected = m == mode;
-          return ChoiceChip(
-            selected: selected,
-            label: Text(label, style: const TextStyle(fontFamily: 'Sora', fontSize: 12)),
-            avatar: Icon(icon, size: 16),
-            selectedColor: AppTheme.accent.withValues(alpha: 0.3),
-            backgroundColor: AppTheme.surfaceDark,
-            side: BorderSide(color: selected ? AppTheme.accentBright : AppTheme.borderDark),
-            onSelected: (_) => onChanged(m),
-          );
-        },
+    final recording = state == _MicState.recording;
+    final processing = state == _MicState.processing;
+    final active = !disabled && !processing;
+    return Semantics(
+      button: true,
+      enabled: active,
+      label: recording
+          ? 'Gravando. Solte para enviar.'
+          : 'Segure para falar em inglês',
+      child: GestureDetector(
+        onTapDown: active ? (_) => onStart() : null,
+        onTapUp: active ? (_) => onStop() : null,
+        onTapCancel: active ? onCancel : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: recording ? AppTheme.red : AppTheme.surfaceDark,
+            border: Border.all(
+              color: recording ? AppTheme.red : AppTheme.borderDark,
+            ),
+            boxShadow: recording
+                ? [
+                    BoxShadow(
+                      color: AppTheme.red.withValues(alpha: 0.45),
+                      blurRadius: 14,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: processing
+              ? const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.accentBright,
+                  ),
+                )
+              : Icon(
+                  recording ? Icons.stop_rounded : Icons.mic_rounded,
+                  color: recording ? Colors.white : AppTheme.accentBright,
+                  size: 20,
+                ),
+        ),
       ),
     );
   }
@@ -255,20 +502,141 @@ class _AiBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isUser ? AppTheme.accent.withValues(alpha: 0.28) : AppTheme.surfaceDark,
+                color: isUser
+                    ? AppTheme.accent.withValues(alpha: 0.28)
+                    : AppTheme.surfaceDark,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: isUser ? AppTheme.accentBright.withValues(alpha: 0.5) : AppTheme.borderDark),
+                border: Border.all(
+                  color: isUser
+                      ? AppTheme.accentBright.withValues(alpha: 0.5)
+                      : AppTheme.borderDark,
+                ),
               ),
               child: Text(
                 text,
-                style: const TextStyle(fontFamily: 'Sora', fontSize: 14, color: AppTheme.textMainDark, height: 1.4),
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 14,
+                  color: AppTheme.textMainDark,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Inline pronunciation score card for a mic-recorded user turn — replaces
+/// the plain [_AiBubble] for that message so the recognized text, the
+/// Azure `PronScore`, and a short tip surface directly in the feed.
+class _PronCard extends StatelessWidget {
+  final String text;
+  final double pronScore;
+  final List<PronWord> lowScoreWords;
+  const _PronCard({
+    required this.text,
+    required this.pronScore,
+    required this.lowScoreWords,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final good = pronScore >= 80;
+    final scoreColor = good ? AppTheme.green : AppTheme.gold;
+    final tip = lowScoreWords.isEmpty
+        ? 'Pronúncia natural — parabéns! 🎉'
+        : 'Atenção a: ${lowScoreWords.take(3).map((w) => w.word).join(', ')}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.8,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppTheme.accentBright.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.mic_rounded,
+                        size: 14,
+                        color: AppTheme.accentBright,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          '"$text"',
+                          style: const TextStyle(
+                            fontFamily: 'Sora',
+                            fontSize: 14,
+                            color: AppTheme.textMainDark,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: scoreColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Text(
+                          '${pronScore.round()}',
+                          style: TextStyle(
+                            fontFamily: 'Sora',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: scoreColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tip,
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      fontSize: 12,
+                      color: AppTheme.textSubDark,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -295,7 +663,10 @@ class _TypingIndicator extends StatelessWidget {
         child: const SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentBright),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.accentBright,
+          ),
         ),
       ),
     );
