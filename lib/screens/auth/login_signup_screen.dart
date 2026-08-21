@@ -28,7 +28,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   bool _signupMode = false;
   _ContactMode _contactMode = _ContactMode.email;
   bool _submitting = false;
+  bool _obscurePassword = true;
   String? _error;
+  String? _cpfError;
+  String? _phoneError;
 
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -48,25 +51,42 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
   String _friendlyError(Object err) {
     final msg = err.toString().toLowerCase();
-    if (msg.contains('already registered')) return 'Este e-mail já tem conta — tente entrar.';
+    if (msg.contains('already registered'))
+      return 'Este e-mail já tem conta — tente entrar.';
     if (msg.contains('invalid login')) return 'E-mail ou senha incorretos.';
-    if (msg.contains('password') && msg.contains('least')) return 'Senha muito curta (mínimo 6 caracteres).';
-    if (msg.contains('supabase-not-configured')) return 'Login indisponível no momento. Tente novamente mais tarde.';
-    if (msg.contains('profiles_cpf_unique')) return 'Este CPF já está cadastrado.';
-    if (msg.contains('profiles_phone_unique')) return 'Este telefone já está cadastrado.';
-    if (msg.contains('rate limit')) return 'Muitos cadastros em pouco tempo — aguarde alguns minutos e tente novamente.';
-    if (msg.contains('email address') && msg.contains('invalid')) return 'E-mail inválido — confira e tente de novo.';
-    if (msg.contains('check_contact_available') || (msg.contains('function') && msg.contains('does not exist'))) {
+    if (msg.contains('password') && msg.contains('least'))
+      return 'Senha muito curta (mínimo 6 caracteres).';
+    if (msg.contains('supabase-not-configured'))
+      return 'Login indisponível no momento. Tente novamente mais tarde.';
+    if (msg.contains('profiles_cpf_unique'))
+      return 'Este CPF já está cadastrado.';
+    if (msg.contains('profiles_phone_unique'))
+      return 'Este telefone já está cadastrado.';
+    if (msg.contains('rate limit'))
+      return 'Muitos cadastros em pouco tempo — aguarde alguns minutos e tente novamente.';
+    if (msg.contains('email address') && msg.contains('invalid'))
+      return 'E-mail inválido — confira e tente de novo.';
+    if (msg.contains('check_contact_available') ||
+        (msg.contains('function') && msg.contains('does not exist'))) {
       return 'Cadastro temporariamente indisponível — tente novamente em instantes.';
     }
     return 'Não foi possível concluir. Tente novamente.';
+  }
+
+  void _clearErrors() {
+    _error = null;
+    _cpfError = null;
+    _phoneError = null;
   }
 
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Preencha e-mail e senha.');
+      setState(() {
+        _clearErrors();
+        _error = 'Preencha e-mail e senha.';
+      });
       return;
     }
     final name = _nameCtrl.text.trim();
@@ -74,28 +94,37 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     final cpf = _cpfCtrl.text.trim();
     if (_signupMode) {
       if (name.isEmpty || phone.isEmpty || cpf.isEmpty) {
-        setState(() => _error = 'Preencha nome, telefone e CPF.');
+        setState(() {
+          _clearErrors();
+          _error = 'Preencha nome, telefone e CPF.';
+        });
         return;
       }
       if (!isValidCpf(cpf)) {
-        setState(() => _error = 'CPF inválido.');
+        setState(() {
+          _clearErrors();
+          _error = 'CPF inválido.';
+        });
         return;
       }
     }
     setState(() {
       _submitting = true;
-      _error = null;
+      _clearErrors();
     });
     final app = context.read<AppStateProvider>();
     try {
       if (_signupMode) {
-        final avail = await app.auth.checkContactAvailable(cpf: cpf, phone: phone);
+        final avail = await app.auth.checkContactAvailable(
+          cpf: cpf,
+          phone: phone,
+        );
         if (avail.cpfTaken) {
-          setState(() => _error = 'Este CPF já está cadastrado.');
+          setState(() => _cpfError = 'Este CPF já está cadastrado.');
           return;
         }
         if (avail.phoneTaken) {
-          setState(() => _error = 'Este telefone já está cadastrado.');
+          setState(() => _phoneError = 'Este telefone já está cadastrado.');
           return;
         }
         await app.auth.signUp(email, password, displayName: name);
@@ -106,7 +135,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
       if (!mounted) return;
       final profile = await app.auth.getProfile();
       if (!mounted) return;
-      final alreadyPrompted = profile != null && profile['profile_prompt_seen'] == true;
+      final alreadyPrompted =
+          profile != null && profile['profile_prompt_seen'] == true;
       if (!alreadyPrompted) {
         await showProfileCompletionDialog(context);
         if (mounted) await app.auth.markProfilePromptSeen();
@@ -116,7 +146,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
     } catch (e) {
-      if (mounted) setState(() => _error = _friendlyError(e));
+      if (!mounted) return;
+      final msg = e.toString().toLowerCase();
+      // A raw Postgres unique-violation surfaces here as a fallback path --
+      // the primary path is checkContactAvailable() above, which already
+      // routes to the field error before this ever runs.
+      if (msg.contains('profiles_cpf_unique')) {
+        setState(() => _cpfError = 'Este CPF já está cadastrado.');
+      } else if (msg.contains('profiles_phone_unique')) {
+        setState(() => _phoneError = 'Este telefone já está cadastrado.');
+      } else {
+        setState(() => _error = _friendlyError(e));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -148,7 +189,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                 const Text(
                   'Sua conta salva o progresso de cada frase e palavra e sincroniza entre o app e o site.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.textSubDark, height: 1.4),
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 12,
+                    color: AppTheme.textSubDark,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 22),
                 Container(
@@ -159,9 +205,27 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _ModeTab(label: 'Entrar', active: !_signupMode, onTap: () => setState(() => _signupMode = false))),
+                          Expanded(
+                            child: _ModeTab(
+                              label: 'Entrar',
+                              active: !_signupMode,
+                              onTap: () => setState(() {
+                                _signupMode = false;
+                                _clearErrors();
+                              }),
+                            ),
+                          ),
                           const SizedBox(width: 6),
-                          Expanded(child: _ModeTab(label: 'Criar conta', active: _signupMode, onTap: () => setState(() => _signupMode = true))),
+                          Expanded(
+                            child: _ModeTab(
+                              label: 'Criar conta',
+                              active: _signupMode,
+                              onTap: () => setState(() {
+                                _signupMode = true;
+                                _clearErrors();
+                              }),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -171,7 +235,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                             child: _ModeTab(
                               label: 'E-mail',
                               active: _contactMode == _ContactMode.email,
-                              onTap: () => setState(() => _contactMode = _ContactMode.email),
+                              onTap: () => setState(() {
+                                _contactMode = _ContactMode.email;
+                                _clearErrors();
+                              }),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -179,7 +246,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                             child: _ModeTab(
                               label: 'Telefone',
                               active: _contactMode == _ContactMode.phone,
-                              onTap: () => setState(() => _contactMode = _ContactMode.phone),
+                              onTap: () => setState(() {
+                                _contactMode = _ContactMode.phone;
+                                _clearErrors();
+                              }),
                             ),
                           ),
                         ],
@@ -187,43 +257,95 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       const SizedBox(height: 16),
                       if (_contactMode == _ContactMode.email) ...[
                         if (_signupMode) ...[
-                          _AuthField(controller: _nameCtrl, hint: 'Seu nome', keyboardType: TextInputType.name),
+                          _AuthField(
+                            controller: _nameCtrl,
+                            label: 'Nome completo',
+                            hint: 'Seu nome',
+                            keyboardType: TextInputType.name,
+                          ),
                           const SizedBox(height: 10),
                           _AuthField(
                             controller: _phoneCtrl,
+                            label: 'Celular',
                             hint: '(00) 00000-0000',
                             keyboardType: TextInputType.phone,
                             inputFormatters: [PhoneInputFormatter()],
+                            errorText: _phoneError,
                           ),
                           const SizedBox(height: 10),
                           _AuthField(
                             controller: _cpfCtrl,
+                            label: 'CPF',
                             hint: '000.000.000-00',
                             keyboardType: TextInputType.number,
                             inputFormatters: [CpfInputFormatter()],
+                            errorText: _cpfError,
                           ),
                           const SizedBox(height: 10),
                         ],
-                        _AuthField(controller: _emailCtrl, hint: 'E-mail', keyboardType: TextInputType.emailAddress),
+                        _AuthField(
+                          controller: _emailCtrl,
+                          label: 'E-mail',
+                          hint: 'voce@email.com',
+                          keyboardType: TextInputType.emailAddress,
+                        ),
                         const SizedBox(height: 10),
-                        _AuthField(controller: _passwordCtrl, hint: 'Senha', obscureText: true),
+                        _AuthField(
+                          controller: _passwordCtrl,
+                          label: 'Senha',
+                          hint: 'Senha',
+                          obscureText: _obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: _obscurePassword
+                                  ? AppTheme.textSubDark
+                                  : AppTheme.accentBright,
+                              size: 20,
+                            ),
+                            tooltip: _obscurePassword
+                                ? 'Mostrar senha'
+                                : 'Ocultar senha',
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                          ),
+                        ),
                         if (_error != null) ...[
                           const SizedBox(height: 10),
-                          Text(_error!, style: const TextStyle(fontFamily: 'Sora', fontSize: 12, color: AppTheme.red)),
+                          Text(
+                            _error!,
+                            style: const TextStyle(
+                              fontFamily: 'Sora',
+                              fontSize: 12,
+                              color: AppTheme.red,
+                            ),
+                          ),
                         ],
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _submitting ? null : _submit,
                           child: _submitting
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
                               : Text(_signupMode ? 'Criar conta' : 'Entrar'),
                         ),
                       ] else ...[
                         _AuthField(
                           controller: _phoneCtrl,
+                          label: 'Celular',
                           hint: '(00) 00000-0000',
                           keyboardType: TextInputType.phone,
                           inputFormatters: [PhoneInputFormatter()],
+                          errorText: _phoneError,
                         ),
                         const SizedBox(height: 16),
                         OutlinedButton(
@@ -245,7 +367,14 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                     Expanded(child: Divider(color: AppTheme.borderDark)),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text('ou continue com', style: TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark)),
+                      child: Text(
+                        'ou continue com',
+                        style: TextStyle(
+                          fontFamily: 'Sora',
+                          fontSize: 11,
+                          color: AppTheme.textSubDark,
+                        ),
+                      ),
                     ),
                     Expanded(child: Divider(color: AppTheme.borderDark)),
                   ],
@@ -253,11 +382,20 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                 const SizedBox(height: 16),
                 const Row(
                   children: [
-                    _SocialAuthButton(icon: Icons.g_mobiledata_rounded, label: 'Google'),
+                    _SocialAuthButton(
+                      icon: Icons.g_mobiledata_rounded,
+                      label: 'Google',
+                    ),
                     SizedBox(width: 12),
-                    _SocialAuthButton(icon: Icons.apple_rounded, label: 'Apple'),
+                    _SocialAuthButton(
+                      icon: Icons.apple_rounded,
+                      label: 'Apple',
+                    ),
                     SizedBox(width: 12),
-                    _SocialAuthButton(icon: Icons.facebook_rounded, label: 'Facebook'),
+                    _SocialAuthButton(
+                      icon: Icons.facebook_rounded,
+                      label: 'Facebook',
+                    ),
                   ],
                 ),
               ],
@@ -300,10 +438,17 @@ class _SocialAuthButton extends StatelessWidget {
               right: -6,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(color: AppTheme.gold, borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(
+                  color: AppTheme.gold,
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: const Text(
                   'EM BREVE',
-                  style: TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.black),
+                  style: TextStyle(
+                    fontSize: 7,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ),
@@ -318,7 +463,11 @@ class _ModeTab extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _ModeTab({required this.label, required this.active, required this.onTap});
+  const _ModeTab({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -328,9 +477,15 @@ class _ModeTab extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? AppTheme.accentBright.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.04),
+          color: active
+              ? AppTheme.accentBright.withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          border: Border.all(color: active ? AppTheme.accentBright.withValues(alpha: 0.4) : AppTheme.borderDark),
+          border: Border.all(
+            color: active
+                ? AppTheme.accentBright.withValues(alpha: 0.4)
+                : AppTheme.borderDark,
+          ),
         ),
         child: Text(
           label,
@@ -348,46 +503,91 @@ class _ModeTab extends StatelessWidget {
 
 class _AuthField extends StatelessWidget {
   final TextEditingController controller;
+  final String label;
   final String hint;
   final bool obscureText;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final Widget? suffixIcon;
+  final String? errorText;
   const _AuthField({
     required this.controller,
+    required this.label,
     required this.hint,
     this.obscureText = false,
     this.keyboardType,
     this.inputFormatters,
+    this.suffixIcon,
+    this.errorText,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      style: const TextStyle(fontFamily: 'Sora', fontSize: 14, color: AppTheme.textMainDark),
-      decoration: InputDecoration(
-        isDense: true,
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppTheme.textSubDark),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          borderSide: const BorderSide(color: AppTheme.borderDark),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 5),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textSubDark,
+            ),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          borderSide: const BorderSide(color: AppTheme.borderDark),
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          style: const TextStyle(
+            fontFamily: 'Sora',
+            fontSize: 14,
+            color: AppTheme.textMainDark,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.05),
+            hintText: hint,
+            hintStyle: const TextStyle(color: AppTheme.textSubDark),
+            suffixIcon: suffixIcon,
+            errorText: errorText,
+            errorStyle: const TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 11,
+              color: AppTheme.red,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderSide: const BorderSide(color: AppTheme.borderDark),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderSide: const BorderSide(color: AppTheme.borderDark),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderSide: const BorderSide(color: AppTheme.accentBright),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderSide: const BorderSide(color: AppTheme.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderSide: const BorderSide(color: AppTheme.red),
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          borderSide: const BorderSide(color: AppTheme.accentBright),
-        ),
-      ),
+      ],
     );
   }
 }
