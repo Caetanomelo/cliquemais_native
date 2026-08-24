@@ -202,6 +202,10 @@ class CompletionsService {
               'unit': event.unit,
               'domain': event.domain,
               'xp': event.xp,
+              // Native has no in-app language selector yet (English-only
+              // curriculum) — see WEB_BASE's src/supabase-client.js
+              // getCachedTargetLanguage() for the web side, which does vary.
+              'language': 'en',
             },
             onConflict: 'user_id,content_id',
             ignoreDuplicates: true,
@@ -229,11 +233,16 @@ class CompletionsService {
     final user = _auth.currentUser;
     if (user == null) return null;
     try {
+      // Scoped to 'en' -- see 024_language_scoped_progress.sql in WEB_BASE.
+      // A company-linked student assigned 'es'/'pt' by the admin could have
+      // completions from the web app in that language; native's UI is
+      // English-only, so those must not bleed into these counters.
       final rows =
           await Supabase.instance.client
                   .from('content_completions')
                   .select('domain, xp, completed_at')
                   .eq('user_id', user.id)
+                  .eq('language', 'en')
               as List;
 
       final domains = {
@@ -300,6 +309,7 @@ class CompletionsService {
                   .from('module_progress')
                   .select('module, last_content_id, xp_total')
                   .eq('user_id', user.id)
+                  .eq('language', 'en')
               as List;
       return rows
           .map(
