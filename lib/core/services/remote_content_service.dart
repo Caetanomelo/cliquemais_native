@@ -33,11 +33,11 @@ class RemoteContentService {
 
   RemoteContentService({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<String> loadString(String asset) async {
+  Future<String> loadString(String asset, {Map<String, String>? query}) async {
     Object? lastError;
     for (var attempt = 1; attempt <= _maxAttempts; attempt++) {
       try {
-        return await _fetchOnce(asset);
+        return await _fetchOnce(asset, query);
       } on _RetryableException catch (e) {
         lastError = e.cause;
         if (attempt < _maxAttempts) {
@@ -49,7 +49,7 @@ class RemoteContentService {
       }
     }
 
-    final cached = await _readCache(asset);
+    final cached = await _readCache(asset, query);
     if (cached != null) {
       try {
         unawaited(FirebaseCrashlytics.instance.recordError(
@@ -67,8 +67,9 @@ class RemoteContentService {
     throw lastError!;
   }
 
-  Future<String> _fetchOnce(String asset) async {
-    final uri = Uri.parse('${NetlifyConfig.baseUrl}/data/$asset');
+  Future<String> _fetchOnce(String asset, Map<String, String>? query) async {
+    final uri = Uri.parse('${NetlifyConfig.baseUrl}/data/$asset')
+        .replace(queryParameters: (query == null || query.isEmpty) ? null : query);
     http.Response res;
     try {
       res = await _client.get(uri).timeout(const Duration(seconds: 15));
@@ -82,18 +83,24 @@ class RemoteContentService {
       throw Exception('Failed to load $asset: HTTP ${res.statusCode}');
     }
     jsonDecode(res.body); // sanity check — surface malformed payloads early
-    unawaited(_writeCache(asset, res.body));
+    unawaited(_writeCache(asset, query, res.body));
     return res.body;
   }
 
-  Future<File> _cacheFile(String asset) async {
+  // Query params are folded into the cache filename so e.g. an English and
+  // a Spanish fetch of the same asset (ai_system_prompts.json?language=es)
+  // never overwrite each other's offline fallback copy.
+  Future<File> _cacheFile(String asset, Map<String, String>? query) async {
     final dir = await getApplicationCacheDirectory();
-    return File('${dir.path}/content_cache_$asset');
+    final suffix = (query == null || query.isEmpty)
+        ? ''
+        : '_${(query.entries.toList()..sort((a, b) => a.key.compareTo(b.key))).map((e) => '${e.key}-${e.value}').join('_')}';
+    return File('${dir.path}/content_cache_$asset$suffix');
   }
 
-  Future<void> _writeCache(String asset, String body) async {
+  Future<void> _writeCache(String asset, Map<String, String>? query, String body) async {
     try {
-      final file = await _cacheFile(asset);
+      final file = await _cacheFile(asset, query);
       await file.writeAsString(body);
     } catch (_) {
       // Best-effort — a failed cache write just means a later outage has
@@ -102,9 +109,9 @@ class RemoteContentService {
     }
   }
 
-  Future<String?> _readCache(String asset) async {
+  Future<String?> _readCache(String asset, Map<String, String>? query) async {
     try {
-      final file = await _cacheFile(asset);
+      final file = await _cacheFile(asset, query);
       if (!await file.exists()) return null;
       return await file.readAsString();
     } catch (_) {

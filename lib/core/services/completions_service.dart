@@ -106,26 +106,58 @@ class ModuleProgress {
 /// connectivity-detection dependency, since a failed write is itself the
 /// offline signal.
 class CompletionsService {
-  static const _kLocalIds = 'content_completions_local_ids';
-  static const _kPending = 'content_completions_pending';
+  static const _kLocalIdsBase = 'content_completions_local_ids';
+  static const _kPendingBase = 'content_completions_pending';
 
   final AuthService _auth;
   final SharedPreferences _prefs;
+  final String _lang;
   final Set<String> _localIds;
   final List<CompletionEvent> _pending;
 
-  CompletionsService._(this._auth, this._prefs, this._localIds, this._pending);
+  CompletionsService._(this._auth, this._prefs, this._lang, this._localIds, this._pending);
 
-  static Future<CompletionsService> create(AuthService auth) async {
+  String get _kLocalIds => '$_kLocalIdsBase:$_lang';
+  String get _kPending => '$_kPendingBase:$_lang';
+
+  /// [courseLanguage] scopes both the on-device cache and the Supabase rows
+  /// this instance reads/writes — a completion recorded while learning
+  /// Spanish must not mark the same content_id "done" for English, and vice
+  /// versa (see `content_completions.language` / 024_language_scoped_progress.sql
+  /// in WEB_BASE, which the web app already scopes by).
+  static Future<CompletionsService> create(AuthService auth, String courseLanguage) async {
     final prefs = await SharedPreferences.getInstance();
-    final localIds = (prefs.getStringList(_kLocalIds) ?? const []).toSet();
-    final pending = (prefs.getStringList(_kPending) ?? const [])
+    final localIdsKey = '$_kLocalIdsBase:$courseLanguage';
+    final pendingKey = '$_kPendingBase:$courseLanguage';
+
+    var localIdsList = prefs.getStringList(localIdsKey);
+    var pendingList = prefs.getStringList(pendingKey);
+    if (courseLanguage == 'en') {
+      // Pre-language-rollout data (English-only) had no suffix — migrate it
+      // once, same non-destructive-then-write technique used elsewhere in
+      // this rollout.
+      final legacyLocalIds = prefs.getStringList(_kLocalIdsBase);
+      if (localIdsList == null && legacyLocalIds != null) {
+        await prefs.setStringList(localIdsKey, legacyLocalIds);
+        await prefs.remove(_kLocalIdsBase);
+        localIdsList = legacyLocalIds;
+      }
+      final legacyPending = prefs.getStringList(_kPendingBase);
+      if (pendingList == null && legacyPending != null) {
+        await prefs.setStringList(pendingKey, legacyPending);
+        await prefs.remove(_kPendingBase);
+        pendingList = legacyPending;
+      }
+    }
+
+    final localIds = (localIdsList ?? const []).toSet();
+    final pending = (pendingList ?? const [])
         .map(
           (s) =>
               CompletionEvent.fromJson(jsonDecode(s) as Map<String, dynamic>),
         )
         .toList();
-    final svc = CompletionsService._(auth, prefs, localIds, pending);
+    final svc = CompletionsService._(auth, prefs, courseLanguage, localIds, pending);
     unawaited(svc.flushPending());
     return svc;
   }
@@ -202,10 +234,10 @@ class CompletionsService {
               'unit': event.unit,
               'domain': event.domain,
               'xp': event.xp,
-              // Native has no in-app language selector yet (English-only
-              // curriculum) — see WEB_BASE's src/supabase-client.js
-              // getCachedTargetLanguage() for the web side, which does vary.
-              'language': 'en',
+              // Same course-language column WEB_BASE's src/supabase-client.js
+              // getCachedTargetLanguage() writes — kept in sync via
+              // AppStateProvider.courseLanguage.
+              'language': _lang,
             },
             onConflict: 'user_id,content_id',
             ignoreDuplicates: true,
@@ -233,16 +265,17 @@ class CompletionsService {
     final user = _auth.currentUser;
     if (user == null) return null;
     try {
-      // Scoped to 'en' -- see 024_language_scoped_progress.sql in WEB_BASE.
-      // A company-linked student assigned 'es'/'pt' by the admin could have
-      // completions from the web app in that language; native's UI is
-      // English-only, so those must not bleed into these counters.
+      // Scoped to the current course language -- see
+      // 024_language_scoped_progress.sql in WEB_BASE. A company-linked
+      // student assigned a different language by the admin (or who switches
+      // course language on another device) could have completions in more
+      // than one language; those must not bleed into these counters.
       final rows =
           await Supabase.instance.client
                   .from('content_completions')
                   .select('domain, xp, completed_at')
                   .eq('user_id', user.id)
-                  .eq('language', 'en')
+                  .eq('language', _lang)
               as List;
 
       final domains = {
@@ -309,7 +342,7 @@ class CompletionsService {
                   .from('module_progress')
                   .select('module, last_content_id, xp_total')
                   .eq('user_id', user.id)
-                  .eq('language', 'en')
+                  .eq('language', _lang)
               as List;
       return rows
           .map(

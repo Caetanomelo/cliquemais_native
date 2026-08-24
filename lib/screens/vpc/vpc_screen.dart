@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/services/scoring_service.dart';
+import '../../data/models/course_language.dart';
 import '../../data/models/vocab_item.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
@@ -117,7 +118,7 @@ class _VpcScreenState extends State<VpcScreen> {
   Future<void> _playTutor() async {
     final item = _current;
     if (item == null) return;
-    await _app.cloudTts.speak(item.en, rate: 0.5, voiceGender: _app.voiceGender);
+    await _app.cloudTts.speak(item.textFor(_app.courseLanguage), rate: 0.5, voiceGender: _app.voiceGender, language: resolveLocale(_app.courseLanguage));
   }
 
   Future<void> _record() async {
@@ -129,6 +130,7 @@ class _VpcScreenState extends State<VpcScreen> {
       partialResults: true,
       listenFor: const Duration(seconds: 8),
       pauseFor: const Duration(seconds: 2),
+      localeId: resolveLocale(_app.courseLanguage).replaceAll('-', '_'),
       onResult: (text, isFinal) {
         if (!mounted) return;
         _liveTranscript.value = LiveTranscript(text: text, isFinal: isFinal);
@@ -158,7 +160,7 @@ class _VpcScreenState extends State<VpcScreen> {
     if (_processing) return;
     _processing = true;
     setState(() => _listening = false);
-    final result = ScoringService.scoreVpc(item.en, spoken);
+    final result = ScoringService.scoreVpc(item.textFor(_app.courseLanguage), spoken);
     _showResult(result.score, spoken, result.exact);
   }
 
@@ -285,7 +287,7 @@ class _VpcScreenState extends State<VpcScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(item.en,
+                              Text(item.textFor(_app.courseLanguage),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                       fontFamily: 'Sora', fontSize: 26, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),

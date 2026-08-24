@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../data/models/course_language.dart';
+import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/info_card_row.dart';
 import '../../widgets/profile_completion_dialog.dart';
@@ -13,8 +16,39 @@ import '../corp/corp_portal_screen.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  Future<void> _pickCourseLanguage(BuildContext context) async {
+    final appState = context.read<AppStateProvider>();
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Idioma do curso', style: TextStyle(color: AppTheme.textMainDark)),
+        children: [
+          for (final entry in kCourseLanguageLabels.entries)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(entry.key),
+              child: Row(
+                children: [
+                  Icon(
+                    entry.key == appState.courseLanguage ? Icons.radio_button_checked : Icons.radio_button_off,
+                    color: AppTheme.accentBright,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(entry.value, style: const TextStyle(color: AppTheme.textMainDark)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (chosen != null && chosen != appState.courseLanguage) {
+      await appState.setCourseLanguage(chosen);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppStateProvider>();
     return Scaffold(
       appBar: AppBar(title: const Text('Configurações')),
       body: ListView(
@@ -28,6 +62,13 @@ class SettingsScreen extends StatelessWidget {
             title: 'Meus dados',
             subtitle: 'Nome, e-mail, celular, CPF, endereço e foto',
             onTap: () => showProfileCompletionDialog(context, cancelLabel: 'Fechar'),
+          ),
+          const SizedBox(height: 10),
+          _ResourceRow(
+            icon: Icons.language_rounded,
+            title: 'Idioma do curso',
+            subtitle: kCourseLanguageLabels[appState.courseLanguage] ?? 'Inglês',
+            onTap: () => _pickCourseLanguage(context),
           ),
           const SizedBox(height: 22),
           const Text('Recursos',

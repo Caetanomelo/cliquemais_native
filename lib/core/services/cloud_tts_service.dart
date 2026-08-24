@@ -44,11 +44,18 @@ class CloudTtsService {
     }
   }
 
+  // Voice names per locale, matching WEB_BASE's tts-shared.js GOOGLE_TTS_VOICES.
+  // Adding a new course language's TTS voice is only adding an entry here.
+  static const Map<String, ({String male, String female})> _voices = {
+    'en-US': (male: 'en-US-Neural2-D', female: 'en-US-Neural2-F'),
+    'pt-BR': (male: 'pt-BR-Neural2-B', female: 'pt-BR-Wavenet-A'),
+    'es-US': (male: 'es-US-Neural2-B', female: 'es-US-Neural2-A'),
+  };
+
   Future<Uint8List> _speakGoogleViaNetlify(String text, String voiceGender, String language) async {
     final isFemale = voiceGender == 'female';
-    final voiceName = language == 'pt-BR'
-        ? (isFemale ? 'pt-BR-Wavenet-A' : 'pt-BR-Neural2-B')
-        : (isFemale ? 'en-US-Neural2-F' : 'en-US-Neural2-D');
+    final pair = _voices[language] ?? _voices['en-US']!;
+    final voiceName = isFemale ? pair.female : pair.male;
     final json = await postJson(
       _client,
       'tts',

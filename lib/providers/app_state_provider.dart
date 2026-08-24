@@ -92,9 +92,12 @@ class AppStateProvider extends ChangeNotifier {
   final CompletionsService? _seedCompletions;
 
   late final PersistenceService persistence;
-  late final CurriculumProgressService curriculumProgress;
-  late final PracticeProgressService practiceProgress;
-  late final CompletionsService completions;
+  // Not `final` — setCourseLanguage() recreates these three for the new
+  // language so switching course mid-session can't show (or silently merge
+  // into) another course's progress.
+  late CurriculumProgressService curriculumProgress;
+  late PracticeProgressService practiceProgress;
+  late CompletionsService completions;
   late final UnitDataRepository unitData;
   late final CurriculumRepository curriculum;
   late final AiContentRepository aiContent;
@@ -122,34 +125,41 @@ class AppStateProvider extends ChangeNotifier {
         _seedCurriculum ?? CurriculumRepository(content: remoteContent);
     aiContent = _seedAiContent ?? AiContentRepository(content: remoteContent);
 
-    // None of these depend on each other, so kick them all off together
-    // instead of chaining sequential awaits — the persistence-box opens
-    // (disk I/O) run alongside the content loads (network) and the speech
-    // plugin init (platform channel), shaving real time off cold boot.
+    // unitData/curriculum content doesn't depend on course language (both
+    // ship every language's content in one payload, resolved client-side —
+    // see Lesson/CorpTrack.forLanguage), so they, persistence, and auth can
+    // all start immediately, independent of each other.
     final persistenceFuture = _seedPersistence != null
         ? Future.value(_seedPersistence)
         : PersistenceService.create();
-    final curriculumProgressFuture = _seedCurriculumProgress != null
-        ? Future.value(_seedCurriculumProgress)
-        : CurriculumProgressService.create();
-    final practiceProgressFuture = _seedPracticeProgress != null
-        ? Future.value(_seedPracticeProgress)
-        : PracticeProgressService.create();
-    final completionsFuture = _seedCompletions != null
-        ? Future.value(_seedCompletions)
-        : CompletionsService.create(auth);
+    final unitDataFuture = unitData.loadAll();
+    final curriculumFuture = curriculum.loadAll();
     // auth.init() (Supabase.initialize() + session restore) must resolve
     // before init() returns and _ready flips true — SplashScreen reads
     // isLoggedIn immediately after boot to decide whether to skip Hero+Login,
     // and that read was unreliable when auth.init() only ran inside the
     // fire-and-forget _initAuth() below, after _ready was already set.
-    await Future.wait([
-      unitData.loadAll(),
-      curriculum.loadAll(),
-      aiContent.loadAll(),
-      auth.init(),
-    ]);
+    final authFuture = auth.init();
+
+    // aiContent, curriculumProgress, practiceProgress, and completions all
+    // need the course language up front (a `?language=` query param, or a
+    // key/column to scope local storage and Supabase reads by), so they
+    // wait for persistenceFuture to resolve before kicking off — then join
+    // the same final wait as the language-independent loads above.
     persistence = await persistenceFuture;
+    final lang = persistence.courseLanguage;
+    final aiContentFuture = aiContent.loadAll(lang);
+    final curriculumProgressFuture = _seedCurriculumProgress != null
+        ? Future.value(_seedCurriculumProgress)
+        : CurriculumProgressService.create(lang);
+    final practiceProgressFuture = _seedPracticeProgress != null
+        ? Future.value(_seedPracticeProgress)
+        : PracticeProgressService.create(lang);
+    final completionsFuture = _seedCompletions != null
+        ? Future.value(_seedCompletions)
+        : CompletionsService.create(auth, lang);
+
+    await Future.wait([unitDataFuture, curriculumFuture, authFuture, aiContentFuture]);
     curriculumProgress = await curriculumProgressFuture;
     practiceProgress = await practiceProgressFuture;
     completions = await completionsFuture;
@@ -174,12 +184,28 @@ class AppStateProvider extends ChangeNotifier {
     // gets pushed as soon as there's somewhere to push it to.
     unawaited(completions.flushPending());
     unawaited(refreshRealAnalytics());
+    unawaited(_syncCourseLanguageFromProfile());
     _authSub = auth.onAuthStateChange.listen((_) {
       unawaited(completions.flushPending());
       unawaited(refreshRealAnalytics());
+      unawaited(_syncCourseLanguageFromProfile());
       notifyListeners();
     });
     notifyListeners();
+  }
+
+  /// The `profiles.target_language` column is the source of truth once
+  /// logged in (it's shared with the web app, and may have been set there);
+  /// local persistence is only the pre-login/offline default. Runs after
+  /// every sign-in (including the initial session restore) so a device that
+  /// never opened Settings on this course language still gets it right.
+  Future<void> _syncCourseLanguageFromProfile() async {
+    if (!isLoggedIn) return;
+    final profile = await auth.getProfile();
+    final remote = profile?['target_language'] as String?;
+    if (remote != null && remote != persistence.courseLanguage) {
+      await setCourseLanguage(remote);
+    }
   }
 
   /// Re-fetches the Analytics Core numbers from Supabase — called on login
@@ -210,6 +236,7 @@ class AppStateProvider extends ChangeNotifier {
   bool get hasSession => persistence.hasSession;
   bool get introDone => persistence.introDone;
   String get voiceGender => persistence.voiceGender;
+  String get courseLanguage => persistence.courseLanguage;
 
   JourneyProgress get journeyProgress =>
       computeJourneyProgress(curriculum, curriculumProgress);
@@ -258,6 +285,26 @@ class AppStateProvider extends ChangeNotifier {
 
   Future<void> setVoiceGender(String gender) async {
     await persistence.setVoiceGender(gender);
+    notifyListeners();
+  }
+
+  /// Reloads AI Tutor content for the new language (it's fetched with a
+  /// `?language=` query param, unlike curriculum/corp-track content which
+  /// ships every language in one payload and resolves client-side). Also
+  /// pushes the choice to `profiles.target_language` when logged in, so it
+  /// carries over to the web app and other devices.
+  Future<void> setCourseLanguage(String lang) async {
+    await persistence.setCourseLanguage(lang);
+    if (isLoggedIn) {
+      unawaited(auth.updateProfile(targetLanguage: lang));
+    }
+    await aiContent.loadAll(lang);
+    // curriculumProgress/practiceProgress/completions cache their state in
+    // memory per language at load time (see Fase 5) — reload them for the
+    // new course so its progress doesn't mix with the previous language's.
+    curriculumProgress = await CurriculumProgressService.create(lang);
+    practiceProgress = await PracticeProgressService.create(lang);
+    completions = await CompletionsService.create(auth, lang);
     notifyListeners();
   }
 

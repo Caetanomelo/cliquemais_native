@@ -27,30 +27,30 @@ void main() {
   group('CompletionsService', () {
     test('record() is a no-op when logged out, matching web Auth.recordCompletion', () async {
       SharedPreferences.setMockInitialValues({});
-      final svc = await CompletionsService.create(_FakeAuthService(false));
+      final svc = await CompletionsService.create(_FakeAuthService(false), 'en');
       await svc.record(module: 'drive_mode', contentId: 'drive:1', unit: 0, domain: 'pronunciation');
       expect(svc.isCompleted('drive:1'), isFalse);
     });
 
     test('record() caches locally and queues the write when logged in but offline', () async {
       SharedPreferences.setMockInitialValues({});
-      final svc = await CompletionsService.create(_FakeAuthService(true));
+      final svc = await CompletionsService.create(_FakeAuthService(true), 'en');
       await svc.record(module: 'vocab_lab', contentId: 'vocab:42', unit: 3, domain: 'vocabulary');
       expect(svc.isCompleted('vocab:42'), isTrue);
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getStringList('content_completions_local_ids'), ['vocab:42']);
-      expect(prefs.getStringList('content_completions_pending'), hasLength(1));
+      expect(prefs.getStringList('content_completions_local_ids:en'), ['vocab:42']);
+      expect(prefs.getStringList('content_completions_pending:en'), hasLength(1));
     });
 
     test('record() is idempotent for the same content_id', () async {
       SharedPreferences.setMockInitialValues({});
-      final svc = await CompletionsService.create(_FakeAuthService(true));
+      final svc = await CompletionsService.create(_FakeAuthService(true), 'en');
       await svc.record(module: 'drive_mode', contentId: 'drive:7', unit: 1, domain: 'pronunciation');
       await svc.record(module: 'drive_mode', contentId: 'drive:7', unit: 1, domain: 'pronunciation');
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getStringList('content_completions_pending'), hasLength(1));
+      expect(prefs.getStringList('content_completions_pending:en'), hasLength(1));
     });
 
     test('a pending write from a previous session survives create() and stays queued while still offline', () async {
@@ -60,12 +60,20 @@ void main() {
           '{"module":"drive_mode","contentId":"drive:9","unit":2,"domain":"pronunciation","xp":5}',
         ],
       });
-      final svc = await CompletionsService.create(_FakeAuthService(true));
+      final svc = await CompletionsService.create(_FakeAuthService(true), 'en');
       expect(svc.isCompleted('drive:9'), isTrue);
       await svc.flushPending();
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getStringList('content_completions_pending'), hasLength(1));
+      expect(prefs.getStringList('content_completions_pending:en'), hasLength(1));
+    });
+
+    test('a non-English course starts with empty progress even if English has data', () async {
+      SharedPreferences.setMockInitialValues({
+        'content_completions_local_ids': ['drive:9'],
+      });
+      final svc = await CompletionsService.create(_FakeAuthService(true), 'es');
+      expect(svc.isCompleted('drive:9'), isFalse);
     });
   });
 }

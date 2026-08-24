@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// null-origin localStorage isolation, which doesn't exist natively).
 class PersistenceService {
   static const _kVoiceGender = 'dm_voice_gender';
+  static const _kCourseLanguage = 'course_language';
   static const _kIntroDone = 'dm_intro_done';
   static const _kHasSession = 'has_session';
   static const _kSchemaVersion = 'schema_version';
@@ -30,6 +31,9 @@ class PersistenceService {
   String get voiceGender => _prefs.getString(_kVoiceGender) ?? 'female';
   Future<void> setVoiceGender(String v) => _prefs.setString(_kVoiceGender, v);
 
+  String get courseLanguage => _prefs.getString(_kCourseLanguage) ?? 'en';
+  Future<void> setCourseLanguage(String v) => _prefs.setString(_kCourseLanguage, v);
+
   bool get introDone => _prefs.getBool(_kIntroDone) ?? false;
   Future<void> setIntroDone(bool v) => _prefs.setBool(_kIntroDone, v);
 
@@ -39,11 +43,23 @@ class PersistenceService {
   String get schemaVersion => _prefs.getString(_kSchemaVersion) ?? currentSchemaVersion;
   Future<void> setSchemaVersion(String v) => _prefs.setString(_kSchemaVersion, v);
 
-  int get todayXp => _prefs.getInt(_kTodayXp) ?? 0;
-  int get totalXp => _prefs.getInt(_kTotalXp) ?? 0;
-  int get weekXp => _prefs.getInt(_kWeekXp) ?? 0;
-  int get streakDays => _prefs.getInt(_kStreakDays) ?? 0;
-  String? get lastXpDate => _prefs.getString(_kLastXpDate);
+  // XP/streak are scoped by course language — a student's Spanish progress
+  // shouldn't inflate (or be inflated by) their English progress. Reads fall
+  // back to the unscoped key only for 'en' (the only language that existed
+  // before this rollout, same non-destructive fallback WEB_BASE's
+  // _loadProgress() uses for click_progress); writes only ever touch the
+  // scoped key, so the old key is naturally abandoned after first write.
+  String _langKey(String base) => '$base:$courseLanguage';
+  int? _getInt(String base) =>
+      _prefs.getInt(_langKey(base)) ?? (courseLanguage == 'en' ? _prefs.getInt(base) : null);
+  String? _getString(String base) =>
+      _prefs.getString(_langKey(base)) ?? (courseLanguage == 'en' ? _prefs.getString(base) : null);
+
+  int get todayXp => _getInt(_kTodayXp) ?? 0;
+  int get totalXp => _getInt(_kTotalXp) ?? 0;
+  int get weekXp => _getInt(_kWeekXp) ?? 0;
+  int get streakDays => _getInt(_kStreakDays) ?? 0;
+  String? get lastXpDate => _getString(_kLastXpDate);
 
   /// Adds [amount] XP, rolling `today_xp`/`week_xp` over on calendar/ISO-week
   /// boundaries and bumping the daily streak when XP lands on a new day.
@@ -59,26 +75,26 @@ class PersistenceService {
 
     final week = _weekKey();
     var weekTotal = weekXp;
-    if (_prefs.getString(_kLastXpWeek) != week) {
+    if (_getString(_kLastXpWeek) != week) {
       weekTotal = 0;
     }
     weekTotal += amount;
 
-    await _prefs.setInt(_kTodayXp, todayTotal);
-    await _prefs.setInt(_kTotalXp, total);
-    await _prefs.setString(_kLastXpDate, today);
-    await _prefs.setInt(_kWeekXp, weekTotal);
-    await _prefs.setString(_kLastXpWeek, week);
+    await _prefs.setInt(_langKey(_kTodayXp), todayTotal);
+    await _prefs.setInt(_langKey(_kTotalXp), total);
+    await _prefs.setString(_langKey(_kLastXpDate), today);
+    await _prefs.setInt(_langKey(_kWeekXp), weekTotal);
+    await _prefs.setString(_langKey(_kLastXpWeek), week);
   }
 
   /// Increments the streak when today is exactly one day after the last
   /// active day; resets to 1 on a gap or first-ever activity.
   Future<void> _bumpStreak(String today) async {
-    final last = _prefs.getString(_kLastActiveDate);
+    final last = _getString(_kLastActiveDate);
     final gapDays = last == null ? null : DateTime.parse(today).difference(DateTime.parse(last)).inDays;
     final next = (gapDays == 1) ? streakDays + 1 : 1;
-    await _prefs.setInt(_kStreakDays, next);
-    await _prefs.setString(_kLastActiveDate, today);
+    await _prefs.setInt(_langKey(_kStreakDays), next);
+    await _prefs.setString(_langKey(_kLastActiveDate), today);
   }
 
   String _todayKey() {

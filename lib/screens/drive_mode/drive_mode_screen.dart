@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/scoring_service.dart';
 import '../../core/services/voice_command_service.dart';
+import '../../data/models/course_language.dart';
 import '../../data/models/phrase.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
@@ -133,13 +134,15 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
       _resultKind = _ResultKind.none;
     });
 
+    final text = phrase.textFor(_app.courseLanguage);
+    final locale = resolveLocale(_app.courseLanguage);
     final baseRate = phrase.rate;
     final firstRate = (baseRate - 0.06).clamp(0.45, 1.0);
     if (_attemptCount == 0) {
-      await _app.cloudTts.speak(phrase.en, rate: firstRate, voiceGender: _app.voiceGender);
+      await _app.cloudTts.speak(text, rate: firstRate, voiceGender: _app.voiceGender, language: locale);
       await Future.delayed(const Duration(milliseconds: 150));
     }
-    await _app.cloudTts.speak(phrase.en, rate: baseRate, voiceGender: _app.voiceGender);
+    await _app.cloudTts.speak(text, rate: baseRate, voiceGender: _app.voiceGender, language: locale);
 
     if (!mounted) return;
     setState(() {
@@ -159,6 +162,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
       partialResults: true,
       listenFor: const Duration(seconds: 8),
       pauseFor: const Duration(seconds: 2),
+      localeId: resolveLocale(_app.courseLanguage).replaceAll('-', '_'),
       onResult: (text, isFinal) {
         if (!mounted) return;
         _liveTranscript.value = LiveTranscript(text: text, isFinal: isFinal);
@@ -212,7 +216,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
 
     final phrase = _current;
     if (phrase == null) return;
-    final score = ScoringService.driveScore(transcript, phrase.en);
+    final score = ScoringService.driveScore(transcript, phrase.textFor(_app.courseLanguage));
     _attemptCount++;
 
     setState(() {
@@ -360,7 +364,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(phrase.en,
+                              Text(phrase.textFor(_app.courseLanguage),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                       fontFamily: 'Sora', fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),

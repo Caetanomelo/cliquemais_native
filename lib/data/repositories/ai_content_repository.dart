@@ -15,20 +15,24 @@ class AiContentRepository extends JsonRepository {
   Map<String, List<String>>? _quickSuggestions;
   Map<String, String>? _welcomeMessages;
 
-  Future<void> loadAll() async {
+  /// [courseLanguage] defaults to 'en' — the same default content.js
+  /// applies when `?language=` is absent — so existing callers (tests,
+  /// pre-Fase-1 boot order) keep working unchanged.
+  Future<void> loadAll([String courseLanguage = 'en']) async {
     await Future.wait([
-      _load('ai_system_prompts.json', (m) => _systemPrompts = m.map((k, v) => MapEntry(k, v as String))),
+      _load('ai_system_prompts.json', courseLanguage, (m) => _systemPrompts = m.map((k, v) => MapEntry(k, v as String))),
       _load(
         'ai_quick_suggestions.json',
+        courseLanguage,
         (m) => _quickSuggestions =
             m.map((k, v) => MapEntry(k, (v as List).map((e) => e as String).toList())),
       ),
-      _load('ai_welcome_messages.json', (m) => _welcomeMessages = m.map((k, v) => MapEntry(k, v as String))),
+      _load('ai_welcome_messages.json', courseLanguage, (m) => _welcomeMessages = m.map((k, v) => MapEntry(k, v as String))),
     ]);
   }
 
-  Future<void> _load(String asset, void Function(Map<String, dynamic>) apply) async {
-    final raw = await content.loadString(asset);
+  Future<void> _load(String asset, String courseLanguage, void Function(Map<String, dynamic>) apply) async {
+    final raw = await content.loadString(asset, query: {'language': courseLanguage});
     apply(jsonDecode(raw) as Map<String, dynamic>);
   }
 

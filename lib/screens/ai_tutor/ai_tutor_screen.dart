@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../core/services/pronunciation_assessment_service.dart';
+import '../../data/models/course_language.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'ai_tutor_call_screen.dart';
@@ -190,6 +191,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
       final result = await assessCallTurn(
         _app.pronunciation,
         bytes,
+        primaryLang: resolveLocale(_app.courseLanguage),
         onError: (e, st, {required reason}) => unawaited(
           FirebaseCrashlytics.instance.recordError(
             e,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../data/models/course_language.dart';
 import '../../data/models/lesson_content.dart';
 import '../../data/models/lesson_unit.dart';
 import '../../providers/app_state_provider.dart';
@@ -47,10 +48,10 @@ class _UnitLessonScreenState extends State<UnitLessonScreen> {
     super.dispose();
   }
 
-  Lesson get _lesson => widget.unit.lessons[_index];
+  Lesson get _lesson => widget.unit.lessons[_index].forLanguage(_app.courseLanguage);
 
   void _speak(String text) {
-    _app.cloudTts.speak(text, rate: 0.5, voiceGender: _app.voiceGender);
+    _app.cloudTts.speak(text, rate: 0.5, voiceGender: _app.voiceGender, language: resolveLocale(_app.courseLanguage));
   }
 
   void _jumpTo(int i) {

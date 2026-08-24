@@ -8,6 +8,7 @@ import 'package:record/record.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
+import '../../data/models/course_language.dart';
 import '../../providers/app_state_provider.dart';
 import 'call_turn_assessor.dart';
 
@@ -140,6 +141,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     final result = await assessCallTurn(
       _app.pronunciation,
       wavBytes,
+      primaryLang: resolveLocale(_app.courseLanguage),
       onError: (e, st, {required reason}) =>
           unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._assessAndSend: $reason', fatal: false)),
     );

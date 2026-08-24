@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/corp_track.dart';
+import '../../data/models/course_language.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../lesson/views/convo_lesson_view.dart';
@@ -14,7 +15,8 @@ class CorpTrackDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = context.read<AppStateProvider>();
-    void speak(String text) => app.cloudTts.speak(text, rate: 0.5, voiceGender: app.voiceGender);
+    final track = this.track.forLanguage(app.courseLanguage);
+    void speak(String text) => app.cloudTts.speak(text, rate: 0.5, voiceGender: app.voiceGender, language: resolveLocale(app.courseLanguage));
 
     return Scaffold(
       appBar: AppBar(title: Text(track.name, overflow: TextOverflow.ellipsis)),

@@ -19,29 +19,31 @@ class CallTurnAssessment {
   });
 }
 
-/// Runs the en-US pronunciation-assessment pass first; falls back to a plain
-/// pt-BR transcription pass when the en-US pass isn't confidently English
-/// (background noise, or the turn was in Portuguese) — extracted out of
-/// AiTutorCallScreen so this fallback decision can be exercised directly
-/// against a mocked Netlify response instead of needing the full screen +
-/// record/TTS platform channels wired up. `failed` is only true when both
-/// passes threw (Azure unreachable/misconfigured), as opposed to a
-/// legitimate empty/silent turn, so the caller can tell "nothing to send"
-/// apart from "something went wrong" and surface that to the user.
+/// Runs the course-language pronunciation-assessment pass first ([primaryLang],
+/// e.g. 'en-US' or 'es-US'); falls back to a plain pt-BR transcription pass
+/// when that pass isn't confidently the target language (background noise,
+/// or the turn was in Portuguese) — extracted out of AiTutorCallScreen so
+/// this fallback decision can be exercised directly against a mocked
+/// Netlify response instead of needing the full screen + record/TTS
+/// platform channels wired up. `failed` is only true when both passes threw
+/// (Azure unreachable/misconfigured), as opposed to a legitimate
+/// empty/silent turn, so the caller can tell "nothing to send" apart from
+/// "something went wrong" and surface that to the user.
 Future<CallTurnAssessment> assessCallTurn(
   PronunciationAssessmentService pronunciation,
   List<int> wavBytes, {
+  String primaryLang = 'en-US',
   void Function(Object error, StackTrace stack, {required String reason})?
   onError,
 }) async {
   try {
-    final enResult = await pronunciation.assess(wavBytes, lang: 'en-US');
-    if (enResult != null && enResult.isConfidentEnglish) {
+    final primaryResult = await pronunciation.assess(wavBytes, lang: primaryLang);
+    if (primaryResult != null && primaryResult.isConfidentEnglish) {
       return CallTurnAssessment(
-        transcript: enResult.recognizedText,
-        feedback: enResult.toFeedbackNote(),
-        pronScore: enResult.pronScore,
-        lowScoreWords: enResult.lowScoreWords,
+        transcript: primaryResult.recognizedText,
+        feedback: primaryResult.toFeedbackNote(),
+        pronScore: primaryResult.pronScore,
+        lowScoreWords: primaryResult.lowScoreWords,
       );
     }
     final ptResult = await pronunciation.assess(wavBytes, lang: 'pt-BR');
@@ -50,7 +52,7 @@ Future<CallTurnAssessment> assessCallTurn(
       feedback: '',
     );
   } catch (e, st) {
-    onError?.call(e, st, reason: 'en-US assess failed');
+    onError?.call(e, st, reason: '$primaryLang assess failed');
     try {
       final ptResult = await pronunciation.assess(wavBytes, lang: 'pt-BR');
       return CallTurnAssessment(
