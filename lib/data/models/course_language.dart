@@ -20,5 +20,8 @@ String resolveLocale(String courseLanguage) => kCourseLanguageLocale[courseLangu
 /// use (`Object.assign({}, it, { en: it.es })`).
 Map<String, dynamic> remapVocabItemLanguage(Map<String, dynamic> item, String code) {
   if (!item.containsKey(code)) return item;
-  return {...item, 'en': item[code]};
+  // enBase preserves the original English word — emoji_map.json is only ever
+  // keyed in English, so emoji lookups can't use `en` once it becomes the
+  // course-language word (see [VocabItem.enBase]).
+  return {...item, 'en': item[code], 'enBase': item['en']};
 }

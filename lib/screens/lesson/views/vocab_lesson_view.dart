@@ -92,7 +92,7 @@ class _VocabLessonViewState extends State<VocabLessonView> {
   Widget build(BuildContext context) {
     final total = _indices.length;
     final item = _current;
-    final emoji = _app.unitData.emojiFor(item.en) ?? '📝';
+    final emoji = _app.unitData.emojiFor(item.enBase) ?? '📝';
 
     return Column(
       children: [

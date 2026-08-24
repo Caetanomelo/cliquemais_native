@@ -6,12 +6,19 @@ class VocabItem {
   final int? id;
   final String en;
   final String pt;
+  // The literal English word, untouched by remapVocabItemLanguage — [en]
+  // holds the course-language word once a Lesson/CorpTrack resolves to a
+  // non-English variant, so emoji lookups (emoji_map.json is English-only)
+  // must use this instead. Falls back to [en] for items that were never
+  // remapped (base/English lessons).
+  final String enBase;
   // Course-language text override, keyed by kCourseOverrideLanguages code.
   // No-op today (vocab_items.json has no override column yet in the
   // database), but ready for when it does — same pattern as [Phrase].
   final Map<String, String> byLanguage;
 
-  const VocabItem({this.id, required this.en, required this.pt, this.byLanguage = const {}});
+  const VocabItem({this.id, required this.en, required this.pt, String? enBase, this.byLanguage = const {}})
+      : enBase = enBase ?? en;
 
   String textFor(String lang) => lang == 'en' ? en : (byLanguage[lang] ?? en);
 
@@ -25,6 +32,7 @@ class VocabItem {
       id: j['id'] as int?,
       en: j['en'] as String,
       pt: j['pt'] as String,
+      enBase: j['enBase'] as String?,
       byLanguage: byLanguage,
     );
   }
