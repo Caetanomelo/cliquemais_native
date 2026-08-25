@@ -51,24 +51,25 @@ class CorpTrack {
 
     final byLanguage = <String, CorpTrack>{};
     for (final code in kCourseOverrideLanguages) {
+      // vocab/dialogues store {en,es,pt}/{speaker,en,es,pt} triples inline
+      // (backend migration 038) — re-pick [code] straight from the base
+      // vocab/dialogues instead of a `${code}_content` sub-list, which no
+      // longer carries them. `${code}_content` still overrides
+      // audio/feedback/terms — those stayed columns of their own.
       final override = j['${code}_content'] as Map<String, dynamic>?;
-      if (override == null) continue;
-      final overrideVocab = override['vocab'] as List?;
       byLanguage[code] = CorpTrack(
         id: id,
         emoji: emoji,
         name: name,
         role: role,
         color: color,
-        audio: override['audio'] as String? ?? audio,
-        feedback: override['feedback'] as String? ?? feedback,
-        terms: (override['terms'] as List?)?.map((e) => e as String).toList() ?? terms,
-        vocab: overrideVocab != null
-            ? overrideVocab
-                .map((e) => VocabItem.fromJson(remapVocabItemLanguage(e as Map<String, dynamic>, code)))
-                .toList()
-            : vocab,
-        dialogues: override['dialogues'] != null ? dialoguesFromJson(override['dialogues']) : dialogues,
+        audio: override?['audio'] as String? ?? audio,
+        feedback: override?['feedback'] as String? ?? feedback,
+        terms: (override?['terms'] as List?)?.map((e) => e as String).toList() ?? terms,
+        vocab: (j['vocab'] as List? ?? const [])
+            .map((e) => VocabItem.forCode(e as Map<String, dynamic>, code))
+            .toList(),
+        dialogues: dialoguesForCode(j['dialogues'], code),
       );
     }
 

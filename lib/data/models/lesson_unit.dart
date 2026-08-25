@@ -63,13 +63,28 @@ class Lesson {
         LessonType.unknown => const UnknownLessonContent(),
       };
 
-  /// Merges an override block (e.g. `j['es']`) onto [base] per lesson type —
-  /// vocab remaps each item's `item[code]` onto the `en` field the parsers
-  /// expect (see [remapVocabItemLanguage]); convo replaces `dialogues`
-  /// wholesale; grammar/practice replace their field(s) when the override
-  /// defines them, falling back to the base value otherwise. pronunc/strategy
-  /// have no override content in the source data yet, so they fall through
-  /// unchanged — adding it later needs no new branch here, just data.
+  /// vocab/convo course-language variant: re-picks [code] (e.g. 'es') as the
+  /// item/turn text straight out of the base JSON's inline triples, instead
+  /// of parsing a separate override block.
+  static LessonContent _contentForCode(LessonType type, Map<String, dynamic> j, String code) => switch (type) {
+        LessonType.vocab => VocabLessonContent(
+            (j['items'] as List).map((e) => VocabItem.forCode(e as Map<String, dynamic>, code)).toList(),
+          ),
+        LessonType.convo => ConvoLessonContent(dialoguesForCode(j['dialogues'], code)),
+        _ => throw ArgumentError('unsupported override type: $type'),
+      };
+
+  /// vocab/convo blocks store {en,es,pt}/{speaker,en,es,pt} triples inline
+  /// (backend migration 038) — a course-language variant is just re-picking
+  /// [code] per item/turn from the base JSON, no separate override object to
+  /// read. See [_contentForCode].
+  ///
+  /// Merges an override block (e.g. `j['es']`) onto [base] for the remaining
+  /// lesson types — grammar/practice replace their field(s) when the
+  /// override defines them, falling back to the base value otherwise.
+  /// pronunc/strategy have no override content in the source data yet, so
+  /// they fall through unchanged — adding it later needs no new branch here,
+  /// just data.
   static LessonContent _resolveOverrideContent(
     LessonType type,
     LessonContent base,
@@ -78,15 +93,8 @@ class Lesson {
   ) {
     switch (type) {
       case LessonType.vocab:
-        final items = override['items'] as List?;
-        if (items == null || base is! VocabLessonContent) return base;
-        return VocabLessonContent(
-          items.map((e) => VocabItem.fromJson(remapVocabItemLanguage(e as Map<String, dynamic>, code))).toList(),
-        );
       case LessonType.convo:
-        final dialogues = override['dialogues'];
-        if (dialogues == null) return base;
-        return ConvoLessonContent(dialoguesFromJson(dialogues));
+        return base;
       case LessonType.grammar:
         if (base is! GrammarLessonContent) return base;
         final rules = override['rules'] as List?;
@@ -120,6 +128,16 @@ class Lesson {
 
     final byLanguage = <String, Lesson>{};
     for (final code in kCourseOverrideLanguages) {
+      if (type == LessonType.vocab || type == LessonType.convo) {
+        byLanguage[code] = Lesson(
+          type: type,
+          icon: icon,
+          name: name,
+          desc: desc,
+          content: _contentForCode(type, j, code),
+        );
+        continue;
+      }
       final override = j[code] as Map<String, dynamic>?;
       if (override == null) continue;
       byLanguage[code] = Lesson(

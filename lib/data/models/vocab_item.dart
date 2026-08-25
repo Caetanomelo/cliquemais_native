@@ -36,6 +36,17 @@ class VocabItem {
       byLanguage: byLanguage,
     );
   }
+
+  // Vocab items are stored as flat {en,es,pt} triples (backend migration
+  // 038) — this picks [code] (e.g. 'es') as the course-language word instead
+  // of `en`, replacing the old remapVocabItemLanguage indirection. `en` is
+  // kept as [enBase] for emoji_map.json lookups (English-only).
+  factory VocabItem.forCode(Map<String, dynamic> j, String code) => VocabItem(
+        id: j['id'] as int?,
+        en: j[code] as String? ?? j['en'] as String,
+        pt: j['pt'] as String,
+        enBase: j['en'] as String?,
+      );
 }
 
 class UnitVocab {
