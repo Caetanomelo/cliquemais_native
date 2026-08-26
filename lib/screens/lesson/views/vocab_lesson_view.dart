@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/services/completions_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/vocab_item.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/app_state_provider.dart';
 import '../../vpc/vpc_screen.dart';
 
@@ -145,7 +146,7 @@ class _VocabLessonViewState extends State<VocabLessonView> {
                   IconButton(
                     onPressed: () => widget.onSpeak(item.en),
                     icon: const Icon(Icons.volume_up_rounded, color: AppTheme.gold, size: 28),
-                    tooltip: 'Ouvir pronúncia',
+                    tooltip: AppLocalizations.of(context)!.vocabLessonViewListenTooltip,
                   ),
                   const SizedBox(height: 4),
                   Material(
@@ -161,13 +162,13 @@ class _VocabLessonViewState extends State<VocabLessonView> {
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: AppTheme.red.withValues(alpha: 0.4), width: 2),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('🎙️', style: TextStyle(fontSize: 18)),
-                            SizedBox(width: 8),
-                            Text('Testar pronúncia',
-                                style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.red)),
+                            const Text('🎙️', style: TextStyle(fontSize: 18)),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.of(context)!.vocabLessonViewTestPronunciation,
+                                style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.red)),
                           ],
                         ),
                       ),
@@ -183,11 +184,21 @@ class _VocabLessonViewState extends State<VocabLessonView> {
           child: Row(
             children: [
               Expanded(
-                child: _NavPill(top: 'BACK', arrow: '←', label: 'VOLTAR', enabled: _index > 0, onTap: () => _go(_index - 1)),
+                child: _NavPill(
+                    top: 'BACK',
+                    arrow: '←',
+                    label: AppLocalizations.of(context)!.vocabLessonViewBack,
+                    enabled: _index > 0,
+                    onTap: () => _go(_index - 1)),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _NavPill(top: 'NEXT', arrow: '→', label: 'PRÓXIMO', enabled: _index < total - 1, onTap: () => _go(_index + 1)),
+                child: _NavPill(
+                    top: 'NEXT',
+                    arrow: '→',
+                    label: AppLocalizations.of(context)!.vocabLessonViewNext,
+                    enabled: _index < total - 1,
+                    onTap: () => _go(_index + 1)),
               ),
             ],
           ),
@@ -203,11 +214,11 @@ class _VocabLessonViewState extends State<VocabLessonView> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppTheme.radiusBtn),
                   onTap: _practiceAll,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Center(
-                      child: Text('🎙️ Praticar Pronúncia de Todas as Palavras',
-                          style: TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                      child: Text(AppLocalizations.of(context)!.vocabLessonViewPracticeAll,
+                          style: const TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
                     ),
                   ),
                 ),

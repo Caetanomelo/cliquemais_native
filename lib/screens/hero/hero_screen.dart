@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/login_signup_screen.dart';
 
 /// Second of the app's two initial screens (web's `#main-stage`, shown
@@ -60,6 +61,7 @@ class _HeroScreenState extends State<HeroScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppTheme.navyDeep,
       body: GestureDetector(
@@ -101,8 +103,8 @@ class _HeroScreenState extends State<HeroScreen>
                 const SizedBox(height: 44),
                 RichText(
                   textAlign: TextAlign.center,
-                  text: const TextSpan(
-                    style: TextStyle(
+                  text: TextSpan(
+                    style: const TextStyle(
                       fontFamily: 'Sora',
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -112,17 +114,17 @@ class _HeroScreenState extends State<HeroScreen>
                       letterSpacing: -0.4,
                     ),
                     children: [
-                      TextSpan(text: 'O inglês que você '),
+                      TextSpan(text: l10n.heroTaglinePart1),
                       TextSpan(
-                        text: 'achou que nunca aprenderia.',
-                        style: TextStyle(color: AppTheme.accent),
+                        text: l10n.heroTaglinePart2,
+                        style: const TextStyle(color: AppTheme.accent),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'DESTA VEZ É DIFERENTE. E VOCÊ VAI SENTIR ISSO.',
+                  l10n.heroSubtext,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Sora',
@@ -160,7 +162,7 @@ class _HeroScreenState extends State<HeroScreen>
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'PREPARANDO SUA EXPERIÊNCIA…',
+                  l10n.heroPreparing,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Sora',
@@ -172,7 +174,7 @@ class _HeroScreenState extends State<HeroScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'toque para pular',
+                  l10n.heroTapToSkip,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Sora',

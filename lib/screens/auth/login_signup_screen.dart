@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/br_input_formatters.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/coming_soon.dart';
 import '../../widgets/profile_completion_dialog.dart';
@@ -49,19 +50,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   }
 
   String _friendlyError(Object err) {
+    final l10n = AppLocalizations.of(context)!;
     final msg = err.toString().toLowerCase();
-    if (msg.contains('already registered'))
-      return 'Este e-mail já tem conta — tente entrar.';
-    if (msg.contains('invalid login')) return 'E-mail ou senha incorretos.';
+    if (msg.contains('already registered')) return l10n.loginErrorAlreadyRegistered;
+    if (msg.contains('invalid login')) return l10n.loginErrorInvalidLogin;
     if (msg.contains('password') && msg.contains('least'))
-      return 'Senha muito curta (mínimo 6 caracteres).';
+      return l10n.loginErrorPasswordTooShort;
     if (msg.contains('supabase-not-configured'))
-      return 'Login indisponível no momento. Tente novamente mais tarde.';
+      return l10n.loginErrorNotConfigured;
     if (msg.contains('rate limit'))
-      return 'Muitos cadastros em pouco tempo — aguarde alguns minutos e tente novamente.';
+      return l10n.loginErrorRateLimit;
     if (msg.contains('email address') && msg.contains('invalid'))
-      return 'E-mail inválido — confira e tente de novo.';
-    return 'Não foi possível concluir. Tente novamente.';
+      return l10n.loginErrorInvalidEmail;
+    return l10n.loginErrorGeneric;
   }
 
   void _clearErrors() {
@@ -75,14 +76,14 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     if (email.isEmpty || password.isEmpty) {
       setState(() {
         _clearErrors();
-        _error = 'Preencha e-mail e senha.';
+        _error = AppLocalizations.of(context)!.loginErrorFillFields;
       });
       return;
     }
     if (_signupMode && password != _passwordConfirmCtrl.text) {
       setState(() {
         _clearErrors();
-        _error = 'As senhas não coincidem.';
+        _error = AppLocalizations.of(context)!.loginErrorPasswordMismatch;
       });
       return;
     }
@@ -122,6 +123,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppTheme.bgDashboard,
       body: SafeArea(
@@ -132,10 +134,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 12),
-                const Text(
-                  'Entre para continuar',
+                Text(
+                  l10n.loginTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Sora',
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
@@ -143,10 +145,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Sua conta salva o progresso de cada frase e palavra e sincroniza entre o app e o site.',
+                Text(
+                  l10n.loginSubtitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Sora',
                     fontSize: 12,
                     color: AppTheme.textSubDark,
@@ -164,7 +166,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                         children: [
                           Expanded(
                             child: _ModeTab(
-                              label: 'Entrar',
+                              label: l10n.loginTabSignIn,
                               active: !_signupMode,
                               onTap: () => setState(() {
                                 _signupMode = false;
@@ -175,7 +177,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: _ModeTab(
-                              label: 'Criar conta',
+                              label: l10n.loginTabSignUp,
                               active: _signupMode,
                               onTap: () => setState(() {
                                 _signupMode = true;
@@ -190,7 +192,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                         children: [
                           Expanded(
                             child: _ModeTab(
-                              label: 'E-mail',
+                              label: l10n.loginEmailLabel,
                               active: _contactMode == _ContactMode.email,
                               onTap: () => setState(() {
                                 _contactMode = _ContactMode.email;
@@ -201,7 +203,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: _ModeTab(
-                              label: 'Telefone',
+                              label: l10n.loginTabPhone,
                               active: _contactMode == _ContactMode.phone,
                               onTap: () => setState(() {
                                 _contactMode = _ContactMode.phone;
@@ -215,15 +217,15 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       if (_contactMode == _ContactMode.email) ...[
                         _AuthField(
                           controller: _emailCtrl,
-                          label: 'E-mail',
+                          label: l10n.loginEmailLabel,
                           hint: 'voce@email.com',
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: 10),
                         _AuthField(
                           controller: _passwordCtrl,
-                          label: 'Senha',
-                          hint: 'Senha',
+                          label: l10n.loginPasswordLabel,
+                          hint: l10n.loginPasswordLabel,
                           obscureText: _obscurePassword,
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -236,8 +238,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                               size: 20,
                             ),
                             tooltip: _obscurePassword
-                                ? 'Mostrar senha'
-                                : 'Ocultar senha',
+                                ? l10n.loginShowPassword
+                                : l10n.loginHidePassword,
                             onPressed: () => setState(
                               () => _obscurePassword = !_obscurePassword,
                             ),
@@ -247,8 +249,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                           const SizedBox(height: 10),
                           _AuthField(
                             controller: _passwordConfirmCtrl,
-                            label: 'Confirmar senha',
-                            hint: 'Repita a senha',
+                            label: l10n.loginConfirmPasswordLabel,
+                            hint: l10n.loginRepeatPasswordHint,
                             obscureText: _obscurePassword,
                           ),
                         ],
@@ -275,12 +277,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : Text(_signupMode ? 'Criar conta' : 'Entrar'),
+                              : Text(_signupMode ? l10n.loginTabSignUp : l10n.loginTabSignIn),
                         ),
                       ] else ...[
                         _AuthField(
                           controller: _phoneCtrl,
-                          label: 'Celular',
+                          label: l10n.loginPhoneLabel,
                           hint: '(00) 00000-0000',
                           keyboardType: TextInputType.phone,
                           inputFormatters: [PhoneInputFormatter()],
@@ -294,7 +296,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                             foregroundColor: AppTheme.textSubDark,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text('Enviar código'),
+                          child: Text(l10n.loginSendCodeButton),
                         ),
                       ],
                     ],
@@ -302,20 +304,20 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                 ),
                 const SizedBox(height: 20),
                 Row(
-                  children: const [
-                    Expanded(child: Divider(color: AppTheme.borderDark)),
+                  children: [
+                    const Expanded(child: Divider(color: AppTheme.borderDark)),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
-                        'ou continue com',
-                        style: TextStyle(
+                        l10n.loginOrContinueWith,
+                        style: const TextStyle(
                           fontFamily: 'Sora',
                           fontSize: 11,
                           color: AppTheme.textSubDark,
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: AppTheme.borderDark)),
+                    const Expanded(child: Divider(color: AppTheme.borderDark)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -353,6 +355,7 @@ class _SocialAuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Expanded(
       child: Opacity(
         opacity: 0.55,
@@ -362,7 +365,7 @@ class _SocialAuthButton extends StatelessWidget {
             Semantics(
               button: true,
               enabled: false,
-              label: '$label — em breve',
+              label: l10n.loginSocialComingSoonSemantics(label),
               child: OutlinedButton(
                 onPressed: () => showComingSoonSnackbar(context),
                 style: OutlinedButton.styleFrom(
@@ -381,9 +384,9 @@ class _SocialAuthButton extends StatelessWidget {
                   color: AppTheme.gold,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'EM BREVE',
-                  style: TextStyle(
+                child: Text(
+                  l10n.loginComingSoonBadge,
+                  style: const TextStyle(
                     fontSize: 7,
                     fontWeight: FontWeight.w800,
                     color: Colors.black,

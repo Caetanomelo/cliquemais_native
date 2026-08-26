@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/course_language.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/info_card_row.dart';
@@ -22,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppTheme.surfaceDark,
-        title: const Text('Idioma do curso', style: TextStyle(color: AppTheme.textMainDark)),
+        title: Text(AppLocalizations.of(context)!.settingsCourseLanguageTitle, style: const TextStyle(color: AppTheme.textMainDark)),
         children: [
           for (final entry in kLanguageLabels.entries)
             SimpleDialogOption(
@@ -45,7 +46,7 @@ class SettingsScreen extends StatelessWidget {
     if (!isValidPair(appState.nativeLanguage, chosen)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Idioma nativo e idioma do curso não podem ser iguais.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguagesSameError)),
         );
       }
       return;
@@ -59,7 +60,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         backgroundColor: AppTheme.surfaceDark,
-        title: const Text('Idioma nativo', style: TextStyle(color: AppTheme.textMainDark)),
+        title: Text(AppLocalizations.of(context)!.settingsNativeLanguageTitle, style: const TextStyle(color: AppTheme.textMainDark)),
         children: [
           for (final entry in kLanguageLabels.entries)
             SimpleDialogOption(
@@ -82,7 +83,7 @@ class SettingsScreen extends StatelessWidget {
     if (!isValidPair(chosen, appState.courseLanguage)) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Idioma nativo e idioma do curso não podem ser iguais.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguagesSameError)),
         );
       }
       return;
@@ -93,42 +94,43 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppStateProvider>();
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Conta',
-              style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textSubDark)),
+          Text(l10n.settingsSectionAccount,
+              style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textSubDark)),
           const SizedBox(height: 10),
           _ResourceRow(
             icon: Icons.badge_rounded,
-            title: 'Meus dados',
-            subtitle: 'Nome, e-mail, celular, CPF, endereço e foto',
-            onTap: () => showProfileCompletionDialog(context, cancelLabel: 'Fechar'),
+            title: l10n.settingsMyDataTitle,
+            subtitle: l10n.settingsMyDataSubtitle,
+            onTap: () => showProfileCompletionDialog(context, cancelLabel: l10n.settingsCloseLabel),
           ),
           const SizedBox(height: 10),
           _ResourceRow(
             icon: Icons.language_rounded,
-            title: 'Idioma do curso',
+            title: l10n.settingsCourseLanguageTitle,
             subtitle: kLanguageLabels[appState.courseLanguage] ?? 'Inglês',
             onTap: () => _pickCourseLanguage(context),
           ),
           const SizedBox(height: 10),
           _ResourceRow(
             icon: Icons.record_voice_over_rounded,
-            title: 'Idioma nativo',
+            title: l10n.settingsNativeLanguageTitle,
             subtitle: kLanguageLabels[appState.nativeLanguage] ?? 'Português',
             onTap: () => _pickNativeLanguage(context),
           ),
           const SizedBox(height: 22),
-          const Text('Recursos',
-              style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textSubDark)),
+          Text(l10n.settingsSectionResources,
+              style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textSubDark)),
           const SizedBox(height: 10),
           _ResourceRow(
             icon: Icons.menu_book_rounded,
-            title: 'Sessão de Estudo',
-            subtitle: 'Continua de onde você parou no currículo',
+            title: l10n.settingsStudySessionTitle,
+            subtitle: l10n.settingsStudySessionSubtitle,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const StudySessionScreen()),
             ),
@@ -136,8 +138,8 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 10),
           _ResourceRow(
             icon: Icons.smart_toy_rounded,
-            title: 'IA Tutor',
-            subtitle: 'Converse, tire dúvidas de gramática e vocabulário',
+            title: l10n.settingsAiTutorTitle,
+            subtitle: l10n.settingsAiTutorSubtitle,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const AiTutorScreen()),
             ),
@@ -145,8 +147,8 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 10),
           _ResourceRow(
             icon: Icons.business_center_rounded,
-            title: 'Portal Corporativo',
-            subtitle: '18 trilhas de inglês para o ambiente de trabalho',
+            title: l10n.settingsCorpPortalTitle,
+            subtitle: l10n.settingsCorpPortalSubtitle,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const CorpPortalScreen()),
             ),

@@ -8,6 +8,7 @@ import '../../core/services/scoring_service.dart';
 import '../../core/services/voice_command_service.dart';
 import '../../data/models/course_language.dart';
 import '../../data/models/phrase.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/leave_while_recording_dialog.dart';
@@ -49,7 +50,9 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
   bool _busy = false;
   bool _listening = false;
   bool _processing = false;
-  String _statusText = 'Aperte para falar';
+  // Empty until didChangeDependencies() sets the localized default — the
+  // field initializer runs during construction, before context is available.
+  String _statusText = '';
   final ValueNotifier<LiveTranscript> _liveTranscript = ValueNotifier(const LiveTranscript());
 
   double? _lastScore;
@@ -89,6 +92,17 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakAndListen());
   }
 
+  bool _statusInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_statusInitialized) {
+      _statusInitialized = true;
+      _statusText = AppLocalizations.of(context)!.driveModeStatusHold;
+    }
+  }
+
   // Hands-free voice practice means the mic can be actively recording when
   // the user switches apps or takes a call — without this, it keeps
   // capturing audio in the background and the phrase never advances since
@@ -102,7 +116,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
       if (mounted) {
         setState(() {
           _listening = false;
-          _statusText = 'Pausado — toque no microfone para continuar';
+          _statusText = AppLocalizations.of(context)!.driveModeStatusPausedBackground;
         });
       }
     }
@@ -152,7 +166,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
 
     if (!mounted) return;
     setState(() {
-      _statusText = 'Aperte para falar';
+      _statusText = AppLocalizations.of(context)!.driveModeStatusHold;
       _busy = false;
     });
   }
@@ -162,7 +176,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     _liveTranscript.value = const LiveTranscript();
     setState(() {
       _listening = true;
-      _statusText = '🎙️ Escutando…';
+      _statusText = AppLocalizations.of(context)!.driveModeStatusListening;
     });
     await _app.speech.listen(
       partialResults: true,
@@ -187,7 +201,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     if (mounted) {
       setState(() {
         _listening = false;
-        _statusText = 'Toque para falar';
+        _statusText = AppLocalizations.of(context)!.driveModeStatusTapToSpeak;
       });
     }
     await _app.speech.stop();
@@ -206,7 +220,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     if (_processing || !mounted) return;
     setState(() {
       _listening = false;
-      _statusText = 'Toque para falar';
+      _statusText = AppLocalizations.of(context)!.driveModeStatusTapToSpeak;
     });
     if (transcript.trim().isEmpty) return;
     _processing = true;
@@ -281,7 +295,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
         break;
       case VoiceIntent.pause:
         _app.speech.cancel();
-        setState(() => _statusText = 'Pausado — diga "resume" ou toque no microfone');
+        setState(() => _statusText = AppLocalizations.of(context)!.driveModeStatusPausedVoice);
         break;
       case VoiceIntent.exit:
         Navigator.of(context).maybePop();
@@ -317,7 +331,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     if (_correctIndices.length == _phrases.length) {
       unawaited(_app.markDriveUnitsComplete(widget.units));
     }
-    showUnitCompleteDialog(context, message: 'Você praticou todas as frases desta unidade.');
+    showUnitCompleteDialog(context, message: AppLocalizations.of(context)!.driveModeFinishMessage);
   }
 
   Color _scoreColor(double score) {
@@ -340,7 +354,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     return Scaffold(
       backgroundColor: AppTheme.navyDeep,
       appBar: AppBar(
-        title: const Text('Drive Mode'),
+        title: Text(AppLocalizations.of(context)!.driveModeTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -352,7 +366,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
         ],
       ),
       body: phrase == null
-          ? const Center(child: Text('Sem frases para esta unidade.', style: TextStyle(color: AppTheme.textSubDark)))
+          ? Center(child: Text(AppLocalizations.of(context)!.driveModeNoPhrases, style: const TextStyle(color: AppTheme.textSubDark)))
           : Stack(
               children: [
                 SafeArea(
@@ -398,7 +412,11 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
-                                    '${_scoreEmoji(_lastScore!)} ${(_lastScore! * 100).round()}% — Ouvi: "$_lastTranscript"',
+                                    AppLocalizations.of(context)!.driveModeScoreResult(
+                                      _scoreEmoji(_lastScore!),
+                                      (_lastScore! * 100).round(),
+                                      _lastTranscript!,
+                                    ),
                                     style: TextStyle(fontFamily: 'Sora', fontSize: 13, color: _scoreColor(_lastScore!)),
                                   ),
                                 ),
@@ -429,12 +447,12 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
                             TextButton.icon(
                               onPressed: _prevPhrase,
                               icon: const Icon(Icons.skip_previous_rounded, color: AppTheme.textSubDark),
-                              label: const Text('Anterior', style: TextStyle(color: AppTheme.textSubDark)),
+                              label: Text(AppLocalizations.of(context)!.driveModePrevious, style: const TextStyle(color: AppTheme.textSubDark)),
                             ),
                             TextButton.icon(
                               onPressed: () => _speakAndListen(),
                               icon: const Icon(Icons.replay_rounded, color: AppTheme.textSubDark),
-                              label: const Text('Repetir', style: TextStyle(color: AppTheme.textSubDark)),
+                              label: Text(AppLocalizations.of(context)!.driveModeRepeat, style: const TextStyle(color: AppTheme.textSubDark)),
                             ),
                             TextButton.icon(
                               onPressed: () {
@@ -442,7 +460,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
                                 _nextPhrase();
                               },
                               icon: const Icon(Icons.skip_next_rounded, color: AppTheme.textSubDark),
-                              label: const Text('Próximo', style: TextStyle(color: AppTheme.textSubDark)),
+                              label: Text(AppLocalizations.of(context)!.driveModeNext, style: const TextStyle(color: AppTheme.textSubDark)),
                             ),
                           ],
                         ),
@@ -459,10 +477,11 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
 
   Widget _resultOverlay() {
     final success = _resultKind == _ResultKind.success;
+    final l10n = AppLocalizations.of(context)!;
     return PracticeResultOverlay(
       icon: success ? '🎉' : '🔁',
-      title: success ? 'Muito bem!' : 'Tente novamente!',
-      subtitle: success ? 'Pronúncia correta!' : 'Vamos tentar mais uma vez',
+      title: success ? l10n.driveModeResultSuccessTitle : l10n.driveModeResultRetryTitle,
+      subtitle: success ? l10n.driveModeResultSuccessSubtitle : l10n.driveModeResultRetrySubtitle,
       color: success ? AppTheme.green : AppTheme.red,
       // Below the phrase card, near the mic/nav row — centered would sit on
       // top of the phrase text and the score badge.

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/services/completions_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/dialogue_line.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/app_state_provider.dart';
 
 /// unit/blockIndex are only known for curriculum lessons — CorpTrackDetailScreen
@@ -122,7 +123,7 @@ class _DialogueBubble extends StatelessWidget {
                         constraints: const BoxConstraints(),
                         icon: const Icon(Icons.volume_up_rounded, size: 16, color: AppTheme.accentBright),
                         onPressed: () => onSpeak(line.text),
-                        tooltip: 'Ouvir frase',
+                        tooltip: AppLocalizations.of(context)!.convoLessonListenTooltip,
                       ),
                     ],
                   ),

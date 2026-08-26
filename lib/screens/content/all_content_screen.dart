@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/lesson_unit.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/level_unit_picker.dart';
@@ -167,13 +168,13 @@ class _TopStrip extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppTheme.radiusBtn),
                   border: Border.all(color: AppTheme.borderDark),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.arrow_back_rounded, size: 16, color: AppTheme.accentBright),
-                    SizedBox(width: 6),
-                    Text('Painel',
-                        style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
+                    const Icon(Icons.arrow_back_rounded, size: 16, color: AppTheme.accentBright),
+                    const SizedBox(width: 6),
+                    Text(AppLocalizations.of(context)!.allContentBackButton,
+                        style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
                   ],
                 ),
               ),
@@ -185,11 +186,11 @@ class _TopStrip extends StatelessWidget {
   }
 }
 
-String _greeting() {
+String _greeting(AppLocalizations l10n) {
   final hour = DateTime.now().hour;
-  if (hour < 12) return 'Bom dia';
-  if (hour < 18) return 'Boa tarde';
-  return 'Boa noite';
+  if (hour < 12) return l10n.greetingMorning;
+  if (hour < 18) return l10n.greetingAfternoon;
+  return l10n.greetingEvening;
 }
 
 class _Hero extends StatelessWidget {
@@ -217,9 +218,10 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final streakText = streakDays <= 0
-        ? 'Comece sua sequência hoje. Todo dia conta. 🔥'
-        : '$streakDays ${streakDays == 1 ? 'dia seguido' : 'dias seguidos'}. Você já é diferente da semana passada. 🔥';
+        ? l10n.allContentStreakZero
+        : l10n.allContentStreakActive(streakDays);
 
     return Container(
       width: double.infinity,
@@ -231,22 +233,22 @@ class _Hero extends StatelessWidget {
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.near_me_rounded, color: AppTheme.accent2, size: 24),
-                  SizedBox(width: 6),
-                  Text('Click', style: TextStyle(fontFamily: 'Sora', fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.accent2)),
-                  Text('+', style: TextStyle(fontFamily: 'Sora', fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.gold)),
+                children: [
+                  const Icon(Icons.near_me_rounded, color: AppTheme.accent2, size: 24),
+                  const SizedBox(width: 6),
+                  Text(l10n.allContentBrandClick, style: const TextStyle(fontFamily: 'Sora', fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.accent2)),
+                  Text(l10n.allContentBrandPlus, style: const TextStyle(fontFamily: 'Sora', fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.gold)),
                 ],
               ),
-              const Text('INGLÊS',
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.gold, letterSpacing: 3)),
+              Text(l10n.allContentBrandLanguageBadge,
+                  style: const TextStyle(fontFamily: 'Sora', fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.gold, letterSpacing: 3)),
               const SizedBox(height: 6),
-              const Text('INGLÊS PARA BRASILEIROS',
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.textSubDark, letterSpacing: 1.5)),
+              Text(l10n.allContentBrandTagline,
+                  style: const TextStyle(fontFamily: 'Sora', fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.textSubDark, letterSpacing: 1.5)),
             ],
           ),
           const SizedBox(height: 22),
-          Text('${_greeting()}. Cada minuto conta.',
+          Text(l10n.allContentHeroTagline(_greeting(l10n)),
               textAlign: TextAlign.center,
               style: const TextStyle(fontFamily: 'Sora', fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),
           const SizedBox(height: 6),
@@ -262,9 +264,9 @@ class _Hero extends StatelessWidget {
                 child: _QuickCard(
                   icon: Icons.bolt_rounded,
                   iconColor: AppTheme.gold,
-                  title: '5 palavras novas',
-                  subtitle: 'Resultados em 2 min',
-                  badge: '2 min',
+                  title: l10n.quickCardVocabTitle,
+                  subtitle: l10n.quickCardVocabSubtitle,
+                  badge: l10n.quickCardVocabBadge,
                   onTap: onVocab,
                 ),
               ),
@@ -273,9 +275,9 @@ class _Hero extends StatelessWidget {
                 child: _QuickCard(
                   icon: Icons.local_fire_department_rounded,
                   iconColor: AppTheme.red,
-                  title: 'Desafio de pronúncia',
-                  subtitle: 'Soe como nativo(a)',
-                  badge: '3 min',
+                  title: l10n.quickCardPronuncTitle,
+                  subtitle: l10n.quickCardPronuncSubtitle,
+                  badge: l10n.quickCardPronuncBadge,
                   onTap: onPronunc,
                 ),
               ),
@@ -284,9 +286,9 @@ class _Hero extends StatelessWidget {
                 child: _QuickCard(
                   icon: Icons.forum_rounded,
                   iconColor: AppTheme.accent2,
-                  title: 'Conversa real agora',
-                  subtitle: 'Com Tutor IA',
-                  badge: '5 min',
+                  title: l10n.quickCardTutorTitle,
+                  subtitle: l10n.quickCardTutorSubtitle,
+                  badge: l10n.quickCardTutorBadge,
                   onTap: onTutor,
                 ),
               ),
@@ -302,13 +304,13 @@ class _Hero extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _StatCell(value: '$todayXp', label: 'XP', color: AppTheme.accentBright),
+                _StatCell(value: '$todayXp', label: l10n.statLabelXp, color: AppTheme.accentBright),
                 const _StatDivider(),
-                _StatCell(value: '$weekXp', label: 'na semana', color: AppTheme.gold),
+                _StatCell(value: '$weekXp', label: l10n.statLabelWeek, color: AppTheme.gold),
                 const _StatDivider(),
-                _StatCell(value: '$totalXp', label: 'total', color: AppTheme.accent2),
+                _StatCell(value: '$totalXp', label: l10n.statLabelTotal, color: AppTheme.accent2),
                 const _StatDivider(),
-                _StatCell(value: '$streakDays', label: 'sequência', color: AppTheme.red),
+                _StatCell(value: '$streakDays', label: l10n.statLabelStreak, color: AppTheme.red),
               ],
             ),
           ),
@@ -316,8 +318,8 @@ class _Hero extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('PROGRESSO GERAL',
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textSubDark, letterSpacing: 1.2)),
+              Text(l10n.overallProgressLabel,
+                  style: const TextStyle(fontFamily: 'Sora', fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.textSubDark, letterSpacing: 1.2)),
               Text('${(overallFraction * 100).round()}%',
                   style: const TextStyle(fontFamily: 'Sora', fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.accentBright)),
             ],
@@ -358,19 +360,19 @@ class _ContinueButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppTheme.radiusBtn),
           ),
           child: Column(
-            children: const [
+            children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
-                  SizedBox(width: 6),
-                  Text('Continuar Aprendendo',
-                      style: TextStyle(fontFamily: 'Sora', fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                  const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 6),
+                  Text(AppLocalizations.of(context)!.continueLearningButton,
+                      style: const TextStyle(fontFamily: 'Sora', fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
                 ],
               ),
-              SizedBox(height: 2),
-              Text('Continuar sua jornada →',
-                  style: TextStyle(fontFamily: 'Sora', fontSize: 11, color: Color(0xCCFFFFFF))),
+              const SizedBox(height: 2),
+              Text(AppLocalizations.of(context)!.continueJourneySubtitle,
+                  style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: Color(0xCCFFFFFF))),
             ],
           ),
         ),
@@ -495,7 +497,8 @@ class _UnitCard extends StatelessWidget {
     // watch AppStateProvider just to read from it here.
     final app = context.read<AppStateProvider>();
     final emoji = app.curriculum.emojiForUnit(unit.id);
-    final label = unit.unit == 0 ? 'BOAS-VINDAS' : 'PASSO ${unit.unit}';
+    final l10n = AppLocalizations.of(context)!;
+    final label = unit.unit == 0 ? l10n.unitLabelWelcome : l10n.unitLabelStep(unit.unit);
     final goal = unit.goals.isNotEmpty ? unit.goals.first : unit.subtitle;
 
     return Material(

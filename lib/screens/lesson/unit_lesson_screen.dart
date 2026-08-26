@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/course_language.dart';
 import '../../data/models/lesson_content.dart';
 import '../../data/models/lesson_unit.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'can_do_card.dart';
@@ -126,12 +127,14 @@ class _UnitLessonScreenState extends State<UnitLessonScreen> {
                   if (_index > 0)
                     OutlinedButton(
                       onPressed: () => _jumpTo(_index - 1),
-                      child: const Text('Anterior'),
+                      child: Text(AppLocalizations.of(context)!.unitLessonPrevious),
                     ),
                   const Spacer(),
                   ElevatedButton(
                     onPressed: _canComplete ? _onNext : null,
-                    child: Text(_index < lessons.length - 1 ? 'Continuar' : 'Concluir unidade'),
+                    child: Text(_index < lessons.length - 1
+                        ? AppLocalizations.of(context)!.unitLessonContinue
+                        : AppLocalizations.of(context)!.unitLessonFinishUnit),
                   ),
                 ],
               ),
@@ -161,8 +164,9 @@ class _UnitLessonScreenState extends State<UnitLessonScreen> {
       PronuncLessonContent c => PronuncLessonView(unit: unit, blockIndex: _index, items: c.items, onSpeak: _speak),
       StrategyLessonContent c =>
         StrategyLessonView(unit: unit, blockIndex: _index, items: c.items, onSpeak: _speak),
-      UnknownLessonContent _ => const Center(
-          child: Text('Tipo de lição não suportado.', style: TextStyle(color: AppTheme.textSubDark)),
+      UnknownLessonContent _ => Center(
+          child: Text(AppLocalizations.of(context)!.unitLessonUnsupportedType,
+              style: const TextStyle(color: AppTheme.textSubDark)),
         ),
     };
   }
@@ -184,7 +188,7 @@ class _LessonDots extends StatelessWidget {
             Expanded(
               child: Semantics(
                 button: true,
-                label: 'Ir para etapa ${i + 1} de $count',
+                label: AppLocalizations.of(context)!.unitLessonStepSemanticsLabel(i + 1, count),
                 child: GestureDetector(
                   onTap: () => onTap(i),
                   child: Container(

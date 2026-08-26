@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../lesson/unit_lesson_screen.dart';
@@ -48,14 +49,14 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sessão de Estudo')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.studySessionTitle)),
       body: Center(
         child: _allDone
-            ? const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('🎉 Você concluiu todo o currículo disponível!',
+            ? Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(AppLocalizations.of(context)!.studySessionAllDone,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontFamily: 'Sora', fontSize: 16, color: AppTheme.textMainDark)),
+                    style: const TextStyle(fontFamily: 'Sora', fontSize: 16, color: AppTheme.textMainDark)),
               )
             : const CircularProgressIndicator(color: AppTheme.accentBright),
       ),

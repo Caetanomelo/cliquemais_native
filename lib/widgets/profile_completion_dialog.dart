@@ -8,15 +8,19 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/br_input_formatters.dart';
 import '../data/models/course_language.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/app_state_provider.dart';
 
 /// One-time-per-login-flow profile completion prompt, also reachable anytime
 /// from Settings > "Meus dados" (same widget, only [cancelLabel] changes).
 /// All fields are optional — [cancelLabel] is always available so the user
 /// can bail without saving, matching the "completar depois" requirement.
+/// Null (the post-login flow's call site) falls back to the localized
+/// default inside the form's build() — a default *argument* value has to be
+/// a compile-time constant, so it can't call AppLocalizations itself.
 Future<void> showProfileCompletionDialog(
   BuildContext context, {
-  String cancelLabel = 'Completar depois',
+  String? cancelLabel,
 }) {
   return showDialog(
     context: context,
@@ -34,7 +38,7 @@ Future<void> showProfileCompletionDialog(
 }
 
 class _ProfileCompletionForm extends StatefulWidget {
-  final String cancelLabel;
+  final String? cancelLabel;
   const _ProfileCompletionForm({required this.cancelLabel});
 
   @override
@@ -122,7 +126,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
       _cpfError = null;
     });
     if (cpf.isNotEmpty && !isValidCpf(cpf)) {
-      setState(() => _cpfError = 'CPF inválido.');
+      setState(() => _cpfError = AppLocalizations.of(context)!.profileCompletionInvalidCpf);
       return;
     }
     setState(() => _saving = true);
@@ -138,11 +142,11 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
           phone: phone.isEmpty ? null : phone,
         );
         if (avail.cpfTaken) {
-          setState(() => _cpfError = 'Este CPF já está cadastrado.');
+          setState(() => _cpfError = AppLocalizations.of(context)!.profileCompletionCpfTaken);
           return;
         }
         if (avail.phoneTaken) {
-          setState(() => _phoneError = 'Este telefone já está cadastrado.');
+          setState(() => _phoneError = AppLocalizations.of(context)!.profileCompletionPhoneTaken);
           return;
         }
       }
@@ -173,14 +177,13 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
       // the primary path is checkContactAvailable() above, which already
       // routes to the field error before this ever runs.
       if (msg.contains('profiles_cpf_unique')) {
-        setState(() => _cpfError = 'Este CPF já está cadastrado.');
+        setState(() => _cpfError = AppLocalizations.of(context)!.profileCompletionCpfTaken);
       } else if (msg.contains('profiles_phone_unique')) {
-        setState(() => _phoneError = 'Este telefone já está cadastrado.');
+        setState(() => _phoneError = AppLocalizations.of(context)!.profileCompletionPhoneTaken);
       } else {
         // Saving is optional data — a failure must not trap the user here.
         setState(
-          () => _error =
-              'Não foi possível salvar agora. Tente de novo ou complete depois.',
+          () => _error = AppLocalizations.of(context)!.profileCompletionSaveError,
         );
       }
     } finally {
@@ -190,6 +193,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: SingleChildScrollView(
@@ -197,10 +201,10 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Complete seu cadastro',
+            Text(
+              l10n.profileCompletionTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Sora',
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
@@ -208,10 +212,10 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Esses dados são opcionais e ajudam a personalizar sua experiência.',
+            Text(
+              l10n.profileCompletionSubtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Sora',
                 fontSize: 12,
                 color: AppTheme.textSubDark,
@@ -263,21 +267,21 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               ),
             ),
             const SizedBox(height: 20),
-            _FieldLabel('Nome completo'),
+            _FieldLabel(l10n.profileCompletionFullNameLabel),
             _CompletionField(
               controller: _nameCtrl,
-              hint: 'Seu nome completo',
+              hint: l10n.profileCompletionFullNameHint,
               keyboardType: TextInputType.name,
             ),
             const SizedBox(height: 12),
-            _FieldLabel('E-mail'),
+            _FieldLabel(l10n.profileCompletionEmailLabel),
             _CompletionField(
               controller: _emailCtrl,
-              hint: 'E-mail',
+              hint: l10n.profileCompletionEmailLabel,
               enabled: false,
             ),
             const SizedBox(height: 12),
-            _FieldLabel('Celular'),
+            _FieldLabel(l10n.profileCompletionPhoneLabel),
             _CompletionField(
               controller: _phoneCtrl,
               hint: '(00) 00000-0000',
@@ -286,7 +290,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               errorText: _phoneError,
             ),
             const SizedBox(height: 12),
-            _FieldLabel('CPF'),
+            _FieldLabel(l10n.profileCompletionCpfLabel),
             _CompletionField(
               controller: _cpfCtrl,
               hint: '000.000.000-00',
@@ -295,14 +299,14 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               errorText: _cpfError,
             ),
             const SizedBox(height: 12),
-            _FieldLabel('Endereço'),
+            _FieldLabel(l10n.profileCompletionAddressLabel),
             _CompletionField(
               controller: _addressCtrl,
-              hint: 'Rua, número, bairro, cidade',
+              hint: l10n.profileCompletionAddressHint,
               maxLines: 2,
             ),
             const SizedBox(height: 12),
-            _FieldLabel('Idioma nativo'),
+            _FieldLabel(l10n.profileCompletionNativeLanguageLabel),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -343,7 +347,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
                         ? null
                         : () => Navigator.of(context).pop(),
                     child: Text(
-                      widget.cancelLabel,
+                      widget.cancelLabel ?? l10n.profileCompletionCancelDefault,
                       style: const TextStyle(
                         fontFamily: 'Sora',
                         color: AppTheme.textSubDark,
@@ -364,7 +368,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Salvar'),
+                        : Text(l10n.profileCompletionSaveButton),
                   ),
                 ),
               ],

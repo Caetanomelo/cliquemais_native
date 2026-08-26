@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Shared card-list rendering for lesson item views ([PronuncLessonView],
 /// [StrategyLessonView]) — same title/speak-button card, parametrized by
@@ -53,7 +54,7 @@ class LessonItemsView<T> extends StatelessWidget {
               IconButton(
                 onPressed: () => onSpeak(speakTextOf(it)),
                 icon: const Icon(Icons.volume_up_rounded, color: AppTheme.accentBright),
-                tooltip: 'Ouvir pronúncia',
+                tooltip: AppLocalizations.of(context)!.lessonItemsListenTooltip,
               ),
             ],
           ),

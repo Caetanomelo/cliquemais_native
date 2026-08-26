@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 import '../data/models/unit_meta.dart';
+import '../l10n/app_localizations.dart';
 
 /// CEFR level order used for grouping/gating. Any unit whose `cefr` isn't
 /// in this list falls into a trailing "other" bucket instead of being lost.
@@ -43,8 +44,9 @@ Future<void> showLevelUnitPicker(
   required String currentCefr,
   required Set<int> completedUnits,
   required void Function(List<int> units) onPicked,
-  String title = 'Escolha uma unidade',
+  String? title,
 }) {
+  final resolvedTitle = title ?? AppLocalizations.of(context)!.levelUnitPickerDefaultTitle;
   final byLevel = <String, List<UnitMeta>>{};
   for (final u in units) {
     byLevel.putIfAbsent(u.cefr, () => []).add(u);
@@ -102,7 +104,7 @@ Future<void> showLevelUnitPicker(
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(title,
+                child: Text(resolvedTitle,
                     style: const TextStyle(fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),
               ),
               Expanded(
@@ -215,7 +217,7 @@ class _LevelSection extends StatelessWidget {
                     ? onToggle
                     : () => ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Complete o nível anterior para desbloquear $level'),
+                            content: Text(AppLocalizations.of(context)!.levelUnitPickerLockedSnackbar(level)),
                             duration: const Duration(seconds: 2),
                           ),
                         ),
@@ -246,7 +248,7 @@ class _LevelSection extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Nível $level',
+                            Text(AppLocalizations.of(context)!.levelUnitPickerLevelLabel(level),
                                 style: TextStyle(
                                   fontFamily: 'Sora',
                                   fontSize: 14,
@@ -254,7 +256,9 @@ class _LevelSection extends StatelessWidget {
                                   color: unlocked ? AppTheme.textMainDark : AppTheme.textSubDark,
                                 )),
                             Text(
-                              unlocked ? '$totalUnits unidades' : 'Bloqueado',
+                              unlocked
+                                  ? AppLocalizations.of(context)!.levelUnitPickerUnitCount(totalUnits)
+                                  : AppLocalizations.of(context)!.levelUnitPickerLocked,
                               style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark),
                             ),
                           ],
@@ -287,16 +291,16 @@ class _LevelSection extends StatelessWidget {
                       )),
                   subtitle: Text(
                     pg.isComplete && !levelComplete
-                        ? 'Concluído — revisão libera ao terminar o nível'
-                        : (pg.units.length > 1 ? '${pg.units.length} unidades combinadas' : '1 unidade'),
+                        ? AppLocalizations.of(context)!.levelUnitPickerCompletedReviewLocked
+                        : AppLocalizations.of(context)!.levelUnitPickerCombinedUnits(pg.units.length),
                     style: const TextStyle(fontFamily: 'Sora', fontSize: 11, color: AppTheme.textSubDark),
                   ),
                   trailing: pg.units.any((u) => u.milestone) ? const Icon(Icons.emoji_events_rounded, color: AppTheme.gold) : null,
                   onTap: pg.isComplete && !levelComplete
                       ? () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Você já concluiu isso — termine todo o nível para revisar'),
-                              duration: Duration(seconds: 2),
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!.levelUnitPickerAlreadyCompletedSnackbar),
+                              duration: const Duration(seconds: 2),
                             ),
                           )
                       : () => onPicked([for (final u in pg.units) u.unit]),

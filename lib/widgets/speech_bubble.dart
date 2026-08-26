@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Rounded hint bubble with a downward-pointing tail, shown above the mic
 /// button on every STT screen. STT never auto-starts — the user must always
@@ -13,9 +14,9 @@ import '../core/theme/app_theme.dart';
 /// Callers mount this conditionally (only while idle), so the delay restarts
 /// naturally each time it reappears.
 class SpeechBubble extends StatefulWidget {
-  final String text;
+  final String? text;
   final Duration delay;
-  const SpeechBubble({super.key, this.text = 'Aperte para falar', this.delay = const Duration(seconds: 3)});
+  const SpeechBubble({super.key, this.text, this.delay = const Duration(seconds: 3)});
 
   @override
   State<SpeechBubble> createState() => _SpeechBubbleState();
@@ -58,7 +59,7 @@ class _SpeechBubbleState extends State<SpeechBubble> {
               const Icon(Icons.mic_none_rounded, size: 16, color: AppTheme.accentBright),
               const SizedBox(width: 8),
               Text(
-                widget.text,
+                widget.text ?? AppLocalizations.of(context)!.speechBubbleDefaultText,
                 style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textMainDark),
               ),
             ],

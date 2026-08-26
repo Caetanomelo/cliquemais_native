@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cliquemais_native/core/theme/app_theme.dart';
+import 'package:cliquemais_native/l10n/app_localizations.dart';
 import 'package:cliquemais_native/widgets/speech_bubble.dart';
 
 void main() {
-  Widget wrap(Widget child) => MaterialApp(theme: AppTheme.dark, home: Scaffold(body: child));
+  // SpeechBubble resolves its default hint text via AppLocalizations, so the
+  // test harness needs the same delegates/locale wiring app.dart sets up —
+  // pinned to 'pt' to match the literal strings this test asserts against.
+  Widget wrap(Widget child) => MaterialApp(
+        theme: AppTheme.dark,
+        locale: const Locale('pt'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(body: child),
+      );
 
   testWidgets('shows the default hint text', (tester) async {
     await tester.pumpWidget(wrap(const SpeechBubble()));

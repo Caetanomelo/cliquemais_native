@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../data/models/course_language.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import 'call_turn_assessor.dart';
 
@@ -154,7 +155,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
           // Azure unreachable/misconfigured vs. a legitimately silent/noise
           // turn (already filtered above by the byte-length gate) — only
           // the former is worth surfacing as an error the user can act on.
-          _errorText = result.failed ? 'Não consegui processar o áudio. Toque no microfone para tentar de novo.' : null;
+          _errorText = result.failed ? AppLocalizations.of(context)!.aiTutorCallAudioError : null;
         });
       }
       return;
@@ -175,13 +176,14 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
         userMessage: outgoing,
       );
       _history.add(AiChatMessage(role: 'assistant', content: reply));
-      await _speak(reply.isNotEmpty ? reply : 'Desculpe, pode repetir?');
+      if (!mounted) return;
+      await _speak(reply.isNotEmpty ? reply : AppLocalizations.of(context)!.aiTutorCallRepeatFallback);
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._sendToAI failed', fatal: false));
       if (mounted) {
         setState(() {
           _state = _CallState.idle;
-          _errorText = 'Não consegui responder agora. Toque no microfone para tentar de novo.';
+          _errorText = AppLocalizations.of(context)!.aiTutorCallReplyError;
         });
       }
     }
@@ -196,15 +198,16 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   }
 
   String get _statusText {
+    final l10n = AppLocalizations.of(context)!;
     switch (_state) {
       case _CallState.idle:
-        return 'Segure para falar';
+        return l10n.aiTutorCallStatusIdle;
       case _CallState.listening:
-        return 'Ouvindo...';
+        return l10n.aiTutorCallStatusListening;
       case _CallState.thinking:
-        return 'Pensando...';
+        return l10n.aiTutorCallStatusThinking;
       case _CallState.speaking:
-        return 'Falando...';
+        return l10n.aiTutorCallStatusSpeaking;
     }
   }
 
@@ -242,7 +245,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       backgroundColor: AppTheme.bgDashboard,
       appBar: AppBar(
         backgroundColor: AppTheme.topbar,
-        title: const Text('Chamada com o Tutor'),
+        title: Text(AppLocalizations.of(context)!.aiTutorCallScreenTitle),
       ),
       body: SafeArea(
         child: Padding(
@@ -296,7 +299,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
               Semantics(
                 button: true,
                 enabled: !busy,
-                label: listening ? 'Gravando. Solte para enviar.' : 'Aperte e segure para falar',
+                label: listening
+                    ? AppLocalizations.of(context)!.aiTutorCallMicRecordingLabel
+                    : AppLocalizations.of(context)!.aiTutorCallMicIdleLabel,
                 child: GestureDetector(
                   onTapDown: busy ? null : (_) => _startRecording(),
                   onTapUp: busy ? null : (_) => _stopRecordingAndSend(),
@@ -324,7 +329,10 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
               OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).pop(),
                 icon: const Icon(Icons.call_end_rounded, size: 18),
-                label: const Text('Encerrar chamada', style: TextStyle(fontFamily: 'Sora', fontSize: 13)),
+                label: Text(
+                  AppLocalizations.of(context)!.aiTutorCallEndButton,
+                  style: const TextStyle(fontFamily: 'Sora', fontSize: 13),
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.red,
                   side: const BorderSide(color: AppTheme.red),

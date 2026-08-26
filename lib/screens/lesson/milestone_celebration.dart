@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/unit_curriculum_meta.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Full-screen modal shown on completing a milestone unit (5/14/15/16 in the
 /// source app): CEFR badge/trophy plus up to 4 "I can..." statements,
@@ -65,7 +66,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
               children: [
                 const Text('🏆', style: TextStyle(fontSize: 52)),
                 const SizedBox(height: 12),
-                Text('Marco ${widget.meta.cefr} alcançado!',
+                Text(AppLocalizations.of(context)!.milestoneReachedTitle(widget.meta.cefr),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontFamily: 'Sora', fontSize: 19, fontWeight: FontWeight.w800, color: AppTheme.gold)),
@@ -95,7 +96,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Continuar'),
+                    child: Text(AppLocalizations.of(context)!.milestoneContinue),
                   ),
                 ),
               ],

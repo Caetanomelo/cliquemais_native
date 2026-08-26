@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 import '../screens/ai_tutor/ai_tutor_screen.dart';
 import '../screens/content/all_content_screen.dart';
 
@@ -25,6 +26,7 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
@@ -40,7 +42,7 @@ class AppBottomNav extends StatelessWidget {
           children: [
             _NavItem(
               icon: Icons.home_rounded,
-              label: 'Início',
+              label: l10n.bottomNavHome,
               active: current == AppTab.inicio,
               onTap: () => _go(context, AppTab.inicio),
             ),
@@ -50,7 +52,7 @@ class AppBottomNav extends StatelessWidget {
             ),
             _NavItem(
               icon: Icons.menu_book_rounded,
-              label: 'Conteúdos',
+              label: l10n.bottomNavContent,
               active: current == AppTab.conteudos,
               onTap: () => _go(context, AppTab.conteudos),
             ),
@@ -146,7 +148,7 @@ class _TutorButton extends StatelessWidget {
           ),
           Transform.translate(
             offset: const Offset(0, -8),
-            child: Text('Tutor',
+            child: Text(AppLocalizations.of(context)!.bottomNavTutor,
                 style: TextStyle(
                     fontFamily: 'Sora', fontSize: 10, fontWeight: FontWeight.w700, color: active ? AppTheme.accentBright : AppTheme.textSubDark)),
           ),

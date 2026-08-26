@@ -1,0 +1,303 @@
+{
+  "@@locale": "pt",
+
+  "dashboardTopBadge": "CLIQUE+",
+  "dashboardSettingsSemanticLabel": "Abrir configurações",
+  "dashboardWelcomeBack": "Bem-vindo(a) de volta",
+  "dashboardYourJourney": "Sua jornada",
+  "dashboardNotificationsTooltip": "Notificações",
+  "dashboardSignOut": "Sair",
+  "dashboardXpDailyLabel": "XP DIÁRIO",
+  "dashboardXpDailyProgress": "{today} / {goal} XP",
+  "@dashboardXpDailyProgress": {
+    "placeholders": {
+      "today": {"type": "int"},
+      "goal": {"type": "int"}
+    }
+  },
+  "dashboardDriveModeTitle": "Drive Mode",
+  "dashboardDriveModeSubtitle": "Prática de pronúncia mãos-livres, com comandos de voz",
+  "dashboardAiTutorTitle": "Tutor IA",
+  "dashboardAiTutorSubtitle": "Converse e pratique pronúncia com o professor de IA",
+  "dashboardVocabTitle": "Vocabulário",
+  "dashboardVocabSubtitle": "Flashcards com gravação e comparação de pronúncia",
+  "dashboardSectionDriveMode": "DRIVE MODE",
+  "dashboardSectionAnalyticsCore": "ANALYTICS CORE",
+  "dashboardSectionYourDomains": "SEUS DOMÍNIOS",
+  "dashboardStreakDaysLabel": "dias seguidos",
+  "dashboardWeekXpLabel": "XP na semana",
+  "dashboardTotalXpLabel": "XP total",
+  "dashboardAllContentTitle": "Todo o Conteúdo",
+  "dashboardAllContentSubtitle": "Todas as unidades e lições, por livro",
+  "domainPronunciation": "Pronúncia",
+  "domainVocabulary": "Vocabulário",
+  "domainFluency": "Fluência",
+  "domainComprehension": "Compreensão",
+  "domainAbbrevPronunciation": "Pron.",
+  "domainAbbrevVocabulary": "Vocab.",
+  "domainAbbrevFluency": "Flu.",
+  "domainAbbrevComprehension": "Comp.",
+
+  "allContentBackButton": "Painel",
+  "greetingMorning": "Bom dia",
+  "greetingAfternoon": "Boa tarde",
+  "greetingEvening": "Boa noite",
+  "allContentHeroTagline": "{greeting}. Cada minuto conta.",
+  "@allContentHeroTagline": {
+    "placeholders": {
+      "greeting": {"type": "String"}
+    }
+  },
+  "allContentStreakZero": "Comece sua sequência hoje. Todo dia conta. 🔥",
+  "allContentStreakActive": "{days} {days, plural, one{dia seguido} other{dias seguidos}}. Você já é diferente da semana passada. 🔥",
+  "@allContentStreakActive": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "allContentBrandClick": "Click",
+  "allContentBrandPlus": "+",
+  "allContentBrandLanguageBadge": "INGLÊS",
+  "allContentBrandTagline": "INGLÊS PARA BRASILEIROS",
+  "quickCardVocabTitle": "5 palavras novas",
+  "quickCardVocabSubtitle": "Resultados em 2 min",
+  "quickCardVocabBadge": "2 min",
+  "quickCardPronuncTitle": "Desafio de pronúncia",
+  "quickCardPronuncSubtitle": "Soe como nativo(a)",
+  "quickCardPronuncBadge": "3 min",
+  "quickCardTutorTitle": "Conversa real agora",
+  "quickCardTutorSubtitle": "Com Tutor IA",
+  "quickCardTutorBadge": "5 min",
+  "statLabelXp": "XP",
+  "statLabelWeek": "na semana",
+  "statLabelTotal": "total",
+  "statLabelStreak": "sequência",
+  "overallProgressLabel": "PROGRESSO GERAL",
+  "continueLearningButton": "Continuar Aprendendo",
+  "continueJourneySubtitle": "Continuar sua jornada →",
+  "unitLabelWelcome": "BOAS-VINDAS",
+  "unitLabelStep": "PASSO {number}",
+  "@unitLabelStep": {
+    "placeholders": {
+      "number": {"type": "int"}
+    }
+  },
+
+  "settingsCourseLanguageTitle": "Idioma do curso",
+  "settingsLanguagesSameError": "Idioma nativo e idioma do curso não podem ser iguais.",
+  "settingsNativeLanguageTitle": "Idioma nativo",
+  "settingsTitle": "Configurações",
+  "settingsSectionAccount": "Conta",
+  "settingsMyDataTitle": "Meus dados",
+  "settingsMyDataSubtitle": "Nome, e-mail, celular, CPF, endereço e foto",
+  "settingsCloseLabel": "Fechar",
+  "settingsSectionResources": "Recursos",
+  "settingsStudySessionTitle": "Sessão de Estudo",
+  "settingsStudySessionSubtitle": "Continua de onde você parou no currículo",
+  "settingsAiTutorTitle": "IA Tutor",
+  "settingsAiTutorSubtitle": "Converse, tire dúvidas de gramática e vocabulário",
+  "settingsCorpPortalTitle": "Portal Corporativo",
+  "settingsCorpPortalSubtitle": "18 trilhas de inglês para o ambiente de trabalho",
+
+  "heroTaglinePart1": "O inglês que você ",
+  "heroTaglinePart2": "achou que nunca aprenderia.",
+  "heroSubtext": "DESTA VEZ É DIFERENTE. E VOCÊ VAI SENTIR ISSO.",
+  "heroPreparing": "PREPARANDO SUA EXPERIÊNCIA…",
+  "heroTapToSkip": "toque para pular",
+
+  "splashBrand": "Click+ Inglês",
+  "splashOfflineError": "Sem conexão com a internet.\nO app precisa estar online para funcionar.",
+  "splashPreparingSession": "Preparando sua sessão…",
+  "splashRetryButton": "Tentar novamente",
+
+  "bottomNavHome": "Início",
+  "bottomNavContent": "Conteúdos",
+  "bottomNavTutor": "Tutor",
+
+  "comingSoonMessage": "Em breve",
+
+  "profileCompletionInvalidCpf": "CPF inválido.",
+  "profileCompletionCpfTaken": "Este CPF já está cadastrado.",
+  "profileCompletionPhoneTaken": "Este telefone já está cadastrado.",
+  "profileCompletionSaveError": "Não foi possível salvar agora. Tente de novo ou complete depois.",
+  "profileCompletionTitle": "Complete seu cadastro",
+  "profileCompletionSubtitle": "Esses dados são opcionais e ajudam a personalizar sua experiência.",
+  "profileCompletionFullNameLabel": "Nome completo",
+  "profileCompletionFullNameHint": "Seu nome completo",
+  "profileCompletionEmailLabel": "E-mail",
+  "profileCompletionPhoneLabel": "Celular",
+  "profileCompletionCpfLabel": "CPF",
+  "profileCompletionAddressLabel": "Endereço",
+  "profileCompletionAddressHint": "Rua, número, bairro, cidade",
+  "profileCompletionNativeLanguageLabel": "Idioma nativo",
+  "profileCompletionCancelDefault": "Completar depois",
+  "profileCompletionSaveButton": "Salvar",
+
+  "loginErrorAlreadyRegistered": "Este e-mail já tem conta — tente entrar.",
+  "loginErrorInvalidLogin": "E-mail ou senha incorretos.",
+  "loginErrorPasswordTooShort": "Senha muito curta (mínimo 6 caracteres).",
+  "loginErrorNotConfigured": "Login indisponível no momento. Tente novamente mais tarde.",
+  "loginErrorRateLimit": "Muitos cadastros em pouco tempo — aguarde alguns minutos e tente novamente.",
+  "loginErrorInvalidEmail": "E-mail inválido — confira e tente de novo.",
+  "loginErrorGeneric": "Não foi possível concluir. Tente novamente.",
+  "loginErrorFillFields": "Preencha e-mail e senha.",
+  "loginErrorPasswordMismatch": "As senhas não coincidem.",
+  "loginTitle": "Entre para continuar",
+  "loginSubtitle": "Sua conta salva o progresso de cada frase e palavra e sincroniza entre o app e o site.",
+  "loginTabSignIn": "Entrar",
+  "loginTabSignUp": "Criar conta",
+  "loginEmailLabel": "E-mail",
+  "loginTabPhone": "Telefone",
+  "loginPasswordLabel": "Senha",
+  "loginShowPassword": "Mostrar senha",
+  "loginHidePassword": "Ocultar senha",
+  "loginConfirmPasswordLabel": "Confirmar senha",
+  "loginRepeatPasswordHint": "Repita a senha",
+  "loginPhoneLabel": "Celular",
+  "loginSendCodeButton": "Enviar código",
+  "loginOrContinueWith": "ou continue com",
+  "loginSocialComingSoonSemantics": "{label} — em breve",
+  "@loginSocialComingSoonSemantics": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "loginComingSoonBadge": "EM BREVE",
+
+  "unitLessonPrevious": "Anterior",
+  "unitLessonContinue": "Continuar",
+  "unitLessonFinishUnit": "Concluir unidade",
+  "unitLessonUnsupportedType": "Tipo de lição não suportado.",
+  "unitLessonStepSemanticsLabel": "Ir para etapa {number} de {total}",
+  "@unitLessonStepSemanticsLabel": {
+    "placeholders": {
+      "number": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "canDoUnitCompleteTitle": "Unidade concluída · {cefr}",
+  "@canDoUnitCompleteTitle": {
+    "placeholders": {
+      "cefr": { "type": "String" }
+    }
+  },
+  "canDoNowYouCan": "Agora você consegue:",
+  "canDoContinue": "Continuar",
+
+  "milestoneReachedTitle": "Marco {cefr} alcançado!",
+  "@milestoneReachedTitle": {
+    "placeholders": {
+      "cefr": { "type": "String" }
+    }
+  },
+  "milestoneContinue": "Continuar",
+
+  "convoLessonListenTooltip": "Ouvir frase",
+
+  "lessonItemsListenTooltip": "Ouvir pronúncia",
+
+  "vocabLessonViewListenTooltip": "Ouvir pronúncia",
+  "vocabLessonViewTestPronunciation": "Testar pronúncia",
+  "vocabLessonViewBack": "VOLTAR",
+  "vocabLessonViewNext": "PRÓXIMO",
+  "vocabLessonViewPracticeAll": "🎙️ Praticar Pronúncia de Todas as Palavras",
+
+  "unitCompleteTitle": "Unidade concluída!",
+  "unitCompleteBackToStart": "Voltar ao início",
+
+  "speechBubbleDefaultText": "Aperte para falar",
+
+  "aiTutorErrorReply": "Ops, não consegui responder agora. Verifique sua conexão e tente novamente.",
+  "aiTutorAudioError": "Não consegui processar o áudio. Tente novamente.",
+  "aiTutorTitle": "IA Tutor",
+  "aiTutorCallTooltip": "Chamada de Voz com o Tutor IA",
+  "aiTutorInputHint": "Escreva ou segure o microfone...",
+  "aiTutorSendTooltip": "Enviar mensagem",
+  "aiTutorMicRecordingLabel": "Gravando. Solte para enviar.",
+  "aiTutorMicIdleLabel": "Segure para falar em inglês",
+  "aiTutorPronPerfect": "Pronúncia natural — parabéns! 🎉",
+  "aiTutorPronAttention": "Atenção a: {words}",
+  "@aiTutorPronAttention": { "placeholders": { "words": { "type": "String" } } },
+
+  "aiTutorCallAudioError": "Não consegui processar o áudio. Toque no microfone para tentar de novo.",
+  "aiTutorCallRepeatFallback": "Desculpe, pode repetir?",
+  "aiTutorCallReplyError": "Não consegui responder agora. Toque no microfone para tentar de novo.",
+  "aiTutorCallStatusIdle": "Segure para falar",
+  "aiTutorCallStatusListening": "Ouvindo...",
+  "aiTutorCallStatusThinking": "Pensando...",
+  "aiTutorCallStatusSpeaking": "Falando...",
+  "aiTutorCallScreenTitle": "Chamada com o Tutor",
+  "aiTutorCallMicRecordingLabel": "Gravando. Solte para enviar.",
+  "aiTutorCallMicIdleLabel": "Aperte e segure para falar",
+  "aiTutorCallEndButton": "Encerrar chamada",
+
+  "studySessionTitle": "Sessão de Estudo",
+  "studySessionAllDone": "🎉 Você concluiu todo o currículo disponível!",
+
+  "corpPortalTitle": "Portal Corporativo",
+
+  "corpTrackDetailListenAudio": "Ouvir áudio",
+  "corpTrackDetailStructureAnalysis": "Análise da estrutura",
+  "corpTrackDetailKeyTerms": "Termos-chave",
+  "corpTrackDetailVocabulary": "Vocabulário",
+  "corpTrackDetailListenPronunciation": "Ouvir pronúncia",
+  "corpTrackDetailDialogues": "Diálogos",
+
+  "driveModeStatusHold": "Aperte para falar",
+  "driveModeStatusPausedBackground": "Pausado — toque no microfone para continuar",
+  "driveModeStatusListening": "🎙️ Escutando…",
+  "driveModeStatusTapToSpeak": "Toque para falar",
+  "driveModeStatusPausedVoice": "Pausado — diga \"resume\" ou toque no microfone",
+  "driveModeFinishMessage": "Você praticou todas as frases desta unidade.",
+  "driveModeTitle": "Drive Mode",
+  "driveModeNoPhrases": "Sem frases para esta unidade.",
+  "driveModeScoreResult": "{emoji} {percent}% — Ouvi: \"{transcript}\"",
+  "@driveModeScoreResult": {
+    "placeholders": {
+      "emoji": { "type": "String" },
+      "percent": { "type": "int" },
+      "transcript": { "type": "String" }
+    }
+  },
+  "driveModePrevious": "Anterior",
+  "driveModeRepeat": "Repetir",
+  "driveModeNext": "Próximo",
+  "driveModeResultSuccessTitle": "Muito bem!",
+  "driveModeResultRetryTitle": "Tente novamente!",
+  "driveModeResultSuccessSubtitle": "Pronúncia correta!",
+  "driveModeResultRetrySubtitle": "Vamos tentar mais uma vez",
+
+  "vpcFinishMessage": "Você praticou todo o vocabulário desta unidade.",
+  "vpcVerdictGreat": "🌟 Incrível!",
+  "vpcVerdictGood": "👍 Muito Bom!",
+  "vpcVerdictKeepTrying": "💪 Continue tentando!",
+  "vpcTitle": "Vocabulário",
+  "vpcNoVocab": "Sem vocabulário para esta unidade.",
+  "vpcTutorButton": "Tutor",
+  "vpcResultCorrectTitle": "Correto!",
+  "vpcResultPerfect": "Pronúncia perfeita!",
+  "vpcResultExcellent": "Excelente pronúncia!",
+  "vpcResultGood": "Muito bem!",
+  "vpcResultRetry": "Tente novamente",
+  "vpcResultYouSaid": "Você disse: \"{spoken}\"",
+  "@vpcResultYouSaid": { "placeholders": { "spoken": { "type": "String" } } },
+
+  "levelUnitPickerDefaultTitle": "Escolha uma unidade",
+  "levelUnitPickerLockedSnackbar": "Complete o nível anterior para desbloquear {level}",
+  "@levelUnitPickerLockedSnackbar": { "placeholders": { "level": { "type": "String" } } },
+  "levelUnitPickerLevelLabel": "Nível {level}",
+  "@levelUnitPickerLevelLabel": { "placeholders": { "level": { "type": "String" } } },
+  "levelUnitPickerUnitCount": "{count} unidades",
+  "@levelUnitPickerUnitCount": { "placeholders": { "count": { "type": "int" } } },
+  "levelUnitPickerLocked": "Bloqueado",
+  "levelUnitPickerCompletedReviewLocked": "Concluído — revisão libera ao terminar o nível",
+  "levelUnitPickerCombinedUnits": "{count, plural, one{1 unidade} other{{count} unidades combinadas}}",
+  "@levelUnitPickerCombinedUnits": { "placeholders": { "count": { "type": "int" } } },
+  "levelUnitPickerAlreadyCompletedSnackbar": "Você já concluiu isso — termine todo o nível para revisar",
+
+  "leaveWhileRecordingTitle": "Gravação em andamento",
+  "leaveWhileRecordingContent": "Sair agora descarta a gravação atual. Deseja continuar?",
+  "leaveWhileRecordingCancel": "Cancelar",
+  "leaveWhileRecordingDiscard": "Descartar"
+}

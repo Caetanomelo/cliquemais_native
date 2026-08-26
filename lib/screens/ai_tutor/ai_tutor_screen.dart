@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../core/services/pronunciation_assessment_service.dart';
 import '../../data/models/course_language.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'ai_tutor_call_screen.dart';
@@ -109,10 +110,9 @@ class _AiTutorScreenState extends State<AiTutorScreen>
       if (mounted) {
         setState(
           () => _history.add(
-            const AiChatMessage(
+            AiChatMessage(
               role: 'assistant',
-              content:
-                  'Ops, não consegui responder agora. Verifique sua conexão e tente novamente.',
+              content: AppLocalizations.of(context)!.aiTutorErrorReply,
             ),
           ),
         );
@@ -206,8 +206,8 @@ class _AiTutorScreenState extends State<AiTutorScreen>
       if (result.transcript.trim().isEmpty) {
         if (result.failed && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não consegui processar o áudio. Tente novamente.'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.aiTutorAudioError),
             ),
           );
         }
@@ -293,14 +293,14 @@ class _AiTutorScreenState extends State<AiTutorScreen>
     final micBusy = _micState != _MicState.idle;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('IA Tutor')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.aiTutorTitle)),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const AiTutorCallScreen())),
         backgroundColor: AppTheme.accentBright,
         foregroundColor: Colors.black,
-        tooltip: 'Chamada de Voz com o Tutor IA',
+        tooltip: AppLocalizations.of(context)!.aiTutorCallTooltip,
         child: const Icon(Icons.call_rounded),
       ),
       body: Column(
@@ -389,10 +389,10 @@ class _AiTutorScreenState extends State<AiTutorScreen>
                         fontSize: 14,
                         color: AppTheme.textMainDark,
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         isDense: true,
-                        hintText: 'Escreva ou segure o microfone...',
-                        border: OutlineInputBorder(),
+                        hintText: AppLocalizations.of(context)!.aiTutorInputHint,
+                        border: const OutlineInputBorder(),
                       ),
                       onSubmitted: _send,
                       textInputAction: TextInputAction.send,
@@ -412,7 +412,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
                         ? () => _send(_controller.text)
                         : null,
                     icon: const Icon(Icons.send_rounded),
-                    tooltip: 'Enviar mensagem',
+                    tooltip: AppLocalizations.of(context)!.aiTutorSendTooltip,
                   ),
                 ],
               ),
@@ -448,8 +448,8 @@ class _MicButton extends StatelessWidget {
       button: true,
       enabled: active,
       label: recording
-          ? 'Gravando. Solte para enviar.'
-          : 'Segure para falar em inglês',
+          ? AppLocalizations.of(context)!.aiTutorMicRecordingLabel
+          : AppLocalizations.of(context)!.aiTutorMicIdleLabel,
       child: GestureDetector(
         onTapDown: active ? (_) => onStart() : null,
         onTapUp: active ? (_) => onStop() : null,
@@ -559,8 +559,10 @@ class _PronCard extends StatelessWidget {
     final good = pronScore >= 80;
     final scoreColor = good ? AppTheme.green : AppTheme.gold;
     final tip = lowScoreWords.isEmpty
-        ? 'Pronúncia natural — parabéns! 🎉'
-        : 'Atenção a: ${lowScoreWords.take(3).map((w) => w.word).join(', ')}';
+        ? AppLocalizations.of(context)!.aiTutorPronPerfect
+        : AppLocalizations.of(context)!.aiTutorPronAttention(
+            lowScoreWords.take(3).map((w) => w.word).join(', '),
+          );
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(

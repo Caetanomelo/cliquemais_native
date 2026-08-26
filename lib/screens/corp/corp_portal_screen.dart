@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/corp_track.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/info_card_row.dart';
@@ -22,7 +23,7 @@ class CorpPortalScreen extends StatelessWidget {
       (app) => app.curriculum.corpTracks,
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Portal Corporativo')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.corpPortalTitle)),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: tracks.length,

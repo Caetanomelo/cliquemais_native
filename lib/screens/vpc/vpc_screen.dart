@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/scoring_service.dart';
 import '../../data/models/course_language.dart';
 import '../../data/models/vocab_item.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/leave_while_recording_dialog.dart';
@@ -228,7 +229,7 @@ class _VpcScreenState extends State<VpcScreen> {
     if (_correctIndices.length == _items.length) {
       unawaited(_app.markVocabUnitsComplete(widget.units));
     }
-    showUnitCompleteDialog(context, message: 'Você praticou todo o vocabulário desta unidade.');
+    showUnitCompleteDialog(context, message: AppLocalizations.of(context)!.vpcFinishMessage);
   }
 
   Color _ringColor(int sc) {
@@ -238,9 +239,10 @@ class _VpcScreenState extends State<VpcScreen> {
   }
 
   String _verdictText(int sc) {
-    if (sc >= 85) return '🌟 Incrível!';
-    if (sc >= 50) return '👍 Muito Bom!';
-    return '💪 Continue tentando!';
+    final l10n = AppLocalizations.of(context)!;
+    if (sc >= 85) return l10n.vpcVerdictGreat;
+    if (sc >= 50) return l10n.vpcVerdictGood;
+    return l10n.vpcVerdictKeepTrying;
   }
 
   @override
@@ -252,7 +254,7 @@ class _VpcScreenState extends State<VpcScreen> {
     return Scaffold(
       backgroundColor: AppTheme.navyDeep,
       appBar: AppBar(
-        title: const Text('Vocabulário'),
+        title: Text(AppLocalizations.of(context)!.vpcTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -264,7 +266,7 @@ class _VpcScreenState extends State<VpcScreen> {
         ],
       ),
       body: item == null
-          ? const Center(child: Text('Sem vocabulário para esta unidade.', style: TextStyle(color: AppTheme.textSubDark)))
+          ? Center(child: Text(AppLocalizations.of(context)!.vpcNoVocab, style: const TextStyle(color: AppTheme.textSubDark)))
           : Stack(
               alignment: Alignment.topCenter,
               children: [
@@ -328,7 +330,7 @@ class _VpcScreenState extends State<VpcScreen> {
                             OutlinedButton.icon(
                               onPressed: _playTutor,
                               icon: const Icon(Icons.volume_up_rounded, color: AppTheme.accentBright),
-                              label: const Text('Tutor', style: TextStyle(color: AppTheme.accentBright)),
+                              label: Text(AppLocalizations.of(context)!.vpcTutorButton, style: const TextStyle(color: AppTheme.accentBright)),
                             ),
                             const SizedBox(width: 12),
                             RecordMicButton(
@@ -364,12 +366,13 @@ class _VpcScreenState extends State<VpcScreen> {
   Widget _resultOverlay() {
     final success = _overlay == _Overlay.celebrate;
     final score = _score ?? 0;
+    final l10n = AppLocalizations.of(context)!;
     return PracticeResultOverlay(
       icon: success ? (score == 100 ? '🏆' : (score >= 90 ? '🌟' : '🎉')) : '✕',
-      title: success ? 'Correto!' : '✕',
-      subtitle: success ? (score == 100 ? 'Pronúncia perfeita!' : (score >= 90 ? 'Excelente pronúncia!' : 'Muito bem!')) : 'Tente novamente',
+      title: success ? l10n.vpcResultCorrectTitle : '✕',
+      subtitle: success ? (score == 100 ? l10n.vpcResultPerfect : (score >= 90 ? l10n.vpcResultExcellent : l10n.vpcResultGood)) : l10n.vpcResultRetry,
       color: success ? AppTheme.green : AppTheme.red,
-      detail: !success && _spoken != null && _spoken!.trim().isNotEmpty ? 'Você disse: "$_spoken"' : null,
+      detail: !success && _spoken != null && _spoken!.trim().isNotEmpty ? l10n.vpcResultYouSaid(_spoken!) : null,
     );
   }
 }

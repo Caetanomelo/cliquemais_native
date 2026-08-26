@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../hero/hero_screen.dart';
@@ -74,6 +75,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppTheme.navyDeep,
       body: Center(
@@ -104,9 +106,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
             ),
             const SizedBox(height: 28),
-            const Text(
-              'Click+ Inglês',
-              style: TextStyle(
+            Text(
+              l10n.splashBrand,
+              style: const TextStyle(
                 fontFamily: 'Sora',
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -116,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 8),
             Text(
-              _failed ? 'Sem conexão com a internet.\nO app precisa estar online para funcionar.' : 'Preparando sua sessão…',
+              _failed ? l10n.splashOfflineError : l10n.splashPreparingSession,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Sora',
@@ -134,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                 ),
-                child: const Text('Tentar novamente'),
+                child: Text(l10n.splashRetryButton),
               ),
             ],
           ],

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/corp_track.dart';
 import '../../data/models/course_language.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../lesson/views/convo_lesson_view.dart';
@@ -42,7 +43,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
                   IconButton(
                     onPressed: () => speak(track.audio),
                     icon: const Icon(Icons.volume_up_rounded, color: AppTheme.accentBright),
-                    tooltip: 'Ouvir áudio',
+                    tooltip: AppLocalizations.of(context)!.corpTrackDetailListenAudio,
                   ),
                 ],
               ),
@@ -50,13 +51,13 @@ class CorpTrackDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           if (track.feedback.isNotEmpty) ...[
-            const Text('Análise da estrutura', style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
+            Text(AppLocalizations.of(context)!.corpTrackDetailStructureAnalysis, style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
             const SizedBox(height: 6),
             Text(track.feedback, style: const TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.textMainDark, height: 1.4)),
             const SizedBox(height: 16),
           ],
           if (track.terms.isNotEmpty) ...[
-            const Text('Termos-chave', style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
+            Text(AppLocalizations.of(context)!.corpTrackDetailKeyTerms, style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -77,7 +78,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
           ],
           if (track.vocab.isNotEmpty) ...[
-            const Text('Vocabulário', style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
+            Text(AppLocalizations.of(context)!.corpTrackDetailVocabulary, style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
             const SizedBox(height: 8),
             for (final v in track.vocab)
               Padding(
@@ -96,7 +97,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
                     IconButton(
                       onPressed: () => speak(v.en),
                       icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.accentBright),
-                      tooltip: 'Ouvir pronúncia',
+                      tooltip: AppLocalizations.of(context)!.corpTrackDetailListenPronunciation,
                     ),
                   ],
                 ),
@@ -104,7 +105,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
             const SizedBox(height: 12),
           ],
           if (track.dialogues.isNotEmpty) ...[
-            const Text('Diálogos', style: TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
+            Text(AppLocalizations.of(context)!.corpTrackDetailDialogues, style: const TextStyle(fontFamily: 'Sora', fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.accentBright)),
             const SizedBox(height: 8),
             ConvoLessonView(dialogues: track.dialogues, onSpeak: speak, shrinkWrap: true),
           ],

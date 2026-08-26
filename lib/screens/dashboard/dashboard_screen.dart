@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/dashboard_stats.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/coming_soon.dart';
@@ -111,7 +112,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 26),
-              const _SectionLabel('DRIVE MODE'),
+              _SectionLabel(AppLocalizations.of(context)!.dashboardSectionDriveMode),
               const SizedBox(height: 12),
               _DriveModePrimaryCard(
                 onTap: () => showLevelUnitPicker(
@@ -129,8 +130,8 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _SecondaryCard(
                 icon: Icons.style_rounded,
-                title: 'Vocabulário',
-                subtitle: 'Flashcards com gravação e comparação de pronúncia',
+                title: AppLocalizations.of(context)!.dashboardVocabTitle,
+                subtitle: AppLocalizations.of(context)!.dashboardVocabSubtitle,
                 onTap: () => showLevelUnitPicker(
                   context,
                   units: app.unitData.unitMeta,
@@ -145,7 +146,7 @@ class DashboardScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const _SectionLabel('ANALYTICS CORE'),
+                  _SectionLabel(AppLocalizations.of(context)!.dashboardSectionAnalyticsCore),
                   GestureDetector(
                     onTap: () async {
                       await context.read<AppStateProvider>().auth.signOut();
@@ -156,9 +157,9 @@ class DashboardScreen extends StatelessWidget {
                         );
                       }
                     },
-                    child: const Text(
-                      'Sair',
-                      style: TextStyle(
+                    child: Text(
+                      AppLocalizations.of(context)!.dashboardSignOut,
+                      style: const TextStyle(
                         fontFamily: 'Sora',
                         fontSize: 12,
                         color: AppTheme.textSubDark,
@@ -181,7 +182,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 26),
-              const _SectionLabel('SEUS DOMÍNIOS'),
+              _SectionLabel(AppLocalizations.of(context)!.dashboardSectionYourDomains),
               const SizedBox(height: 12),
               _DomainGrid(domains: domains),
             ],
@@ -208,9 +209,9 @@ class _TopBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppTheme.radiusBtn),
           border: Border.all(color: AppTheme.navBorder),
         ),
-        child: const Text(
-          'CLIQUE+',
-          style: TextStyle(
+        child: Text(
+          AppLocalizations.of(context)!.dashboardTopBadge,
+          style: const TextStyle(
             fontFamily: 'Sora',
             fontSize: 12,
             fontWeight: FontWeight.w800,
@@ -239,7 +240,7 @@ class _GreetingHeader extends StatelessWidget {
       children: [
         Semantics(
           button: true,
-          label: 'Abrir configurações',
+          label: AppLocalizations.of(context)!.dashboardSettingsSemanticLabel,
           child: GestureDetector(
             onTap: onSettings,
             child: Container(
@@ -258,9 +259,9 @@ class _GreetingHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Bem-vindo(a) de volta',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.dashboardWelcomeBack,
+                style: const TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 12,
                   color: AppTheme.textSubDark,
@@ -269,9 +270,9 @@ class _GreetingHeader extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Text(
-                    'Sua jornada',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.dashboardYourJourney,
+                    style: const TextStyle(
                       fontFamily: 'Sora',
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
@@ -310,7 +311,7 @@ class _GreetingHeader extends StatelessWidget {
             Icons.notifications_none_rounded,
             color: AppTheme.textMainDark,
           ),
-          tooltip: 'Notificações',
+          tooltip: AppLocalizations.of(context)!.dashboardNotificationsTooltip,
         ),
       ],
     );
@@ -390,9 +391,9 @@ class _XpDailySection extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'XP DIÁRIO',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.dashboardXpDailyLabel,
+                style: const TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -401,7 +402,7 @@ class _XpDailySection extends StatelessWidget {
                 ),
               ),
               Text(
-                '$todayXp / $goal XP',
+                AppLocalizations.of(context)!.dashboardXpDailyProgress(todayXp, goal),
                 style: const TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 12,
@@ -471,8 +472,8 @@ class _DriveModePrimaryCard extends StatelessWidget {
         ),
         child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
       ),
-      title: 'Drive Mode',
-      subtitle: 'Prática de pronúncia mãos-livres, com comandos de voz',
+      title: AppLocalizations.of(context)!.dashboardDriveModeTitle,
+      subtitle: AppLocalizations.of(context)!.dashboardDriveModeSubtitle,
     );
   }
 }
@@ -506,8 +507,8 @@ class _AiTutorPrimaryCard extends StatelessWidget {
           size: 28,
         ),
       ),
-      title: 'Tutor IA',
-      subtitle: 'Converse e pratique pronúncia com o professor de IA',
+      title: AppLocalizations.of(context)!.dashboardAiTutorTitle,
+      subtitle: AppLocalizations.of(context)!.dashboardAiTutorSubtitle,
     );
   }
 }
@@ -577,21 +578,21 @@ class _AnalyticsCore extends StatelessWidget {
                   icon: Icons.local_fire_department_rounded,
                   color: AppTheme.red,
                   value: '$streakDays',
-                  label: 'dias seguidos',
+                  label: AppLocalizations.of(context)!.dashboardStreakDaysLabel,
                 ),
                 const SizedBox(height: 8),
                 _StatMiniCard(
                   icon: Icons.bolt_rounded,
                   color: AppTheme.accentBright,
                   value: '$weekXp',
-                  label: 'XP na semana',
+                  label: AppLocalizations.of(context)!.dashboardWeekXpLabel,
                 ),
                 const SizedBox(height: 8),
                 _StatMiniCard(
                   icon: Icons.emoji_events_rounded,
                   color: AppTheme.gold,
                   value: '$totalXp',
-                  label: 'XP total',
+                  label: AppLocalizations.of(context)!.dashboardTotalXpLabel,
                 ),
               ],
             ),
@@ -601,7 +602,15 @@ class _AnalyticsCore extends StatelessWidget {
             child: SizedBox(
               height: 168,
               child: CustomPaint(
-                painter: _DiamondChartPainter(domains: domains),
+                painter: _DiamondChartPainter(
+                  domains: domains,
+                  labels: [
+                    AppLocalizations.of(context)!.domainAbbrevPronunciation,
+                    AppLocalizations.of(context)!.domainAbbrevVocabulary,
+                    AppLocalizations.of(context)!.domainAbbrevFluency,
+                    AppLocalizations.of(context)!.domainAbbrevComprehension,
+                  ],
+                ),
                 child: const SizedBox.expand(),
               ),
             ),
@@ -671,9 +680,8 @@ class _StatMiniCard extends StatelessWidget {
 /// Compreensão, matching the web Dashboard's Analytics Core chart.
 class _DiamondChartPainter extends CustomPainter {
   final DomainProgress domains;
-  _DiamondChartPainter({required this.domains});
-
-  static const _labels = ['Pron.', 'Vocab.', 'Flu.', 'Comp.'];
+  final List<String> labels;
+  _DiamondChartPainter({required this.domains, required this.labels});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -745,7 +753,7 @@ class _DiamondChartPainter extends CustomPainter {
       final labelPos = pointAt(i, 1.22);
       final tp = TextPainter(
         text: TextSpan(
-          text: _labels[i],
+          text: labels[i],
           style: const TextStyle(
             fontFamily: 'Sora',
             fontSize: 9,
@@ -791,8 +799,8 @@ class _ContentBanner extends StatelessWidget {
         ),
         child: const Icon(Icons.school_rounded, color: AppTheme.accent2),
       ),
-      title: 'Todo o Conteúdo',
-      subtitle: 'Todas as unidades e lições, por livro',
+      title: AppLocalizations.of(context)!.dashboardAllContentTitle,
+      subtitle: AppLocalizations.of(context)!.dashboardAllContentSubtitle,
     );
   }
 }
@@ -803,28 +811,29 @@ class _DomainGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final items = [
       (
         icon: Icons.record_voice_over_rounded,
-        label: 'Pronúncia',
+        label: l10n.domainPronunciation,
         color: AppTheme.accent,
         value: domains.pronuncia,
       ),
       (
         icon: Icons.style_rounded,
-        label: 'Vocabulário',
+        label: l10n.domainVocabulary,
         color: AppTheme.green,
         value: domains.vocabulario,
       ),
       (
         icon: Icons.forum_rounded,
-        label: 'Fluência',
+        label: l10n.domainFluency,
         color: AppTheme.accent2,
         value: domains.fluencia,
       ),
       (
         icon: Icons.menu_book_rounded,
-        label: 'Compreensão',
+        label: l10n.domainComprehension,
         color: AppTheme.gold,
         value: domains.compreensao,
       ),

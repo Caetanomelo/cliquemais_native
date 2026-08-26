@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/models/unit_curriculum_meta.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Bottom sheet shown on completing a non-milestone unit: up to 3 "I can..."
 /// statements, mirroring the source app's `showCanDoCard`.
@@ -29,15 +30,15 @@ Future<void> showCanDoCard(BuildContext context, UnitCurriculumMeta meta) {
                 const Text('✅', style: TextStyle(fontSize: 26)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('Unidade concluída · ${meta.cefr}',
+                  child: Text(AppLocalizations.of(ctx)!.canDoUnitCompleteTitle(meta.cefr),
                       style: const TextStyle(
                           fontFamily: 'Sora', fontSize: 17, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            const Text('Agora você consegue:',
-                style: TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.textSubDark)),
+            Text(AppLocalizations.of(ctx)!.canDoNowYouCan,
+                style: const TextStyle(fontFamily: 'Sora', fontSize: 13, color: AppTheme.textSubDark)),
             const SizedBox(height: 16),
             for (final s in statements)
               Padding(
@@ -57,7 +58,7 @@ Future<void> showCanDoCard(BuildContext context, UnitCurriculumMeta meta) {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Continuar'),
+                child: Text(AppLocalizations.of(ctx)!.canDoContinue),
               ),
             ),
           ],
