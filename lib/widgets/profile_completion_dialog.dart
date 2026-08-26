@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../core/theme/app_theme.dart';
 import '../core/utils/br_input_formatters.dart';
+import '../data/models/course_language.dart';
 import '../providers/app_state_provider.dart';
 
 /// One-time-per-login-flow profile completion prompt, also reachable anytime
@@ -53,6 +54,9 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
   String? _error;
   String? _phoneError;
   String? _cpfError;
+  // Opcional -- default do banco (profiles.native_language) ja e 'pt', so
+  // gravamos se o usuario efetivamente escolher outro valor aqui.
+  String? _nativeLanguage;
 
   @override
   void initState() {
@@ -83,6 +87,8 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
       final avatarUrl = profile['avatar_url'];
       if (avatarUrl is String && avatarUrl.isNotEmpty)
         _existingAvatarUrl = avatarUrl;
+      final nativeLanguage = profile['native_language'];
+      if (nativeLanguage is String && nativeLanguage.isNotEmpty) _nativeLanguage = nativeLanguage;
     });
   }
 
@@ -157,6 +163,7 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
             ? null
             : _addressCtrl.text.trim(),
         avatarUrl: avatarUrl,
+        nativeLanguage: _nativeLanguage,
       );
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
@@ -293,6 +300,28 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
               controller: _addressCtrl,
               hint: 'Rua, número, bairro, cidade',
               maxLines: 2,
+            ),
+            const SizedBox(height: 12),
+            _FieldLabel('Idioma nativo'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final entry in kLanguageLabels.entries)
+                  ChoiceChip(
+                    label: Text(entry.value),
+                    selected: (_nativeLanguage ?? 'pt') == entry.key,
+                    onSelected: (_) => setState(() => _nativeLanguage = entry.key),
+                    labelStyle: TextStyle(
+                      fontFamily: 'Sora',
+                      fontSize: 12,
+                      color: (_nativeLanguage ?? 'pt') == entry.key ? Colors.black : AppTheme.textMainDark,
+                    ),
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    selectedColor: AppTheme.accentBright,
+                    side: const BorderSide(color: AppTheme.borderDark),
+                  ),
+              ],
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),

@@ -24,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: AppTheme.surfaceDark,
         title: const Text('Idioma do curso', style: TextStyle(color: AppTheme.textMainDark)),
         children: [
-          for (final entry in kCourseLanguageLabels.entries)
+          for (final entry in kLanguageLabels.entries)
             SimpleDialogOption(
               onPressed: () => Navigator.of(dialogContext).pop(entry.key),
               child: Row(
@@ -41,9 +41,53 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (chosen != null && chosen != appState.courseLanguage) {
-      await appState.setCourseLanguage(chosen);
+    if (chosen == null || chosen == appState.courseLanguage) return;
+    if (!isValidPair(appState.nativeLanguage, chosen)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Idioma nativo e idioma do curso não podem ser iguais.')),
+        );
+      }
+      return;
     }
+    await appState.setCourseLanguage(chosen);
+  }
+
+  Future<void> _pickNativeLanguage(BuildContext context) async {
+    final appState = context.read<AppStateProvider>();
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Idioma nativo', style: TextStyle(color: AppTheme.textMainDark)),
+        children: [
+          for (final entry in kLanguageLabels.entries)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(entry.key),
+              child: Row(
+                children: [
+                  Icon(
+                    entry.key == appState.nativeLanguage ? Icons.radio_button_checked : Icons.radio_button_off,
+                    color: AppTheme.accentBright,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(entry.value, style: const TextStyle(color: AppTheme.textMainDark)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (chosen == null || chosen == appState.nativeLanguage) return;
+    if (!isValidPair(chosen, appState.courseLanguage)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Idioma nativo e idioma do curso não podem ser iguais.')),
+        );
+      }
+      return;
+    }
+    await appState.setNativeLanguage(chosen);
   }
 
   @override
@@ -67,8 +111,15 @@ class SettingsScreen extends StatelessWidget {
           _ResourceRow(
             icon: Icons.language_rounded,
             title: 'Idioma do curso',
-            subtitle: kCourseLanguageLabels[appState.courseLanguage] ?? 'Inglês',
+            subtitle: kLanguageLabels[appState.courseLanguage] ?? 'Inglês',
             onTap: () => _pickCourseLanguage(context),
+          ),
+          const SizedBox(height: 10),
+          _ResourceRow(
+            icon: Icons.record_voice_over_rounded,
+            title: 'Idioma nativo',
+            subtitle: kLanguageLabels[appState.nativeLanguage] ?? 'Português',
+            onTap: () => _pickNativeLanguage(context),
           ),
           const SizedBox(height: 22),
           const Text('Recursos',

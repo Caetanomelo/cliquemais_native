@@ -14,12 +14,12 @@ class DialogueLine {
         pt: j['pt'] as String? ?? '',
       );
 
-  // Same triple, picking [code] (e.g. 'es') as the course-language text
-  // instead of `en` — used to build Lesson/CorpTrack.byLanguage variants.
-  factory DialogueLine.forCode(Map<String, dynamic> j, String code) => DialogueLine(
+  // Same triple, picking [target] as the studied text and [native] as the
+  // explanation — for any of the 6 valid (target, native) pairs.
+  factory DialogueLine.forPair(Map<String, dynamic> j, String target, String native) => DialogueLine(
         speaker: j['speaker'] as String,
-        text: j[code] as String? ?? j['en'] as String,
-        pt: j['pt'] as String? ?? '',
+        text: j[target] as String? ?? j['en'] as String,
+        pt: j[native] as String? ?? j['pt'] as String? ?? '',
       );
 }
 
@@ -27,6 +27,6 @@ List<List<DialogueLine>> dialoguesFromJson(dynamic v) => (v as List? ?? [])
     .map((d) => (d as List).map((l) => DialogueLine.fromJson(l as Map<String, dynamic>)).toList())
     .toList();
 
-List<List<DialogueLine>> dialoguesForCode(dynamic v, String code) => (v as List? ?? [])
-    .map((d) => (d as List).map((l) => DialogueLine.forCode(l as Map<String, dynamic>, code)).toList())
+List<List<DialogueLine>> dialoguesForPair(dynamic v, String target, String native) => (v as List? ?? [])
+    .map((d) => (d as List).map((l) => DialogueLine.forPair(l as Map<String, dynamic>, target, native)).toList())
     .toList();

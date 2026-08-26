@@ -21,11 +21,11 @@ class Lesson {
   final String name;
   final String desc;
   final LessonContent content;
-  // Pre-resolved variants for each of kCourseOverrideLanguages that had an
-  // override block in the source JSON. Built once at parse time (which
-  // already runs off the UI thread via compute()) so [forLanguage] is a
-  // cheap map lookup, not a re-parse, on every screen read.
-  final Map<String, Lesson> byLanguage;
+  // JSON bruto do bloco, retido pra resolucao sob demanda por par
+  // (target, native) -- ha ate 6 pares validos por bloco agora, entao
+  // pre-computar todos no parse (como antes) so pra 1 idioma nao faz mais
+  // sentido; resolve() e um merge barato, chamado raramente (1x por tela).
+  final Map<String, dynamic> raw;
 
   const Lesson({
     required this.type,
@@ -33,14 +33,45 @@ class Lesson {
     required this.name,
     required this.desc,
     required this.content,
-    this.byLanguage = const {},
+    this.raw = const {},
   });
 
-  /// 'en' (the base/default) always returns this lesson unchanged; any other
-  /// code falls back to the base lesson if that language has no override
-  /// content yet for this particular lesson (matches WEB_BASE's
-  /// resolveLessonLanguage: partial/missing es content never blanks a field).
-  Lesson forLanguage(String lang) => lang == 'en' ? this : (byLanguage[lang] ?? this);
+  /// (target='en', native='pt') e o par base, sempre presente sem
+  /// resolucao. Outros pares seguem o mesmo algoritmo de
+  /// resolveLessonLanguage em src/main.js do WEB_BASE.
+  Lesson forPair(String target, String native) {
+    if (target == 'en' && native == 'pt') return this;
+    if (target == native) return this; // guarda de seguranca, nao deveria acontecer (isValidPair)
+
+    if (type == LessonType.vocab || type == LessonType.convo) {
+      return Lesson(
+        type: type,
+        icon: icon,
+        name: name,
+        desc: desc,
+        content: _contentForPair(type, raw, target, native),
+        raw: raw,
+      );
+    }
+
+    Map<String, dynamic>? override;
+    if (native == legacyNative(target)) {
+      if (target == 'es') override = raw['es'] as Map<String, dynamic>?;
+      if (target == 'pt') override = raw['pt'] as Map<String, dynamic>?;
+    } else {
+      override = raw['${target}_$native'] as Map<String, dynamic>?;
+    }
+    if (override == null) return this;
+
+    return Lesson(
+      type: type,
+      icon: icon,
+      name: override['name'] as String? ?? name,
+      desc: override['desc'] as String? ?? desc,
+      content: _resolveOverrideContent(type, content, override),
+      raw: raw,
+    );
+  }
 
   static LessonContent _contentFromJson(LessonType type, Map<String, dynamic> j) => switch (type) {
         LessonType.vocab => VocabLessonContent(
@@ -63,38 +94,35 @@ class Lesson {
         LessonType.unknown => const UnknownLessonContent(),
       };
 
-  /// vocab/convo course-language variant: re-picks [code] (e.g. 'es') as the
-  /// item/turn text straight out of the base JSON's inline triples, instead
-  /// of parsing a separate override block.
-  static LessonContent _contentForCode(LessonType type, Map<String, dynamic> j, String code) => switch (type) {
+  /// vocab/convo pair-resolved variant: re-picks [target]/[native] per
+  /// item/turn straight out of the base JSON's inline triples, instead of
+  /// parsing a separate override block.
+  static LessonContent _contentForPair(LessonType type, Map<String, dynamic> j, String target, String native) => switch (type) {
         LessonType.vocab => VocabLessonContent(
-            (j['items'] as List).map((e) => VocabItem.forCode(e as Map<String, dynamic>, code)).toList(),
+            (j['items'] as List).map((e) => VocabItem.forPair(e as Map<String, dynamic>, target, native)).toList(),
           ),
-        LessonType.convo => ConvoLessonContent(dialoguesForCode(j['dialogues'], code)),
-        _ => throw ArgumentError('unsupported override type: $type'),
+        LessonType.convo => ConvoLessonContent(dialoguesForPair(j['dialogues'], target, native)),
+        _ => throw ArgumentError('unsupported pair-resolved type: $type'),
       };
 
   /// vocab/convo blocks store {en,es,pt}/{speaker,en,es,pt} triples inline
-  /// (backend migration 038) — a course-language variant is just re-picking
-  /// [code] per item/turn from the base JSON, no separate override object to
-  /// read. See [_contentForCode].
+  /// (backend migration 038) — a pair variant is just re-picking
+  /// [target]/[native] per item/turn from the base JSON, no separate
+  /// override object to read. See [_contentForPair].
   ///
-  /// Merges an override block (e.g. `j['es']`) onto [base] for the remaining
-  /// lesson types — grammar/practice replace their field(s) when the
-  /// override defines them, falling back to the base value otherwise.
-  /// pronunc/strategy have no override content in the source data yet, so
-  /// they fall through unchanged — adding it later needs no new branch here,
-  /// just data.
+  /// Merges an override block (e.g. `raw['es']` or `raw['en_es']`) onto
+  /// [base] for the remaining lesson types — grammar/practice replace their
+  /// field(s) when the override defines them, falling back to the base
+  /// value otherwise. pronunc/strategy have no override content in the
+  /// source data yet for most pairs, so they fall through unchanged when the
+  /// override (or its `items` field) is missing — adding it later needs no
+  /// new branch here, just data.
   static LessonContent _resolveOverrideContent(
     LessonType type,
     LessonContent base,
     Map<String, dynamic> override,
-    String code,
   ) {
     switch (type) {
-      case LessonType.vocab:
-      case LessonType.convo:
-        return base;
       case LessonType.grammar:
         if (base is! GrammarLessonContent) return base;
         final rules = override['rules'] as List?;
@@ -112,8 +140,20 @@ class Lesson {
               ? questions.map((e) => PracticeQuestion.fromJson(e as Map<String, dynamic>)).toList()
               : base.questions,
         );
-      case LessonType.pronunc:
       case LessonType.strategy:
+        if (base is! StrategyLessonContent) return base;
+        final items = override['items'] as List?;
+        return items != null
+            ? StrategyLessonContent(items.map((e) => StrategyItem.fromJson(e as Map<String, dynamic>)).toList())
+            : base;
+      case LessonType.pronunc:
+        if (base is! PronuncLessonContent) return base;
+        final items = override['items'] as List?;
+        return items != null
+            ? PronuncLessonContent(items.map((e) => PronuncItem.fromJson(e as Map<String, dynamic>)).toList())
+            : base;
+      case LessonType.vocab:
+      case LessonType.convo:
       case LessonType.unknown:
         return base;
     }
@@ -121,35 +161,14 @@ class Lesson {
 
   factory Lesson.fromJson(Map<String, dynamic> j) {
     final type = lessonTypeFromString(j['type'] as String);
-    final content = _contentFromJson(type, j);
-    final name = j['name'] as String;
-    final desc = j['desc'] as String? ?? '';
-    final icon = j['icon'] as String? ?? '';
-
-    final byLanguage = <String, Lesson>{};
-    for (final code in kCourseOverrideLanguages) {
-      if (type == LessonType.vocab || type == LessonType.convo) {
-        byLanguage[code] = Lesson(
-          type: type,
-          icon: icon,
-          name: name,
-          desc: desc,
-          content: _contentForCode(type, j, code),
-        );
-        continue;
-      }
-      final override = j[code] as Map<String, dynamic>?;
-      if (override == null) continue;
-      byLanguage[code] = Lesson(
-        type: type,
-        icon: icon,
-        name: override['name'] as String? ?? name,
-        desc: override['desc'] as String? ?? desc,
-        content: _resolveOverrideContent(type, content, override, code),
-      );
-    }
-
-    return Lesson(type: type, icon: icon, name: name, desc: desc, content: content, byLanguage: byLanguage);
+    return Lesson(
+      type: type,
+      icon: j['icon'] as String? ?? '',
+      name: j['name'] as String,
+      desc: j['desc'] as String? ?? '',
+      content: _contentFromJson(type, j),
+      raw: j,
+    );
   }
 }
 

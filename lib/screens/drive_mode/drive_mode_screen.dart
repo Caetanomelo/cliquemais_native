@@ -117,7 +117,13 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     super.dispose();
   }
 
-  Phrase? get _current => _index < _phrases.length ? _phrases[_index] : null;
+  // Resolved to the current (target, native) pair — drive_phrases.json items
+  // come straight from UnitDataRepository, unrelated to any Lesson block, so
+  // there's no raw JSON left around for a per-screen forPair() call; each
+  // phrase's own retained triple (Phrase.byLanguage) is what forPair()
+  // re-picks from.
+  Phrase? get _current =>
+      _index < _phrases.length ? _phrases[_index].forPair(_app.courseLanguage, _app.nativeLanguage) : null;
 
   Future<void> _speakAndListen() async {
     final phrase = _current;
@@ -134,7 +140,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
       _resultKind = _ResultKind.none;
     });
 
-    final text = phrase.textFor(_app.courseLanguage);
+    final text = phrase.en;
     final locale = resolveLocale(_app.courseLanguage);
     final baseRate = phrase.rate;
     final firstRate = (baseRate - 0.06).clamp(0.45, 1.0);
@@ -216,7 +222,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
 
     final phrase = _current;
     if (phrase == null) return;
-    final score = ScoringService.driveScore(transcript, phrase.textFor(_app.courseLanguage));
+    final score = ScoringService.driveScore(transcript, phrase.en);
     _attemptCount++;
 
     setState(() {
@@ -364,7 +370,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(phrase.textFor(_app.courseLanguage),
+                              Text(phrase.en,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                       fontFamily: 'Sora', fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PersistenceService {
   static const _kVoiceGender = 'dm_voice_gender';
   static const _kCourseLanguage = 'course_language';
+  static const _kNativeLanguage = 'native_language';
   static const _kIntroDone = 'dm_intro_done';
   static const _kHasSession = 'has_session';
   static const _kSchemaVersion = 'schema_version';
@@ -33,6 +34,11 @@ class PersistenceService {
 
   String get courseLanguage => _prefs.getString(_kCourseLanguage) ?? 'en';
   Future<void> setCourseLanguage(String v) => _prefs.setString(_kCourseLanguage, v);
+
+  // Default 'pt' casa com o default da coluna profiles.native_language
+  // (WEB_BASE migration 037) -- diferente de courseLanguage, que default 'en'.
+  String get nativeLanguage => _prefs.getString(_kNativeLanguage) ?? 'pt';
+  Future<void> setNativeLanguage(String v) => _prefs.setString(_kNativeLanguage, v);
 
   bool get introDone => _prefs.getBool(_kIntroDone) ?? false;
   Future<void> setIntroDone(bool v) => _prefs.setBool(_kIntroDone, v);

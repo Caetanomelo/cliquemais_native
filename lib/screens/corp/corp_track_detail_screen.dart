@@ -15,7 +15,7 @@ class CorpTrackDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = context.read<AppStateProvider>();
-    final track = this.track.forLanguage(app.courseLanguage);
+    final track = this.track.forPair(app.courseLanguage, app.nativeLanguage);
     void speak(String text) => app.cloudTts.speak(text, rate: 0.5, voiceGender: app.voiceGender, language: resolveLocale(app.courseLanguage));
 
     return Scaffold(

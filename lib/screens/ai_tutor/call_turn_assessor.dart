@@ -33,6 +33,7 @@ Future<CallTurnAssessment> assessCallTurn(
   PronunciationAssessmentService pronunciation,
   List<int> wavBytes, {
   String primaryLang = 'en-US',
+  String nativeLang = 'pt-BR',
   void Function(Object error, StackTrace stack, {required String reason})?
   onError,
 }) async {
@@ -46,7 +47,7 @@ Future<CallTurnAssessment> assessCallTurn(
         lowScoreWords: primaryResult.lowScoreWords,
       );
     }
-    final ptResult = await pronunciation.assess(wavBytes, lang: 'pt-BR');
+    final ptResult = await pronunciation.assess(wavBytes, lang: nativeLang);
     return CallTurnAssessment(
       transcript: ptResult?.recognizedText ?? '',
       feedback: '',
@@ -54,7 +55,7 @@ Future<CallTurnAssessment> assessCallTurn(
   } catch (e, st) {
     onError?.call(e, st, reason: '$primaryLang assess failed');
     try {
-      final ptResult = await pronunciation.assess(wavBytes, lang: 'pt-BR');
+      final ptResult = await pronunciation.assess(wavBytes, lang: nativeLang);
       return CallTurnAssessment(
         transcript: ptResult?.recognizedText ?? '',
         feedback: '',

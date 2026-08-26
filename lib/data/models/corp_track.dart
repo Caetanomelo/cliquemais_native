@@ -15,10 +15,7 @@ class CorpTrack {
   final List<String> terms;
   final List<VocabItem> vocab;
   final List<List<DialogueLine>> dialogues;
-  // Pre-resolved variants per kCourseOverrideLanguages code that had an
-  // override block (`json['${code}_content']`) — same one-time-resolution
-  // pattern as Lesson.byLanguage.
-  final Map<String, CorpTrack> byLanguage;
+  final Map<String, dynamic> raw;
 
   const CorpTrack({
     required this.id,
@@ -31,46 +28,31 @@ class CorpTrack {
     required this.terms,
     required this.vocab,
     required this.dialogues,
-    this.byLanguage = const {},
+    this.raw = const {},
   });
 
-  CorpTrack forLanguage(String lang) => lang == 'en' ? this : (byLanguage[lang] ?? this);
+  /// Mirrors WEB_BASE's resolveCorpTrackLanguage(): audio/terms only depend
+  /// on the TARGET (via `${target}_content`, target=='en' has no overlay);
+  /// feedback follows the same legacy/new-pair split as Lesson, but as a
+  /// flat string column (`feedback_${target}_${native}`), not a nested
+  /// block.
+  CorpTrack forPair(String target, String native) {
+    if (target == 'en' && native == 'pt') return this;
+    if (target == native) return this;
 
-  factory CorpTrack.fromJson(Map<String, dynamic> j) {
-    final id = j['id'] as String;
-    final emoji = j['emoji'] as String? ?? '';
-    final name = j['name'] as String;
-    final role = j['role'] as String? ?? '';
-    final color = j['color'] as String? ?? '#f59e0b';
-    final audio = j['audio'] as String? ?? '';
-    final feedback = j['feedback'] as String? ?? '';
-    final terms = (j['terms'] as List? ?? const []).map((e) => e as String).toList();
-    final vocab =
-        (j['vocab'] as List? ?? const []).map((e) => VocabItem.fromJson(e as Map<String, dynamic>)).toList();
-    final dialogues = dialoguesFromJson(j['dialogues']);
+    final overlay = target == 'es'
+        ? raw['es_content'] as Map<String, dynamic>?
+        : target == 'pt'
+            ? raw['pt_content'] as Map<String, dynamic>?
+            : null;
+    final newAudio = overlay?['audio'] as String? ?? audio;
+    final newTerms = (overlay?['terms'] as List?)?.map((e) => e as String).toList() ?? terms;
 
-    final byLanguage = <String, CorpTrack>{};
-    for (final code in kCourseOverrideLanguages) {
-      // vocab/dialogues store {en,es,pt}/{speaker,en,es,pt} triples inline
-      // (backend migration 038) — re-pick [code] straight from the base
-      // vocab/dialogues instead of a `${code}_content` sub-list, which no
-      // longer carries them. `${code}_content` still overrides
-      // audio/feedback/terms — those stayed columns of their own.
-      final override = j['${code}_content'] as Map<String, dynamic>?;
-      byLanguage[code] = CorpTrack(
-        id: id,
-        emoji: emoji,
-        name: name,
-        role: role,
-        color: color,
-        audio: override?['audio'] as String? ?? audio,
-        feedback: override?['feedback'] as String? ?? feedback,
-        terms: (override?['terms'] as List?)?.map((e) => e as String).toList() ?? terms,
-        vocab: (j['vocab'] as List? ?? const [])
-            .map((e) => VocabItem.forCode(e as Map<String, dynamic>, code))
-            .toList(),
-        dialogues: dialoguesForCode(j['dialogues'], code),
-      );
+    String newFeedback;
+    if (native == legacyNative(target)) {
+      newFeedback = overlay?['feedback'] as String? ?? feedback;
+    } else {
+      newFeedback = raw['feedback_${target}_$native'] as String? ?? feedback;
     }
 
     return CorpTrack(
@@ -79,12 +61,26 @@ class CorpTrack {
       name: name,
       role: role,
       color: color,
-      audio: audio,
-      feedback: feedback,
-      terms: terms,
-      vocab: vocab,
-      dialogues: dialogues,
-      byLanguage: byLanguage,
+      audio: newAudio,
+      feedback: newFeedback,
+      terms: newTerms,
+      vocab: (raw['vocab'] as List? ?? const []).map((e) => VocabItem.forPair(e as Map<String, dynamic>, target, native)).toList(),
+      dialogues: dialoguesForPair(raw['dialogues'], target, native),
+      raw: raw,
     );
   }
+
+  factory CorpTrack.fromJson(Map<String, dynamic> j) => CorpTrack(
+        id: j['id'] as String,
+        emoji: j['emoji'] as String? ?? '',
+        name: j['name'] as String,
+        role: j['role'] as String? ?? '',
+        color: j['color'] as String? ?? '#f59e0b',
+        audio: j['audio'] as String? ?? '',
+        feedback: j['feedback'] as String? ?? '',
+        terms: (j['terms'] as List? ?? const []).map((e) => e as String).toList(),
+        vocab: (j['vocab'] as List? ?? const []).map((e) => VocabItem.fromJson(e as Map<String, dynamic>)).toList(),
+        dialogues: dialoguesFromJson(j['dialogues']),
+        raw: j,
+      );
 }

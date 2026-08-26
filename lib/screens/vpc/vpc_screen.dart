@@ -104,7 +104,13 @@ class _VpcScreenState extends State<VpcScreen> {
     super.dispose();
   }
 
-  VocabItem? get _current => _index < _items.length ? _items[_index] : null;
+  // Resolved to the current (target, native) pair — vocab_items.json items
+  // come straight from UnitDataRepository, unrelated to any Lesson block, so
+  // there's no raw JSON left around for a per-screen forPair() call; each
+  // item's own retained triple (VocabItem.byLanguage) is what resolvePair
+  // re-picks from.
+  VocabItem? get _current =>
+      _index < _items.length ? _items[_index].resolvePair(_app.courseLanguage, _app.nativeLanguage) : null;
 
   void _resetUi() {
     _liveTranscript.value = const LiveTranscript();
@@ -118,7 +124,7 @@ class _VpcScreenState extends State<VpcScreen> {
   Future<void> _playTutor() async {
     final item = _current;
     if (item == null) return;
-    await _app.cloudTts.speak(item.textFor(_app.courseLanguage), rate: 0.5, voiceGender: _app.voiceGender, language: resolveLocale(_app.courseLanguage));
+    await _app.cloudTts.speak(item.en, rate: 0.5, voiceGender: _app.voiceGender, language: resolveLocale(_app.courseLanguage));
   }
 
   Future<void> _record() async {
@@ -160,7 +166,7 @@ class _VpcScreenState extends State<VpcScreen> {
     if (_processing) return;
     _processing = true;
     setState(() => _listening = false);
-    final result = ScoringService.scoreVpc(item.textFor(_app.courseLanguage), spoken);
+    final result = ScoringService.scoreVpc(item.en, spoken);
     _showResult(result.score, spoken, result.exact);
   }
 
@@ -287,7 +293,7 @@ class _VpcScreenState extends State<VpcScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(item.textFor(_app.courseLanguage),
+                              Text(item.en,
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                       fontFamily: 'Sora', fontSize: 26, fontWeight: FontWeight.w700, color: AppTheme.textMainDark)),

@@ -72,6 +72,7 @@ class AuthService {
     String? address,
     String? avatarUrl,
     String? targetLanguage,
+    String? nativeLanguage,
   }) async {
     if (!_available) throw StateError('supabase-not-configured');
     final uid = currentUser?.id;
@@ -83,6 +84,7 @@ class AuthService {
       if (address != null) 'address': address,
       if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (targetLanguage != null) 'target_language': targetLanguage,
+      if (nativeLanguage != null) 'native_language': nativeLanguage,
     };
     if (patch.isEmpty) return;
     await Supabase.instance.client.from('profiles').update(patch).eq('id', uid);
@@ -116,7 +118,7 @@ class AuthService {
     try {
       return await Supabase.instance.client
           .from('profiles')
-          .select('display_name, phone, cpf, address, avatar_url, profile_prompt_seen, target_language')
+          .select('display_name, phone, cpf, address, avatar_url, profile_prompt_seen, target_language, native_language')
           .eq('id', uid)
           .single();
     } catch (_) {

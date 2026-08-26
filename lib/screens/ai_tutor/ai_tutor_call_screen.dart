@@ -142,6 +142,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       _app.pronunciation,
       wavBytes,
       primaryLang: resolveLocale(_app.courseLanguage),
+      nativeLang: resolveLocale(_app.nativeLanguage),
       onError: (e, st, {required reason}) =>
           unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._assessAndSend: $reason', fatal: false)),
     );
@@ -190,7 +191,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     if (!mounted) return;
     setState(() => _state = _CallState.speaking);
     final clean = text.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('**', '');
-    await _app.tts.speak(clean, language: 'pt-BR', voiceGender: _app.voiceGender);
+    await _app.tts.speak(clean, language: resolveLocale(_app.nativeLanguage), voiceGender: _app.voiceGender);
     if (mounted) setState(() => _state = _CallState.idle);
   }
 

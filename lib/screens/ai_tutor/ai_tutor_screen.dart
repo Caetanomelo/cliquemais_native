@@ -192,6 +192,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
         _app.pronunciation,
         bytes,
         primaryLang: resolveLocale(_app.courseLanguage),
+        nativeLang: resolveLocale(_app.nativeLanguage),
         onError: (e, st, {required reason}) => unawaited(
           FirebaseCrashlytics.instance.recordError(
             e,

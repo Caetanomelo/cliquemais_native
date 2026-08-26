@@ -185,10 +185,12 @@ class AppStateProvider extends ChangeNotifier {
     unawaited(completions.flushPending());
     unawaited(refreshRealAnalytics());
     unawaited(_syncCourseLanguageFromProfile());
+    unawaited(_syncNativeLanguageFromProfile());
     _authSub = auth.onAuthStateChange.listen((_) {
       unawaited(completions.flushPending());
       unawaited(refreshRealAnalytics());
       unawaited(_syncCourseLanguageFromProfile());
+      unawaited(_syncNativeLanguageFromProfile());
       notifyListeners();
     });
     notifyListeners();
@@ -205,6 +207,20 @@ class AppStateProvider extends ChangeNotifier {
     final remote = profile?['target_language'] as String?;
     if (remote != null && remote != persistence.courseLanguage) {
       await setCourseLanguage(remote);
+    }
+  }
+
+  /// Espelha _syncCourseLanguageFromProfile, mas sem reload de conteudo --
+  /// curriculum/corp-tracks ja vem inteiros do backend e resolvem
+  /// client-side via forPair, entao so quem muda de idioma-alvo precisa
+  /// refetch.
+  Future<void> _syncNativeLanguageFromProfile() async {
+    if (!isLoggedIn) return;
+    final profile = await auth.getProfile();
+    final remote = profile?['native_language'] as String?;
+    if (remote != null && remote != persistence.nativeLanguage) {
+      await persistence.setNativeLanguage(remote);
+      notifyListeners();
     }
   }
 
@@ -237,6 +253,7 @@ class AppStateProvider extends ChangeNotifier {
   bool get introDone => persistence.introDone;
   String get voiceGender => persistence.voiceGender;
   String get courseLanguage => persistence.courseLanguage;
+  String get nativeLanguage => persistence.nativeLanguage;
 
   JourneyProgress get journeyProgress =>
       computeJourneyProgress(curriculum, curriculumProgress);
@@ -305,6 +322,17 @@ class AppStateProvider extends ChangeNotifier {
     curriculumProgress = await CurriculumProgressService.create(lang);
     practiceProgress = await PracticeProgressService.create(lang);
     completions = await CompletionsService.create(auth, lang);
+    notifyListeners();
+  }
+
+  /// Espelha setCourseLanguage, mas sem reload de conteudo -- so persiste
+  /// local + profiles.native_language (compartilhado com o web) +
+  /// notifyListeners (telas que chamam forPair leem isso direto no build).
+  Future<void> setNativeLanguage(String lang) async {
+    await persistence.setNativeLanguage(lang);
+    if (isLoggedIn) {
+      unawaited(auth.updateProfile(nativeLanguage: lang));
+    }
     notifyListeners();
   }
 

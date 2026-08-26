@@ -48,7 +48,7 @@ class _UnitLessonScreenState extends State<UnitLessonScreen> {
     super.dispose();
   }
 
-  Lesson get _lesson => widget.unit.lessons[_index].forLanguage(_app.courseLanguage);
+  Lesson get _lesson => widget.unit.lessons[_index].forPair(_app.courseLanguage, _app.nativeLanguage);
 
   void _speak(String text) {
     _app.cloudTts.speak(text, rate: 0.5, voiceGender: _app.voiceGender, language: resolveLocale(_app.courseLanguage));
