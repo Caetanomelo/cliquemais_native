@@ -6,6 +6,38 @@ import 'l10n/app_localizations.dart';
 import 'providers/app_state_provider.dart';
 import 'screens/splash/splash_screen.dart';
 
+/// Wraps the app so any descendant can force a full tree rebuild --
+/// equivalent to WEB_BASE's `location.reload()` after a target-language
+/// change (see project_web_target_language_switcher_shipped memory). Used
+/// after a native-language save so every already-built screen re-mounts
+/// fresh, not just the ones that read AppLocalizations.of(context) directly
+/// in build() and would otherwise pick up the new locale reactively anyway.
+class RestartWidget extends StatefulWidget {
+  const RestartWidget({super.key, required this.child});
+
+  final Widget child;
+
+  static void restartApp(BuildContext context) {
+    context.findAncestorStateOfType<_RestartWidgetState>()?.restart();
+  }
+
+  @override
+  State<RestartWidget> createState() => _RestartWidgetState();
+}
+
+class _RestartWidgetState extends State<RestartWidget> {
+  Key _key = UniqueKey();
+
+  void restart() {
+    setState(() => _key = UniqueKey());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(key: _key, child: widget.child);
+  }
+}
+
 /// Root widget: wires the single [AppStateProvider] via `provider` and
 /// starts navigation at [SplashScreen], which owns app boot (`init()`).
 class CliqueMaisApp extends StatelessWidget {

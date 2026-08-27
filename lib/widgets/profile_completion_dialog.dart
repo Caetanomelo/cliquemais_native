@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../app.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/br_input_formatters.dart';
 import '../data/models/course_language.dart';
@@ -130,7 +131,12 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
       return;
     }
     setState(() => _saving = true);
-    final auth = context.read<AppStateProvider>().auth;
+    final appState = context.read<AppStateProvider>();
+    final auth = appState.auth;
+    // Comparado antes de salvar -- appState.nativeLanguage e' o valor
+    // ainda vigente (local + refletido na UI) ate' setNativeLanguage rodar.
+    final languageChanged =
+        _nativeLanguage != null && _nativeLanguage != appState.nativeLanguage;
     try {
       // CPF/telefone são únicos por conta (uma conta por CPF) -- checa
       // disponibilidade antes de salvar. check_contact_available() exclui a
@@ -167,9 +173,21 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
             ? null
             : _addressCtrl.text.trim(),
         avatarUrl: avatarUrl,
-        nativeLanguage: _nativeLanguage,
+        // nativeLanguage NAO vai aqui -- appState.setNativeLanguage() abaixo
+        // e' quem grava esse campo, e tambem persiste local + notifica os
+        // listeners (o updateProfile puro do auth_service so' escreve no
+        // Supabase, sem isso a troca de idioma so' pegava no proximo boot).
       );
-      if (mounted) Navigator.of(context).pop();
+      if (languageChanged) {
+        await appState.setNativeLanguage(_nativeLanguage!);
+      }
+      if (mounted) {
+        if (languageChanged) {
+          RestartWidget.restartApp(context);
+        } else {
+          Navigator.of(context).pop();
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().toLowerCase();

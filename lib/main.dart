@@ -23,5 +23,5 @@ void main() async {
     // failure — debugPrint is the only option left, not an oversight.
     debugPrint('Firebase.initializeApp failed: $e');
   }
-  runApp(const CliqueMaisApp());
+  runApp(const RestartWidget(child: CliqueMaisApp()));
 }
