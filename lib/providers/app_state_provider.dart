@@ -148,7 +148,7 @@ class AppStateProvider extends ChangeNotifier {
     // the same final wait as the language-independent loads above.
     persistence = await persistenceFuture;
     final lang = persistence.courseLanguage;
-    final aiContentFuture = aiContent.loadAll(lang);
+    final aiContentFuture = aiContent.loadAll(lang, persistence.nativeLanguage);
     final curriculumProgressFuture = _seedCurriculumProgress != null
         ? Future.value(_seedCurriculumProgress)
         : CurriculumProgressService.create(lang);
@@ -315,7 +315,7 @@ class AppStateProvider extends ChangeNotifier {
     if (isLoggedIn) {
       unawaited(auth.updateProfile(targetLanguage: lang));
     }
-    await aiContent.loadAll(lang);
+    await aiContent.loadAll(lang, persistence.nativeLanguage);
     // curriculumProgress/practiceProgress/completions cache their state in
     // memory per language at load time (see Fase 5) — reload them for the
     // new course so its progress doesn't mix with the previous language's.
@@ -325,14 +325,18 @@ class AppStateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Espelha setCourseLanguage, mas sem reload de conteudo -- so persiste
-  /// local + profiles.native_language (compartilhado com o web) +
-  /// notifyListeners (telas que chamam forPair leem isso direto no build).
+  /// Espelha setCourseLanguage, mas sem reload de lesson/corp_track --
+  /// esse conteudo ja chega com as 3 traducoes num payload so, resolvido no
+  /// client via forPair. aiContent e' diferente: e' buscado do servidor
+  /// filtrado por native_language (ai_tutor_modes), entao precisa recarregar
+  /// aqui tambem ou o Tutor IA continuaria respondendo no idioma nativo
+  /// antigo ate o proximo boot.
   Future<void> setNativeLanguage(String lang) async {
     await persistence.setNativeLanguage(lang);
     if (isLoggedIn) {
       unawaited(auth.updateProfile(nativeLanguage: lang));
     }
+    await aiContent.loadAll(persistence.courseLanguage, lang);
     notifyListeners();
   }
 
