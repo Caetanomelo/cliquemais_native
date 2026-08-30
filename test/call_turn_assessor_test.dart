@@ -31,6 +31,12 @@ http.Response _nBestResponse({
       ],
     }),
     200,
+    // Without a content-type header, http.Response encodes the body as
+    // latin1, mangling the accented display text used in the pt-BR
+    // gibberish regression tests when postJson later utf8-decodes the raw
+    // bytes. A JSON content-type (matching what the real Netlify function
+    // sends) makes http.Response use utf8, like production traffic does.
+    headers: const {'content-type': 'application/json'},
   );
 }
 
@@ -99,6 +105,78 @@ void main() {
       final result = await assessCallTurn(service, [1, 2, 3]);
 
       expect(result.transcript, 'oi, tudo bem?');
+      expect(result.feedback, '');
+      expect(result.failed, isFalse);
+    });
+
+    // Regression test for the second bug report: user spoke entirely in
+    // Portuguese ("Como se diz boa noite em inglês") in an English-course
+    // call. Azure's en-US pass force-decoded it into plausible-sounding but
+    // meaningless English gibberish with confidence >= the pt-BR pass's
+    // confidence, so the old confidence-only comparison picked the garbled
+    // English text. The function-word plausibility check should catch that
+    // the "English" text isn't real English and fall back to pt-BR.
+    test('prefers pt-BR when en-US confidence wins but the en-US text is gibberish', () async {
+      final service = PronunciationAssessmentService(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          final lang = body['lang'] as String;
+          if (lang == 'en-US') {
+            return _nBestResponse(
+              display: 'Black Oma CGS born rich English',
+              confidence: 0.65,
+              pronScore: 40,
+              wordCount: 6,
+            );
+          }
+          return _nBestResponse(
+            display: 'Como se diz boa noite em inglês',
+            confidence: 0.55,
+            pronScore: 0,
+            wordCount: 7,
+          );
+        }),
+      );
+
+      final result = await assessCallTurn(service, [1, 2, 3]);
+
+      expect(result.transcript, 'Como se diz boa noite em inglês');
+      expect(result.feedback, '');
+      expect(result.failed, isFalse);
+    });
+
+    // Same failure mode, Spanish course this time (the other reported
+    // screenshot): "Como se diz boa noite em espanhol" force-decoded through
+    // es-US.
+    test('prefers pt-BR when es-US confidence wins but the es-US text is gibberish', () async {
+      final service = PronunciationAssessmentService(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          final lang = body['lang'] as String;
+          if (lang == 'es-US') {
+            return _nBestResponse(
+              display: 'Cómo se llevó a noise',
+              confidence: 0.6,
+              pronScore: 35,
+              wordCount: 5,
+            );
+          }
+          return _nBestResponse(
+            display: 'Como se diz boa noite em espanhol',
+            confidence: 0.5,
+            pronScore: 0,
+            wordCount: 7,
+          );
+        }),
+      );
+
+      final result = await assessCallTurn(
+        service,
+        [1, 2, 3],
+        primaryLang: 'es-US',
+      );
+
+      expect(result.transcript, 'Como se diz boa noite em espanhol');
       expect(result.feedback, '');
       expect(result.failed, isFalse);
     });
