@@ -36,13 +36,17 @@ http.Response _nBestResponse({
 
 void main() {
   group('assessCallTurn', () {
-    test('uses the en-US result directly when confidently English', () async {
+    test('uses the en-US result when confidently English and more confident than the native pass', () async {
       final langs = <String>[];
       final service = PronunciationAssessmentService(
         client: MockClient((request) async {
           final body = jsonDecode(request.body) as Map<String, dynamic>;
-          langs.add(body['lang'] as String);
-          return _nBestResponse(display: 'hello world', confidence: 0.9, pronScore: 88);
+          final lang = body['lang'] as String;
+          langs.add(lang);
+          if (lang == 'en-US') {
+            return _nBestResponse(display: 'hello world', confidence: 0.9, pronScore: 88);
+          }
+          return _nBestResponse(display: 'oi', confidence: 0.3, pronScore: 0);
         }),
       );
 
@@ -50,16 +54,14 @@ void main() {
 
       expect(result.transcript, 'hello world');
       expect(result.failed, isFalse);
-      expect(langs, ['en-US']); // no pt-BR fallback call made
+      expect(langs, unorderedEquals(['en-US', 'pt-BR'])); // both passes always run now
     });
 
     test('falls back to pt-BR when the en-US pass is not confidently English', () async {
-      final langs = <String>[];
       final service = PronunciationAssessmentService(
         client: MockClient((request) async {
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           final lang = body['lang'] as String;
-          langs.add(lang);
           if (lang == 'en-US') {
             return _nBestResponse(display: 'uh', confidence: 0.1, pronScore: 10);
           }
@@ -72,10 +74,36 @@ void main() {
       expect(result.transcript, 'oi tudo bem');
       expect(result.feedback, '');
       expect(result.failed, isFalse);
-      expect(langs, ['en-US', 'pt-BR']);
     });
 
-    test('falls back to pt-BR when the en-US pass throws, and reports the error', () async {
+    // Regression test for the reported bug: Azure's en-US recognizer
+    // force-decodes Portuguese audio into plausible-looking English words
+    // with confidence >= 0.5, so a fixed threshold alone misidentified most
+    // Portuguese turns as confident English and made the tutor reply (and
+    // TTS) in English. Comparing against the native pass's confidence fixes
+    // it: pt-BR should win whenever it's the better match, even when en-US
+    // clears the bare 0.5 bar.
+    test('prefers the more-confident pt-BR pass even when en-US clears the confidence bar', () async {
+      final service = PronunciationAssessmentService(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          final lang = body['lang'] as String;
+          if (lang == 'en-US') {
+            // Misheard Portuguese, but still >= the 0.5 "confident English" bar.
+            return _nBestResponse(display: 'oh two bang', confidence: 0.6, pronScore: 40, wordCount: 3);
+          }
+          return _nBestResponse(display: 'oi, tudo bem?', confidence: 0.85, pronScore: 0, wordCount: 3);
+        }),
+      );
+
+      final result = await assessCallTurn(service, [1, 2, 3]);
+
+      expect(result.transcript, 'oi, tudo bem?');
+      expect(result.feedback, '');
+      expect(result.failed, isFalse);
+    });
+
+    test('uses the pt-BR result when the en-US pass throws, and reports the error', () async {
       final reasons = <String>[];
       final service = PronunciationAssessmentService(
         client: MockClient((request) async {
@@ -112,7 +140,7 @@ void main() {
 
       expect(result.transcript, '');
       expect(result.failed, isTrue);
-      expect(reasons, ['en-US assess failed', 'pt-BR fallback assess failed']);
+      expect(reasons, unorderedEquals(['en-US assess failed', 'pt-BR assess failed']));
     });
   });
 }
