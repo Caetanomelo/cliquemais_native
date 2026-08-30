@@ -15,6 +15,12 @@ import 'call_turn_assessor.dart';
 
 enum _CallState { idle, listening, thinking, speaking }
 
+class _CallSegment {
+  final String text;
+  final String language;
+  const _CallSegment(this.text, this.language);
+}
+
 /// Live voice call with the AI Tutor — hold-to-talk (press and hold the mic
 /// to speak, release to send), mirroring the web app's `AiTutor.openCall()`
 /// flow but with raw audio capture instead of live on-device STT, so Azure
@@ -189,11 +195,41 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     }
   }
 
+  // Divide a resposta do Tutor em trechos por idioma usando o marcador
+  // {{...}} que os system prompts de 'call' (migration 060, WEB_BASE)
+  // inserem ao redor de palavras/frases no idioma-alvo -- o resto do texto
+  // fica no idioma nativo do aluno. Mesmo marcador que o web app usa, ja
+  // que ambos consomem o mesmo system_prompt de ai_tutor_modes.
+  List<_CallSegment> _parseBilingualSegments(String text) {
+    final nativeLocale = resolveLocale(_app.nativeLanguage);
+    final targetLocale = resolveLocale(_app.courseLanguage);
+    final segments = <_CallSegment>[];
+    final re = RegExp(r'\{\{([^{}]*)\}\}');
+    var lastIndex = 0;
+    for (final m in re.allMatches(text)) {
+      if (m.start > lastIndex) {
+        segments.add(_CallSegment(text.substring(lastIndex, m.start), nativeLocale));
+      }
+      final inner = m.group(1) ?? '';
+      if (inner.isNotEmpty) {
+        segments.add(_CallSegment(inner, targetLocale));
+      }
+      lastIndex = m.end;
+    }
+    if (lastIndex < text.length) {
+      segments.add(_CallSegment(text.substring(lastIndex), nativeLocale));
+    }
+    return segments.where((s) => s.text.trim().isNotEmpty).toList();
+  }
+
   Future<void> _speak(String text) async {
     if (!mounted) return;
     setState(() => _state = _CallState.speaking);
     final clean = text.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('**', '');
-    await _app.tts.speak(clean, language: resolveLocale(_app.nativeLanguage), voiceGender: _app.voiceGender);
+    for (final seg in _parseBilingualSegments(clean)) {
+      if (!mounted) return;
+      await _app.tts.speak(seg.text, language: seg.language, voiceGender: _app.voiceGender);
+    }
     if (mounted) setState(() => _state = _CallState.idle);
   }
 
