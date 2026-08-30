@@ -54,14 +54,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     final msg = err.toString().toLowerCase();
     if (msg.contains('already registered')) return l10n.loginErrorAlreadyRegistered;
     if (msg.contains('invalid login')) return l10n.loginErrorInvalidLogin;
-    if (msg.contains('password') && msg.contains('least'))
+    if (msg.contains('password') && msg.contains('least')) {
       return l10n.loginErrorPasswordTooShort;
-    if (msg.contains('supabase-not-configured'))
+    }
+    if (msg.contains('supabase-not-configured')) {
       return l10n.loginErrorNotConfigured;
-    if (msg.contains('rate limit'))
+    }
+    if (msg.contains('rate limit')) {
       return l10n.loginErrorRateLimit;
-    if (msg.contains('email address') && msg.contains('invalid'))
+    }
+    if (msg.contains('email address') && msg.contains('invalid')) {
       return l10n.loginErrorInvalidEmail;
+    }
     return l10n.loginErrorGeneric;
   }
 

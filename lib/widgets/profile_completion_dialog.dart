@@ -90,8 +90,9 @@ class _ProfileCompletionFormState extends State<_ProfileCompletionForm> {
       final address = profile['address'];
       if (address is String && address.isNotEmpty) _addressCtrl.text = address;
       final avatarUrl = profile['avatar_url'];
-      if (avatarUrl is String && avatarUrl.isNotEmpty)
+      if (avatarUrl is String && avatarUrl.isNotEmpty) {
         _existingAvatarUrl = avatarUrl;
+      }
       final nativeLanguage = profile['native_language'];
       if (nativeLanguage is String && nativeLanguage.isNotEmpty) _nativeLanguage = nativeLanguage;
     });
