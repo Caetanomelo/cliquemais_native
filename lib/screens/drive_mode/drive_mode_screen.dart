@@ -444,20 +444,28 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             TextButton.icon(
-                              onPressed: _prevPhrase,
+                              // A pending result overlay already has a Future.delayed
+                              // queued to advance/retry off the score captured when it
+                              // was shown — a tap here in that window would mutate
+                              // _index/_attemptCount out from under that closure,
+                              // causing a double-advance or an interrupted retry once
+                              // the timer fires 5s later.
+                              onPressed: _resultKind == _ResultKind.none ? _prevPhrase : null,
                               icon: const Icon(Icons.skip_previous_rounded, color: AppTheme.textSubDark),
                               label: Text(AppLocalizations.of(context)!.driveModePrevious, style: const TextStyle(color: AppTheme.textSubDark)),
                             ),
                             TextButton.icon(
-                              onPressed: () => _speakAndListen(),
+                              onPressed: _resultKind == _ResultKind.none ? () => _speakAndListen() : null,
                               icon: const Icon(Icons.replay_rounded, color: AppTheme.textSubDark),
                               label: Text(AppLocalizations.of(context)!.driveModeRepeat, style: const TextStyle(color: AppTheme.textSubDark)),
                             ),
                             TextButton.icon(
-                              onPressed: () {
-                                _attemptCount = 0;
-                                _nextPhrase();
-                              },
+                              onPressed: _resultKind == _ResultKind.none
+                                  ? () {
+                                      _attemptCount = 0;
+                                      _nextPhrase();
+                                    }
+                                  : null,
                               icon: const Icon(Icons.skip_next_rounded, color: AppTheme.textSubDark),
                               label: Text(AppLocalizations.of(context)!.driveModeNext, style: const TextStyle(color: AppTheme.textSubDark)),
                             ),

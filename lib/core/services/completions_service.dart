@@ -297,16 +297,16 @@ class CompletionsService {
         xpTotal += xp;
         final t = DateTime.parse(row['completed_at'] as String);
         if (!t.isBefore(weekAgo)) xpWeek += xp;
-        days.add(_utcDayKey(t));
+        days.add(_localDayKey(t));
       }
 
       var streak = 0;
       var cursor = DateTime.now();
       cursor = DateTime(cursor.year, cursor.month, cursor.day);
-      if (!days.contains(_utcDayKey(cursor))) {
+      if (!days.contains(_localDayKey(cursor))) {
         cursor = cursor.subtract(const Duration(days: 1));
       }
-      while (days.contains(_utcDayKey(cursor))) {
+      while (days.contains(_localDayKey(cursor))) {
         streak++;
         cursor = cursor.subtract(const Duration(days: 1));
       }
@@ -323,9 +323,14 @@ class CompletionsService {
     }
   }
 
-  static String _utcDayKey(DateTime d) {
-    final u = d.toUtc();
-    return '${u.year.toString().padLeft(4, '0')}-${u.month.toString().padLeft(2, '0')}-${u.day.toString().padLeft(2, '0')}';
+  // Streak is meant to track consecutive days in the user's own calendar,
+  // so both the completion timestamps and "today" must land on the same
+  // day boundary. Converting only one side to UTC (the previous bug) shifts
+  // local midnight into the prior UTC day for any positive-offset timezone,
+  // silently breaking the streak for users east of UTC.
+  static String _localDayKey(DateTime d) {
+    final l = d.toLocal();
+    return '${l.year.toString().padLeft(4, '0')}-${l.month.toString().padLeft(2, '0')}-${l.day.toString().padLeft(2, '0')}';
   }
 
   /// Per-module rollup straight from `module_progress` — native counterpart
