@@ -9,7 +9,6 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/coming_soon.dart';
-import '../../widgets/info_card_row.dart';
 import '../../widgets/level_unit_picker.dart';
 import '../ai_tutor/ai_tutor_screen.dart';
 import '../content/all_content_screen.dart';
@@ -106,16 +105,25 @@ class DashboardScreen extends StatelessWidget {
                 goal: AppStateProvider.dailyXpGoal,
               ),
               const SizedBox(height: 16),
-              _AiTutorPrimaryCard(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AiTutorScreen()),
-                ),
-              ),
-              const SizedBox(height: 26),
               _SectionLabel(AppLocalizations.of(context)!.dashboardSectionDriveMode),
               const SizedBox(height: 12),
-              _DriveModePrimaryCard(
-                onTap: () => showLevelUnitPicker(
+              _ActionGrid(
+                onAllContent: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AllContentScreen()),
+                ),
+                onVocab: () => showLevelUnitPicker(
+                  context,
+                  units: app.unitData.unitMeta,
+                  currentCefr: cefr,
+                  completedUnits: app.practiceProgress.vocabCompletedUnits,
+                  onPicked: (units) => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
+                  ),
+                ),
+                onAiTutor: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AiTutorScreen()),
+                ),
+                onDriveMode: () => showLevelUnitPicker(
                   context,
                   units: app.unitData.unitMeta,
                   currentCefr: cefr,
@@ -124,21 +132,6 @@ class DashboardScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => DriveModeScreen(units: units),
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _SecondaryCard(
-                icon: Icons.style_rounded,
-                title: AppLocalizations.of(context)!.dashboardVocabTitle,
-                subtitle: AppLocalizations.of(context)!.dashboardVocabSubtitle,
-                onTap: () => showLevelUnitPicker(
-                  context,
-                  units: app.unitData.unitMeta,
-                  currentCefr: cefr,
-                  completedUnits: app.practiceProgress.vocabCompletedUnits,
-                  onPicked: (units) => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
                   ),
                 ),
               ),
@@ -174,12 +167,6 @@ class DashboardScreen extends StatelessWidget {
                 weekXp: weekXp,
                 totalXp: totalXp,
                 domains: domains,
-              ),
-              const SizedBox(height: 26),
-              _ContentBanner(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AllContentScreen()),
-                ),
               ),
               const SizedBox(height: 26),
               _SectionLabel(AppLocalizations.of(context)!.dashboardSectionYourDomains),
@@ -447,106 +434,169 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _DriveModePrimaryCard extends StatelessWidget {
-  final VoidCallback onTap;
-  const _DriveModePrimaryCard({required this.onTap});
+/// 2x2 action grid — All Content / Vocabulary / AI Tutor / Drive Mode —
+/// mirroring the web Dashboard's `.db-action-grid` layout (option 02).
+/// Only the two primary CTAs (All Content, Drive Mode) get the glow
+/// treatment, matching the web hierarchy.
+class _ActionGrid extends StatelessWidget {
+  final VoidCallback onAllContent;
+  final VoidCallback onVocab;
+  final VoidCallback onAiTutor;
+  final VoidCallback onDriveMode;
+  const _ActionGrid({
+    required this.onAllContent,
+    required this.onVocab,
+    required this.onAiTutor,
+    required this.onDriveMode,
+  });
+
+  static Widget _iconBox({Color? bg, Gradient? gradient, required Widget child}) {
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: bg,
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return InfoCardRow(
-      onTap: onTap,
-      padding: const EdgeInsets.all(20),
-      decoration: AppTheme.glassCard(),
-      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      gap: 16,
-      titleFontSize: 16,
-      titleFontWeight: FontWeight.w800,
-      subtitleFontSize: 12,
-      chevronColor: AppTheme.accentBright,
-      leading: Container(
-        width: 56,
-        height: 56,
-        decoration: const BoxDecoration(
-          gradient: AppTheme.primaryButtonGradient,
-          shape: BoxShape.circle,
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ActionGridCard(
+                  featured: true,
+                  onTap: onAllContent,
+                  leading: _iconBox(
+                    bg: AppTheme.accent2.withValues(alpha: 0.18),
+                    child: const Icon(Icons.school_rounded, color: AppTheme.accent2, size: 18),
+                  ),
+                  title: l10n.dashboardAllContentTitle,
+                  subtitle: l10n.dashboardAllContentSubtitle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionGridCard(
+                  onTap: onVocab,
+                  leading: _iconBox(
+                    bg: AppTheme.green.withValues(alpha: 0.15),
+                    child: const Icon(Icons.style_rounded, color: AppTheme.green, size: 18),
+                  ),
+                  title: l10n.dashboardVocabTitle,
+                  subtitle: l10n.dashboardVocabSubtitle,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
-      ),
-      title: AppLocalizations.of(context)!.dashboardDriveModeTitle,
-      subtitle: AppLocalizations.of(context)!.dashboardDriveModeSubtitle,
+        const SizedBox(height: 10),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ActionGridCard(
+                  onTap: onAiTutor,
+                  leading: _iconBox(
+                    gradient: AppTheme.primaryButtonGradient,
+                    child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 18),
+                  ),
+                  title: l10n.dashboardAiTutorTitle,
+                  subtitle: l10n.dashboardAiTutorSubtitle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionGridCard(
+                  featured: true,
+                  onTap: onDriveMode,
+                  leading: _iconBox(
+                    gradient: AppTheme.primaryButtonGradient,
+                    child: const Icon(Icons.mic_rounded, color: Colors.white, size: 18),
+                  ),
+                  title: l10n.dashboardDriveModeTitle,
+                  subtitle: l10n.dashboardDriveModeSubtitle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _AiTutorPrimaryCard extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AiTutorPrimaryCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InfoCardRow(
-      onTap: onTap,
-      padding: const EdgeInsets.all(20),
-      decoration: AppTheme.glassCard(),
-      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      gap: 16,
-      titleFontSize: 16,
-      titleFontWeight: FontWeight.w800,
-      subtitleFontSize: 12,
-      chevronColor: AppTheme.accentBright,
-      leading: Container(
-        width: 56,
-        height: 56,
-        decoration: const BoxDecoration(
-          gradient: AppTheme.primaryButtonGradient,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.smart_toy_rounded,
-          color: Colors.white,
-          size: 28,
-        ),
-      ),
-      title: AppLocalizations.of(context)!.dashboardAiTutorTitle,
-      subtitle: AppLocalizations.of(context)!.dashboardAiTutorSubtitle,
-    );
-  }
-}
-
-class _SecondaryCard extends StatelessWidget {
-  final IconData icon;
+class _ActionGridCard extends StatelessWidget {
+  final Widget leading;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  const _SecondaryCard({
-    required this.icon,
+  final bool featured;
+  const _ActionGridCard({
+    required this.leading,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.featured = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InfoCardRow(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceDark.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-        border: Border.all(color: AppTheme.borderDark),
-      ),
+    final decoration = featured
+        ? AppTheme.glassCard()
+        : BoxDecoration(
+            color: AppTheme.surfaceDark.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+            border: Border.all(color: AppTheme.borderDark),
+          );
+    return Material(
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppTheme.green.withValues(alpha: 0.15),
-          shape: BoxShape.circle,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: decoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              leading,
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textMainDark,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 11,
+                  color: AppTheme.textSubDark,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: Icon(icon, color: AppTheme.green),
       ),
-      title: title,
-      subtitle: subtitle,
     );
   }
 }
@@ -773,36 +823,6 @@ class _DiamondChartPainter extends CustomPainter {
       oldDelegate.domains.vocabulario != domains.vocabulario ||
       oldDelegate.domains.fluencia != domains.fluencia ||
       oldDelegate.domains.compreensao != domains.compreensao;
-}
-
-class _ContentBanner extends StatelessWidget {
-  final VoidCallback onTap;
-  const _ContentBanner({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InfoCardRow(
-      onTap: onTap,
-      padding: const EdgeInsets.all(18),
-      decoration: AppTheme.glassCard(),
-      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-      titleFontSize: 15,
-      titleFontWeight: FontWeight.w800,
-      subtitleFontSize: 12,
-      chevronColor: AppTheme.accentBright,
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppTheme.accent2.withValues(alpha: 0.18),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.school_rounded, color: AppTheme.accent2),
-      ),
-      title: AppLocalizations.of(context)!.dashboardAllContentTitle,
-      subtitle: AppLocalizations.of(context)!.dashboardAllContentSubtitle,
-    );
-  }
 }
 
 class _DomainGrid extends StatelessWidget {
