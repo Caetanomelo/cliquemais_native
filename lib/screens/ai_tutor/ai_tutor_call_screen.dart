@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../data/models/course_language.dart';
+import '../../data/repositories/ai_content_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import 'call_turn_assessor.dart';
@@ -50,11 +51,16 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   _CallState _state = _CallState.idle;
   String _transcript = '';
   String? _errorText;
+  // Picked fresh every time this screen opens (every call is its own
+  // AiTutorCallScreen instance), independently from whatever persona is
+  // currently active in AiTutorScreen's chat.
+  late final AiPersona _persona;
 
   @override
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
+    _persona = _app.aiContent.pickPersona();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakWelcome());
   }
@@ -73,7 +79,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   }
 
   Future<void> _speakWelcome() async {
-    final welcome = _app.aiContent.welcomeMessageForKey('call');
+    final welcome = _persona.welcome.isNotEmpty ? _persona.welcome : _app.aiContent.welcomeMessageForKey('call');
     if (welcome.isEmpty) return;
     await _speak(welcome);
   }
@@ -176,8 +182,10 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       final priorHistory = List<AiChatMessage>.from(_history);
       _history.add(AiChatMessage(role: 'user', content: userText));
       final outgoing = feedback.isEmpty ? userText : '$userText\n\n$feedback';
+      final basePrompt = _app.aiContent.systemPromptForKey('call');
+      final systemPrompt = _persona.prompt.isEmpty ? basePrompt : '${_persona.prompt}\n\n$basePrompt';
       final reply = await _app.aiTutor.send(
-        systemPrompt: _app.aiContent.systemPromptForKey('call'),
+        systemPrompt: systemPrompt,
         history: priorHistory,
         userMessage: outgoing,
       );
@@ -304,8 +312,15 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
                       ? [BoxShadow(color: AppTheme.accentBright.withValues(alpha: 0.4), blurRadius: 24, spreadRadius: 4)]
                       : null,
                 ),
-                child: const Center(child: Text('🤖', style: TextStyle(fontSize: 56))),
+                child: Center(child: Text(_persona.avatar, style: const TextStyle(fontSize: 56))),
               ),
+              if (_persona.displayName.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _persona.displayName,
+                  style: const TextStyle(fontFamily: 'Sora', fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textMainDark),
+                ),
+              ],
               const SizedBox(height: 24),
               Text(
                 _statusText,

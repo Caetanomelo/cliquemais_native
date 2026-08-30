@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
 import '../../core/services/pronunciation_assessment_service.dart';
 import '../../data/models/course_language.dart';
+import '../../data/repositories/ai_content_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
@@ -41,11 +42,17 @@ class _AiTutorScreenState extends State<AiTutorScreen>
   final ScrollController _scroll = ScrollController();
   bool _sending = false;
   _MicState _micState = _MicState.idle;
+  // Picked once per screen instance so it stays fixed for this
+  // conversation's duration — a fresh AiTutorScreen is pushed every time the
+  // user taps the Tutor tab (see AppBottomNav), so this naturally re-rolls
+  // on each new conversation.
+  late final AiPersona _persona;
 
   @override
   void initState() {
     super.initState();
     _app = context.read<AppStateProvider>();
+    _persona = _app.aiContent.pickPersona();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -88,8 +95,10 @@ class _AiTutorScreenState extends State<AiTutorScreen>
     try {
       final priorHistory = _history.sublist(0, _history.length - 1);
       final outgoing = feedback.isEmpty ? text : '$text\n\n$feedback';
+      final basePrompt = _app.aiContent.systemPromptForKey('chat');
+      final systemPrompt = _persona.prompt.isEmpty ? basePrompt : '${_persona.prompt}\n\n$basePrompt';
       final reply = await _app.aiTutor.send(
-        systemPrompt: _app.aiContent.systemPromptForKey('chat'),
+        systemPrompt: systemPrompt,
         history: priorHistory,
         userMessage: outgoing,
       );
@@ -283,17 +292,32 @@ class _AiTutorScreenState extends State<AiTutorScreen>
     // rebuilding this screen on unrelated notifyListeners() calls (e.g. XP
     // changes) that context.watch<AppStateProvider>() would trigger on
     // every message sent, even from this very screen.
-    final (suggestions, welcome) = context
+    final (suggestions, baseWelcome) = context
         .select<AppStateProvider, (List<String>, String)>(
           (app) => (
             app.aiContent.quickSuggestionsFor(AiTutorMode.chat),
             app.aiContent.welcomeMessageForKey('chat'),
           ),
         );
+    final welcome = _persona.welcome.isNotEmpty ? _persona.welcome : baseWelcome;
     final micBusy = _micState != _MicState.idle;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.aiTutorTitle)),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_persona.avatar, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                _persona.displayName.isNotEmpty ? _persona.displayName : AppLocalizations.of(context)!.aiTutorTitle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(
           context,
