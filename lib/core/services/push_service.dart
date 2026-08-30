@@ -13,8 +13,7 @@ import '../netlify_config.dart';
 /// FCM tokens and is used by `send-push.js` to fan out via Firebase Admin).
 /// Also re-posts whenever FCM rotates the token. Entirely best-effort: no
 /// Firebase config, no permission, or no network must never affect the rest
-/// of the app — this mirrors the fallback-first pattern used throughout
-/// [CloudTtsService] and [RemoteContentService].
+/// of the app.
 class PushService {
   final http.Client _client;
   PushService({http.Client? client}) : _client = client ?? http.Client();

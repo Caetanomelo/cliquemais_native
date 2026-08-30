@@ -248,8 +248,7 @@ class _DriveModeScreenState extends State<DriveModeScreen> with WidgetsBindingOb
     _app.chime.play(correct);
     if (correct) {
       _correctIndices.add(_index);
-      // Only phrases sourced live from Supabase have a stable id (an
-      // on-disk cache from before Fase 4a won't) — record() itself also
+      // id is a defensive-nullable JSON field — record() itself also
       // no-ops silently when logged out.
       if (phrase.id != null) {
         unawaited(_app.completions.record(

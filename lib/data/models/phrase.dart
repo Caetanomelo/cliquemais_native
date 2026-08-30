@@ -2,10 +2,9 @@ import 'course_language.dart';
 
 class Phrase {
   // Stable drive_phrases.id from Supabase — used to build the
-  // content_completions content_id ("drive:<id>"). Nullable because a
-  // stale on-disk cache from before this field existed (see
-  // RemoteContentService's fallback-to-cache path) won't have it; callers
-  // fall back to a unit+position key in that case.
+  // content_completions content_id ("drive:<id>"). Nullable only as a
+  // defensive JSON-parsing guard; callers skip completion recording when
+  // absent.
   final int? id;
   final String cefr;
   final double rate;

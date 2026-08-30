@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 
 import '../netlify_config.dart';
 
@@ -19,13 +16,10 @@ class _RetryableException implements Exception {
 }
 
 /// Fetches the `/data/*.json` content files from the Netlify-hosted API
-/// (backed by Supabase). Transient failures (timeouts, network errors,
-/// 5xx) are retried with backoff; if every attempt still fails, the last
-/// successfully-fetched copy of that asset is served from an on-disk cache
-/// instead of hard-failing the screen. A brand-new install with zero
-/// connectivity still has nothing to fall back to — the app remains
-/// online-only by design, this only smooths over a flaky connection on a
-/// device that already loaded the content once.
+/// (backed by Supabase). Transient failures (timeouts, network errors, 5xx)
+/// are retried with backoff; if every attempt still fails, [loadString]
+/// throws — the app is online-only by design and never serves stale or
+/// cached content in place of a live response.
 class RemoteContentService {
   final http.Client _client;
   static const _maxAttempts = 3;
@@ -49,21 +43,6 @@ class RemoteContentService {
       }
     }
 
-    final cached = await _readCache(asset, query);
-    if (cached != null) {
-      try {
-        unawaited(FirebaseCrashlytics.instance.recordError(
-          lastError,
-          StackTrace.current,
-          reason: 'RemoteContentService.loadString($asset) failed, served from disk cache',
-          fatal: false,
-        ));
-      } catch (_) {
-        // Firebase isn't initialized in some contexts (unit tests) —
-        // telemetry is best-effort and must never block the cache fallback.
-      }
-      return cached;
-    }
     throw lastError!;
   }
 
@@ -83,40 +62,7 @@ class RemoteContentService {
       throw Exception('Failed to load $asset: HTTP ${res.statusCode}');
     }
     jsonDecode(res.body); // sanity check — surface malformed payloads early
-    unawaited(_writeCache(asset, query, res.body));
     return res.body;
-  }
-
-  // Query params are folded into the cache filename so e.g. an English and
-  // a Spanish fetch of the same asset (ai_system_prompts.json?language=es)
-  // never overwrite each other's offline fallback copy.
-  Future<File> _cacheFile(String asset, Map<String, String>? query) async {
-    final dir = await getApplicationCacheDirectory();
-    final suffix = (query == null || query.isEmpty)
-        ? ''
-        : '_${(query.entries.toList()..sort((a, b) => a.key.compareTo(b.key))).map((e) => '${e.key}-${e.value}').join('_')}';
-    return File('${dir.path}/content_cache_$asset$suffix');
-  }
-
-  Future<void> _writeCache(String asset, Map<String, String>? query, String body) async {
-    try {
-      final file = await _cacheFile(asset, query);
-      await file.writeAsString(body);
-    } catch (_) {
-      // Best-effort — a failed cache write just means a later outage has
-      // nothing to fall back to; it must never block the content that did
-      // load successfully.
-    }
-  }
-
-  Future<String?> _readCache(String asset, Map<String, String>? query) async {
-    try {
-      final file = await _cacheFile(asset, query);
-      if (!await file.exists()) return null;
-      return await file.readAsString();
-    } catch (_) {
-      return null;
-    }
   }
 
   void dispose() => _client.close();
