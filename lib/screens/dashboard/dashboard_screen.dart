@@ -10,8 +10,8 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/coming_soon.dart';
 import '../../widgets/level_unit_picker.dart';
-import '../ai_tutor/ai_tutor_screen.dart';
 import '../content/all_content_screen.dart';
+import '../content/study_session_screen.dart';
 import '../drive_mode/drive_mode_screen.dart';
 import '../hero/hero_screen.dart';
 import '../settings/settings_screen.dart';
@@ -120,8 +120,8 @@ class DashboardScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => VpcScreen(units: units)),
                   ),
                 ),
-                onAiTutor: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AiTutorScreen()),
+                onStudySession: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StudySessionScreen()),
                 ),
                 onDriveMode: () => showLevelUnitPicker(
                   context,
@@ -441,12 +441,12 @@ class _SectionLabel extends StatelessWidget {
 class _ActionGrid extends StatelessWidget {
   final VoidCallback onAllContent;
   final VoidCallback onVocab;
-  final VoidCallback onAiTutor;
+  final VoidCallback onStudySession;
   final VoidCallback onDriveMode;
   const _ActionGrid({
     required this.onAllContent,
     required this.onVocab,
-    required this.onAiTutor,
+    required this.onStudySession,
     required this.onDriveMode,
   });
 
@@ -506,13 +506,13 @@ class _ActionGrid extends StatelessWidget {
             children: [
               Expanded(
                 child: _ActionGridCard(
-                  onTap: onAiTutor,
+                  onTap: onStudySession,
                   leading: _iconBox(
-                    gradient: AppTheme.primaryButtonGradient,
-                    child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 18),
+                    bg: AppTheme.gold.withValues(alpha: 0.15),
+                    child: const Icon(Icons.menu_book_rounded, color: AppTheme.gold, size: 18),
                   ),
-                  title: l10n.dashboardAiTutorTitle,
-                  subtitle: l10n.dashboardAiTutorSubtitle,
+                  title: l10n.settingsStudySessionTitle,
+                  subtitle: l10n.settingsStudySessionSubtitle,
                 ),
               ),
               const SizedBox(width: 10),
