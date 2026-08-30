@@ -59,7 +59,9 @@ class SettingsScreen extends StatelessWidget {
           SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguageSwitchError)),
         );
       }
+      return;
     }
+    if (context.mounted) _confirmLanguageSwitch(context);
   }
 
   Future<void> _pickNativeLanguage(BuildContext context) async {
@@ -104,7 +106,23 @@ class SettingsScreen extends StatelessWidget {
           SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguageSwitchError)),
         );
       }
+      return;
     }
+    if (context.mounted) _confirmLanguageSwitch(context);
+  }
+
+  // Content screens (lesson/vocab/AI Tutor) are only ever reached via a
+  // fresh Navigator.push from Dashboard, so they already pick up the new
+  // language on their own next open -- but nothing on screen changes at the
+  // moment of the switch itself (Settings' own subtitle is the only reactive
+  // bit), which reads as "did anything actually happen?". Popping back to
+  // Dashboard plus a confirmation SnackBar gives the same felt effect as the
+  // web app's full page reload after a language switch.
+  void _confirmLanguageSwitch(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguageSwitchSuccess)),
+    );
+    Navigator.of(context).popUntil((r) => r.isFirst);
   }
 
   @override

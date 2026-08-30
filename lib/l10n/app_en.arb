@@ -65,6 +65,7 @@
   "settingsCourseLanguageTitle": "Course language",
   "settingsLanguagesSameError": "Native language and course language can't be the same.",
   "settingsLanguageSwitchError": "Couldn't switch language. Check your connection and try again.",
+  "settingsLanguageSwitchSuccess": "Language updated! Content now reflects the change.",
   "settingsNativeLanguageTitle": "Native language",
   "settingsTitle": "Settings",
   "settingsSectionAccount": "Account",
