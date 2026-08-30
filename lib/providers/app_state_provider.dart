@@ -108,6 +108,16 @@ class AppStateProvider extends ChangeNotifier {
   bool _ready = false;
   bool get ready => _ready;
 
+  // init() can be retried from SplashScreen's "try again" button after a
+  // failed attempt (e.g. no network on cold boot — RemoteContentService no
+  // longer has a disk-cache fallback to quietly succeed from). These guards
+  // keep a retry from re-running the one-time, non-idempotent parts: the
+  // `late final` service fields would throw LateInitializationError if
+  // reassigned, and auth.init() calls Supabase.initialize(), which throws
+  // if called a second time.
+  bool _servicesReady = false;
+  bool _authInited = false;
+
   // Fase 8: real per-domain/XP/streak analytics, fetched live from Supabase
   // (see CompletionsService.fetchAnalyticsSummary). null until the first
   // successful fetch after login — every getter below falls back to the
@@ -117,21 +127,26 @@ class AppStateProvider extends ChangeNotifier {
   AnalyticsSummary? _analyticsSummary;
 
   Future<void> init() async {
-    cloudTts = _seedCloudTts ?? CloudTtsService(fallback: tts);
-    aiTutor = _seedAiTutor ?? AiTutorService();
-    pronunciation = _seedPronunciation ?? PronunciationAssessmentService();
-    unitData = _seedUnitData ?? UnitDataRepository(content: remoteContent);
-    curriculum =
-        _seedCurriculum ?? CurriculumRepository(content: remoteContent);
-    aiContent = _seedAiContent ?? AiContentRepository(content: remoteContent);
+    if (!_servicesReady) {
+      cloudTts = _seedCloudTts ?? CloudTtsService(fallback: tts);
+      aiTutor = _seedAiTutor ?? AiTutorService();
+      pronunciation = _seedPronunciation ?? PronunciationAssessmentService();
+      unitData = _seedUnitData ?? UnitDataRepository(content: remoteContent);
+      curriculum =
+          _seedCurriculum ?? CurriculumRepository(content: remoteContent);
+      aiContent = _seedAiContent ?? AiContentRepository(content: remoteContent);
+    }
 
     // unitData/curriculum content doesn't depend on course language (both
     // ship every language's content in one payload, resolved client-side —
     // see Lesson/CorpTrack.forLanguage), so they, persistence, and auth can
     // all start immediately, independent of each other.
-    final persistenceFuture = _seedPersistence != null
-        ? Future.value(_seedPersistence)
-        : PersistenceService.create();
+    // Only created (and only assigned to the `late final persistence` field
+    // below) on the first attempt — a retry after a failed attempt must not
+    // touch it again.
+    final Future<PersistenceService>? persistenceFuture = _servicesReady
+        ? null
+        : (_seedPersistence != null ? Future.value(_seedPersistence) : PersistenceService.create());
     final unitDataFuture = unitData.loadAll();
     final curriculumFuture = curriculum.loadAll();
     // auth.init() (Supabase.initialize() + session restore) must resolve
@@ -139,14 +154,19 @@ class AppStateProvider extends ChangeNotifier {
     // isLoggedIn immediately after boot to decide whether to skip Hero+Login,
     // and that read was unreliable when auth.init() only ran inside the
     // fire-and-forget _initAuth() below, after _ready was already set.
-    final authFuture = auth.init();
+    // Guarded so a retry after a failed attempt can't call it twice —
+    // Supabase.initialize() throws on a second call.
+    final authFuture = _authInited ? Future<void>.value() : auth.init().then((_) => _authInited = true);
 
     // aiContent, curriculumProgress, practiceProgress, and completions all
     // need the course language up front (a `?language=` query param, or a
     // key/column to scope local storage and Supabase reads by), so they
     // wait for persistenceFuture to resolve before kicking off — then join
     // the same final wait as the language-independent loads above.
-    persistence = await persistenceFuture;
+    if (persistenceFuture != null) {
+      persistence = await persistenceFuture;
+      _servicesReady = true;
+    }
     final lang = persistence.courseLanguage;
     final aiContentFuture = aiContent.loadAll(lang, persistence.nativeLanguage);
     final curriculumProgressFuture = _seedCurriculumProgress != null
