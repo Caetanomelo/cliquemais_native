@@ -331,17 +331,28 @@ class AppStateProvider extends ChangeNotifier {
   /// pushes the choice to `profiles.target_language` when logged in, so it
   /// carries over to the web app and other devices.
   Future<void> setCourseLanguage(String lang) async {
+    final previous = persistence.courseLanguage;
     await persistence.setCourseLanguage(lang);
+    try {
+      await aiContent.loadAll(lang, persistence.nativeLanguage);
+      // curriculumProgress/practiceProgress/completions cache their state in
+      // memory per language at load time (see Fase 5) — reload them for the
+      // new course so its progress doesn't mix with the previous language's.
+      curriculumProgress = await CurriculumProgressService.create(lang);
+      practiceProgress = await PracticeProgressService.create(lang);
+      completions = await CompletionsService.create(auth, lang);
+    } catch (e) {
+      // A falha no meio da troca deixaria courseLanguage apontando pro
+      // idioma novo enquanto curriculumProgress/practiceProgress/completions
+      // continuariam presos no antigo -- desfaz o persistence.set() acima
+      // pra manter os dois em sincronia e propaga o erro pro caller mostrar
+      // um aviso (ver settings_screen.dart).
+      await persistence.setCourseLanguage(previous);
+      rethrow;
+    }
     if (isLoggedIn) {
       unawaited(auth.updateProfile(targetLanguage: lang));
     }
-    await aiContent.loadAll(lang, persistence.nativeLanguage);
-    // curriculumProgress/practiceProgress/completions cache their state in
-    // memory per language at load time (see Fase 5) — reload them for the
-    // new course so its progress doesn't mix with the previous language's.
-    curriculumProgress = await CurriculumProgressService.create(lang);
-    practiceProgress = await PracticeProgressService.create(lang);
-    completions = await CompletionsService.create(auth, lang);
     notifyListeners();
   }
 
@@ -352,11 +363,17 @@ class AppStateProvider extends ChangeNotifier {
   /// aqui tambem ou o Tutor IA continuaria respondendo no idioma nativo
   /// antigo ate o proximo boot.
   Future<void> setNativeLanguage(String lang) async {
+    final previous = persistence.nativeLanguage;
     await persistence.setNativeLanguage(lang);
+    try {
+      await aiContent.loadAll(persistence.courseLanguage, lang);
+    } catch (e) {
+      await persistence.setNativeLanguage(previous);
+      rethrow;
+    }
     if (isLoggedIn) {
       unawaited(auth.updateProfile(nativeLanguage: lang));
     }
-    await aiContent.loadAll(persistence.courseLanguage, lang);
     notifyListeners();
   }
 

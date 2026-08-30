@@ -51,7 +51,15 @@ class SettingsScreen extends StatelessWidget {
       }
       return;
     }
-    await appState.setCourseLanguage(chosen);
+    try {
+      await appState.setCourseLanguage(chosen);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguageSwitchError)),
+        );
+      }
+    }
   }
 
   Future<void> _pickNativeLanguage(BuildContext context) async {
@@ -88,7 +96,15 @@ class SettingsScreen extends StatelessWidget {
       }
       return;
     }
-    await appState.setNativeLanguage(chosen);
+    try {
+      await appState.setNativeLanguage(chosen);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.settingsLanguageSwitchError)),
+        );
+      }
+    }
   }
 
   @override

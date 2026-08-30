@@ -85,6 +85,7 @@
 
   "settingsCourseLanguageTitle": "Idioma do curso",
   "settingsLanguagesSameError": "Idioma nativo e idioma do curso não podem ser iguais.",
+  "settingsLanguageSwitchError": "Não foi possível trocar o idioma. Verifique sua conexão e tente novamente.",
   "settingsNativeLanguageTitle": "Idioma nativo",
   "settingsTitle": "Configurações",
   "settingsSectionAccount": "Conta",
