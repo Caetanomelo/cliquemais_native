@@ -181,6 +181,46 @@ void main() {
       expect(result.failed, isFalse);
     });
 
+    // Regression test for the real-device follow-up to the gibberish bug:
+    // the pt-BR pass can outright fail (throw, or Azure returning too few
+    // words to parse) for a turn spoken entirely in Portuguese, while the
+    // en-US pass still comes back "confidently English" per Azure's own
+    // acoustic score on forced-decoded nonsense. The old check only ran the
+    // plausibility comparison when both passes succeeded, so a failed
+    // native pass silently let garbage English through again. Now primary
+    // must clear the plausibility bar on its own whenever native is
+    // unavailable — since neither pass produced anything usable here, the
+    // turn is dropped (empty transcript) rather than sent to the tutor as
+    // English.
+    test('drops the turn when the en-US text is gibberish and the pt-BR pass fails outright', () async {
+      final reasons = <String>[];
+      final service = PronunciationAssessmentService(
+        client: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          final lang = body['lang'] as String;
+          if (lang == 'en-US') {
+            return _nBestResponse(
+              display: 'Ola como messages bowenoid each English',
+              confidence: 0.6,
+              pronScore: 30,
+              wordCount: 6,
+            );
+          }
+          return http.Response('server error', 500);
+        }),
+      );
+
+      final result = await assessCallTurn(
+        service,
+        [1, 2, 3],
+        onError: (e, st, {required reason}) => reasons.add(reason),
+      );
+
+      expect(result.transcript, '');
+      expect(result.failed, isFalse);
+      expect(reasons, ['pt-BR assess failed']);
+    });
+
     test('uses the pt-BR result when the en-US pass throws, and reports the error', () async {
       final reasons = <String>[];
       final service = PronunciationAssessmentService(

@@ -152,15 +152,27 @@ Future<CallTurnAssessment> assessCallTurn(
   // its own language — if primary's text doesn't look like primaryLang and
   // native's text does look like nativeLang, native wins regardless of the
   // raw confidence numbers.
+  //
+  // Crucially, primary must clear the plausibility bar on its own whenever
+  // the native pass is unavailable (threw, or returned too few words to
+  // parse) — on real devices the pt-BR pass regularly fails outright for a
+  // turn spoken entirely in Portuguese (network hiccup, Azure returning an
+  // empty NBest for a phrase it's less confident about), and that used to
+  // fall through this whole check via the `nativeResult == null` shortcut,
+  // silently re-opening the exact bug this function exists to close: a
+  // "confidently English" (per Azure's acoustic score) but nonsense
+  // primaryLang transcript sent straight to the tutor.
   final primaryLangCode = primaryLang.split('-').first;
   final nativeLangCode = nativeLang.split('-').first;
+  final primaryPlausible =
+      primaryResult != null && _looksLikeLanguage(primaryResult!.recognizedText, primaryLangCode);
+  final nativePlausible =
+      nativeResult != null && _looksLikeLanguage(nativeResult!.recognizedText, nativeLangCode);
   final usePrimary =
       primaryResult != null &&
       primaryResult!.isConfidentEnglish &&
       (nativeResult == null || primaryResult!.confidence >= nativeResult!.confidence) &&
-      (nativeResult == null ||
-          _looksLikeLanguage(primaryResult!.recognizedText, primaryLangCode) ||
-          !_looksLikeLanguage(nativeResult!.recognizedText, nativeLangCode));
+      (primaryPlausible || (nativeResult != null && !nativePlausible));
 
   if (usePrimary) {
     final p = primaryResult!;
