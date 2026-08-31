@@ -18,8 +18,8 @@ enum _CallState { idle, listening, thinking, speaking }
 
 class _CallSegment {
   final String text;
-  final String language;
-  const _CallSegment(this.text, this.language);
+  final String langCode;
+  const _CallSegment(this.text, this.langCode);
 }
 
 /// Live voice call with the AI Tutor — hold-to-talk (press and hold the mic
@@ -75,6 +75,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     if (_state == _CallState.listening) {
       unawaited(_cancelRecording());
     }
+    unawaited(_app.cloudTts.stop());
     _app.tts.stop();
   }
 
@@ -209,23 +210,23 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   // fica no idioma nativo do aluno. Mesmo marcador que o web app usa, ja
   // que ambos consomem o mesmo system_prompt de ai_tutor_modes.
   List<_CallSegment> _parseBilingualSegments(String text) {
-    final nativeLocale = resolveLocale(_app.nativeLanguage);
-    final targetLocale = resolveLocale(_app.courseLanguage);
+    final nativeLang = _app.nativeLanguage;
+    final targetLang = _app.courseLanguage;
     final segments = <_CallSegment>[];
     final re = RegExp(r'\{\{([^{}]*)\}\}');
     var lastIndex = 0;
     for (final m in re.allMatches(text)) {
       if (m.start > lastIndex) {
-        segments.add(_CallSegment(text.substring(lastIndex, m.start), nativeLocale));
+        segments.add(_CallSegment(text.substring(lastIndex, m.start), nativeLang));
       }
       final inner = m.group(1) ?? '';
       if (inner.isNotEmpty) {
-        segments.add(_CallSegment(inner, targetLocale));
+        segments.add(_CallSegment(inner, targetLang));
       }
       lastIndex = m.end;
     }
     if (lastIndex < text.length) {
-      segments.add(_CallSegment(text.substring(lastIndex), nativeLocale));
+      segments.add(_CallSegment(text.substring(lastIndex), nativeLang));
     }
     return segments.where((s) => s.text.trim().isNotEmpty).toList();
   }
@@ -236,7 +237,15 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     final clean = text.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('**', '');
     for (final seg in _parseBilingualSegments(clean)) {
       if (!mounted) return;
-      await _app.tts.speak(seg.text, language: seg.language, voiceGender: _app.voiceGender);
+      // AI Tutor sempre usa Speechify (paridade com web's _route()), com
+      // fallback pro TTS on-device do proprio CloudTtsService.speakSpeechify
+      // se a Netlify function falhar/sem rede.
+      await _app.cloudTts.speakSpeechify(
+        seg.text,
+        langCode: seg.langCode,
+        voiceGender: _app.voiceGender,
+        fallbackLanguage: resolveLocale(seg.langCode),
+      );
     }
     if (mounted) setState(() => _state = _CallState.idle);
   }
@@ -264,6 +273,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     // stop() (using an already-disposed channel) or leave the Android
     // AudioRecord session half-released for the next screen that needs it.
     unawaited(_stopThenDisposeRecorder());
+    unawaited(_app.cloudTts.stop());
     _app.tts.stop();
     super.dispose();
   }

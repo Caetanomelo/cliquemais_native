@@ -73,6 +73,41 @@ class CloudTtsService {
     return base64Decode(json['audioContent'] as String);
   }
 
+  /// AI Tutor voice call — always Speechify, independent of any Google
+  /// toggle, mirroring web's `_route()` (TTSType.AI_TUTOR always ->
+  /// 'speechify', src/main.js). [langCode] is the 2-letter course code
+  /// ('en'/'es'/'pt'), not a locale — `tts-speechify.js` picks the voice_id
+  /// itself from {lang, gender}, same contract as web's fetchSpeechifyTTS.
+  Future<void> speakSpeechify(
+    String text, {
+    required String langCode,
+    String voiceGender = 'female',
+    String fallbackLanguage = 'en-US',
+  }) async {
+    try {
+      final bytes = await _speakSpeechifyViaNetlify(text, voiceGender, langCode);
+      await _player.stop();
+      await _player.play(BytesSource(bytes));
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speakSpeechify failed', fatal: false));
+      await _fallback.speak(text, voiceGender: voiceGender, language: fallbackLanguage);
+    }
+  }
+
+  Future<Uint8List> _speakSpeechifyViaNetlify(String text, String voiceGender, String langCode) async {
+    final json = await postJson(
+      _client,
+      'tts-speechify',
+      {
+        'text': text,
+        'lang': langCode,
+        'gender': voiceGender,
+      },
+      errorLabel: 'Netlify Speechify TTS',
+    );
+    return base64Decode(json['audioContent'] as String);
+  }
+
   Future<void> stop() async {
     await _player.stop();
     await _fallback.stop();
