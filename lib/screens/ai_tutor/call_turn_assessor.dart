@@ -119,7 +119,7 @@ Future<CallTurnAssessment> assessCallTurn(
 
   await Future.wait([
     pronunciation
-        .assess(wavBytes, lang: primaryLang)
+        .assess(wavBytes, lang: primaryLang, isNativePass: false)
         .then((r) => primaryResult = r)
         .catchError((Object e, StackTrace st) {
           primaryError = e;
@@ -127,7 +127,7 @@ Future<CallTurnAssessment> assessCallTurn(
           return null;
         }),
     pronunciation
-        .assess(wavBytes, lang: nativeLang)
+        .assess(wavBytes, lang: nativeLang, isNativePass: true)
         .then((r) => nativeResult = r)
         .catchError((Object e, StackTrace st) {
           nativeError = e;

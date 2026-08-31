@@ -49,11 +49,19 @@ class PronunciationAssessmentService {
 
   PronunciationAssessmentService({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<PronunciationResult?> assess(List<int> wavBytes, {String lang = 'en-US'}) async {
+  Future<PronunciationResult?> assess(
+    List<int> wavBytes, {
+    String lang = 'en-US',
+    bool isNativePass = false,
+  }) async {
     final json = await postJson(
       _client,
       'pronunciation-assess',
-      {'audioBase64': base64Encode(wavBytes), 'lang': lang},
+      {
+        'audioBase64': base64Encode(wavBytes),
+        'lang': lang,
+        'isNativePass': isNativePass,
+      },
       errorLabel: 'Pronunciation assessment',
     );
     final nBest = json['NBest'] as List?;

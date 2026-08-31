@@ -25,17 +25,22 @@ class _CallSegment {
 /// Live voice call with the AI Tutor — hold-to-talk (press and hold the mic
 /// to speak, release to send), mirroring the web app's `AiTutor.openCall()`
 /// flow but with raw audio capture instead of live on-device STT, so Azure
-/// Pronunciation Assessment can score real mispronounced English words.
+/// Pronunciation Assessment can score real mispronounced target-language
+/// words.
 ///
 /// Deliberate divergence from the web app: `speech_to_text` + a raw-audio
 /// recorder can't run at once on Android (both claim the mic's exclusive
 /// `AudioRecord` session), so this screen uses only `record` for capture and
 /// has no live captions — the transcript only appears after the turn ends.
-/// Since the call is mostly in Portuguese (the tutor corrects English only
-/// when attempted), a single WAV is assessed first against `en-US`; if that
-/// pass isn't confidently English, the same bytes are re-sent to Azure as a
-/// plain `pt-BR` transcription so ordinary Portuguese turns still work.
-/// `SpeechService` is untouched and keeps being used everywhere else (Vocab
+/// Since the call is mostly in the student's native language (the tutor
+/// corrects the target language only when attempted), a single WAV is
+/// assessed first against the target-language locale (`primaryLang`,
+/// resolved from `courseLanguage`); if that pass isn't confidently the
+/// target language, the same bytes are re-sent to Azure as a plain
+/// transcription in the student's native locale (`nativeLang`, resolved
+/// from `nativeLanguage`) so ordinary native-language turns still work —
+/// see [assessCallTurn]. `SpeechService` is untouched and keeps being used
+/// everywhere else (Vocab
 /// Lab, Drive Mode).
 class AiTutorCallScreen extends StatefulWidget {
   const AiTutorCallScreen({super.key});
