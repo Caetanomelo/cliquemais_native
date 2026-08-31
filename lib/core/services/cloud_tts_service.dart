@@ -41,6 +41,7 @@ class CloudTtsService {
       // leaving the user with silence, but still gets recorded so a spike
       // in Netlify/Google TTS failures shows up in Crashlytics.
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speak failed', fatal: false));
+      await _stopPlayerSilently();
       await _fallback.speak(text, rate: rate, voiceGender: voiceGender, language: language);
     }
   }
@@ -91,6 +92,7 @@ class CloudTtsService {
       await _playAndAwaitCompletion(bytes);
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speakSpeechify failed', fatal: false));
+      await _stopPlayerSilently();
       await _fallback.speak(text, voiceGender: voiceGender, language: fallbackLanguage);
     }
   }
@@ -119,11 +121,23 @@ class CloudTtsService {
   Future<void> _playAndAwaitCompletion(Uint8List bytes) async {
     final completer = Completer<void>();
     _pendingCompletion = completer;
+    // `onPlayerComplete` is a separate event-channel stream from the
+    // method-channel calls (play/stop) — its delivery isn't guaranteed to be
+    // ordered against a just-`await`ed `stop()`. A stale event from the
+    // *previous* segment's stop can land on this fresh subscription and
+    // resolve it before this segment's audio has actually started, letting
+    // the next segment start on top of it. TTS clips are never genuinely
+    // this short, so anything inside the guard window is treated as stale.
+    var playbackStarted = false;
+    final guard = Stopwatch();
     final sub = _player.onPlayerComplete.listen((_) {
+      if (!playbackStarted || guard.elapsedMilliseconds < 200) return;
       if (!completer.isCompleted) completer.complete();
     });
     try {
       await _player.play(BytesSource(bytes));
+      playbackStarted = true;
+      guard.start();
       await completer.future.timeout(const Duration(seconds: 30), onTimeout: () {});
     } finally {
       await sub.cancel();
@@ -135,6 +149,21 @@ class CloudTtsService {
     _pendingCompletion?.complete();
     await _player.stop();
     await _fallback.stop();
+  }
+
+  /// Used before falling back to on-device speech: if the cloud path threw
+  /// *after* `_player.play()` had already started native playback (a plugin
+  /// channel hiccup mid-`_playAndAwaitCompletion`, not just a network
+  /// failure before any audio started), the catch block used to jump
+  /// straight to `_fallback.speak()` while `_player`'s audio kept playing in
+  /// the background — two different engines/languages audible at once. This
+  /// guarantees the cloud player is silent first.
+  Future<void> _stopPlayerSilently() async {
+    try {
+      await _player.stop();
+    } catch (_) {
+      // Already stopped/no active source — nothing to clean up.
+    }
   }
 
   void dispose() {
