@@ -16,6 +16,7 @@ class CloudTtsService {
   final TtsService _fallback;
   final AudioPlayer _player = AudioPlayer();
   final http.Client _client;
+  Completer<void>? _pendingCompletion;
 
   CloudTtsService({
     required TtsService fallback,
@@ -34,7 +35,7 @@ class CloudTtsService {
     try {
       final bytes = await _speakGoogleViaNetlify(text, voiceGender, language);
       await _player.stop();
-      await _player.play(BytesSource(bytes));
+      await _playAndAwaitCompletion(bytes);
     } catch (e, st) {
       // Any network/API failure falls back to on-device speech rather than
       // leaving the user with silence, but still gets recorded so a spike
@@ -87,7 +88,7 @@ class CloudTtsService {
     try {
       final bytes = await _speakSpeechifyViaNetlify(text, voiceGender, langCode);
       await _player.stop();
-      await _player.play(BytesSource(bytes));
+      await _playAndAwaitCompletion(bytes);
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speakSpeechify failed', fatal: false));
       await _fallback.speak(text, voiceGender: voiceGender, language: fallbackLanguage);
@@ -108,7 +109,30 @@ class CloudTtsService {
     return base64Decode(json['audioContent'] as String);
   }
 
+  /// `player.play()` only awaits playback *starting*, not finishing — a caller
+  /// that speaks several segments back-to-back (the AI Tutor call screen's
+  /// bilingual `{{...}}` split) would fire the next segment's audio before
+  /// the previous one finished, cutting words off and audibly overlapping
+  /// different languages. This waits for the real completion event instead,
+  /// with a safety timeout in case a platform audio stack never fires it and
+  /// an early-out if [stop] is called mid-playback (lifecycle pause/dispose).
+  Future<void> _playAndAwaitCompletion(Uint8List bytes) async {
+    final completer = Completer<void>();
+    _pendingCompletion = completer;
+    final sub = _player.onPlayerComplete.listen((_) {
+      if (!completer.isCompleted) completer.complete();
+    });
+    try {
+      await _player.play(BytesSource(bytes));
+      await completer.future.timeout(const Duration(seconds: 30), onTimeout: () {});
+    } finally {
+      await sub.cancel();
+      if (identical(_pendingCompletion, completer)) _pendingCompletion = null;
+    }
+  }
+
   Future<void> stop() async {
+    _pendingCompletion?.complete();
     await _player.stop();
     await _fallback.stop();
   }
