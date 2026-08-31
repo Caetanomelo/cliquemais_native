@@ -63,7 +63,20 @@ class PronunciationAssessmentService {
     final confidence = (best['Confidence'] as num?)?.toDouble() ?? 1.0;
     final recognizedText = (best['Display'] as String?) ?? (best['Lexical'] as String?) ?? '';
     final wordsJson = (best['Words'] as List?) ?? const [];
-    if (wordsJson.length < 2) return null;
+    // Azure only includes the per-word `Words` breakdown when the
+    // Pronunciation-Assessment header was sent with the request (see
+    // pronunciation-assess.js's `isNativePass`) — the native-language
+    // fallback pass deliberately omits that header (scoring pronunciation of
+    // the student's own native language isn't meaningful), so `Words` is
+    // always empty there regardless of what was said. Gating on its length
+    // used to make that pass return null for every single turn. Count words
+    // in the recognized text itself when Azure didn't return word-level
+    // detail, so a real transcript still counts as a real result.
+    final textWordCount = recognizedText.trim().isEmpty
+        ? 0
+        : recognizedText.trim().split(RegExp(r'\s+')).length;
+    final wordCount = wordsJson.isNotEmpty ? wordsJson.length : textWordCount;
+    if (wordCount < 2) return null;
 
     final pa = best['PronunciationAssessment'] as Map<String, dynamic>? ?? const {};
     final pronScore = (pa['PronScore'] as num?)?.toDouble() ?? 0.0;
@@ -83,7 +96,7 @@ class PronunciationAssessmentService {
       recognizedText: recognizedText,
       confidence: confidence,
       pronScore: pronScore,
-      wordCount: wordsJson.length,
+      wordCount: wordCount,
       lowScoreWords: lowScoreWords,
     );
   }

@@ -89,6 +89,54 @@ void main() {
       expect(await service.assess([1, 2, 3]), isNull);
     });
 
+    // Regression test for the native-pass "nothing happens when I speak
+    // Portuguese" bug: pronunciation-assess.js omits the
+    // Pronunciation-Assessment header for the native-language fallback pass
+    // (isNativePass=true), and Azure only ever includes the per-word `Words`
+    // breakdown when that header was sent. So a real native-pass response
+    // never has `Words`, even for a perfectly recognized turn — the old
+    // `wordsJson.length < 2` gate made assess() return null every single
+    // time for that pass, which the call screen then silently swallowed as
+    // "nothing to send" for every Portuguese turn.
+    test('falls back to counting words in the recognized text when Azure omits Words (native pass)', () async {
+      final service = PronunciationAssessmentService(
+        client: MockClient((request) async => http.Response(
+              jsonEncode({
+                'NBest': [
+                  {'Confidence': 0.82, 'Display': 'Como se diz boa noite em inglês'},
+                ],
+              }),
+              200,
+              // Without a content-type header, http.Response encodes the body
+              // as latin1, mangling the accented text — see the identical
+              // note in call_turn_assessor_test.dart's _nBestResponse.
+              headers: const {'content-type': 'application/json'},
+            )),
+      );
+
+      final result = await service.assess([1, 2, 3], lang: 'pt-BR');
+
+      expect(result, isNotNull);
+      expect(result!.recognizedText, 'Como se diz boa noite em inglês');
+      expect(result.wordCount, 7);
+      expect(result.lowScoreWords, isEmpty);
+    });
+
+    test('still returns null when the Words-less text is under 2 words (native pass)', () async {
+      final service = PronunciationAssessmentService(
+        client: MockClient((request) async => http.Response(
+              jsonEncode({
+                'NBest': [
+                  {'Confidence': 0.7, 'Display': 'oi'},
+                ],
+              }),
+              200,
+            )),
+      );
+
+      expect(await service.assess([1, 2, 3], lang: 'pt-BR'), isNull);
+    });
+
     test('throws when the function returns a non-200 status', () async {
       final service = PronunciationAssessmentService(
         client: MockClient((request) async => http.Response('server error', 500)),
