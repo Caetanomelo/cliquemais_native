@@ -143,7 +143,11 @@ class CloudTtsService {
     });
     try {
       await _player.play(BytesSource(bytes));
-      if (playbackRate != 1.0) await _player.setPlaybackRate(playbackRate);
+      // Always set explicitly (never conditionally on != 1.0): _player is one
+      // shared AudioPlayer reused across every segment, so skipping the call
+      // when this segment wants 1.0 would leave a *previous* segment's slower
+      // rate stuck on the player instead of resetting it back to normal.
+      await _player.setPlaybackRate(playbackRate);
       playbackStarted = true;
       guard.start();
       await completer.future.timeout(const Duration(seconds: 30), onTimeout: () {});
