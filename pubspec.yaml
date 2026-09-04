@@ -77,6 +77,9 @@ dependencies:
   # Foto de perfil na tela de completar cadastro
   image_picker: ^1.1.2
 
+  # Mantém a tela acesa durante a chamada de voz do Tutor IA
+  wakelock_plus: ^1.2.10
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -192,11 +192,6 @@
   "aiTutorCallMicIdleLabel": "I'm listening — tap to mute",
   "aiTutorCallMicMutedLabel": "Microphone off — tap to unmute",
   "aiTutorCallEndButton": "End call",
-  "aiTutorCallFillerAck1": "Got it...",
-  "aiTutorCallFillerAck2": "Let me see...",
-  "aiTutorCallFillerAck3": "Right...",
-  "aiTutorCallFillerAnalyzing1": "I'm analyzing your speech...",
-  "aiTutorCallFillerAnalyzing2": "One moment, listening closely...",
 
   "studySessionTitle": "Study Session",
   "studySessionAllDone": "🎉 You've completed all the available curriculum!",

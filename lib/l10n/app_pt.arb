@@ -235,11 +235,6 @@
   "aiTutorCallMicIdleLabel": "Estou ouvindo — toque para silenciar",
   "aiTutorCallMicMutedLabel": "Microfone desligado — toque para reativar",
   "aiTutorCallEndButton": "Encerrar chamada",
-  "aiTutorCallFillerAck1": "Entendi...",
-  "aiTutorCallFillerAck2": "Deixa eu ver...",
-  "aiTutorCallFillerAck3": "Certo...",
-  "aiTutorCallFillerAnalyzing1": "Estou analisando a sua fala...",
-  "aiTutorCallFillerAnalyzing2": "Só um instante, ouvindo com atenção...",
 
   "studySessionTitle": "Sessão de Estudo",
   "studySessionAllDone": "🎉 Você concluiu todo o currículo disponível!",

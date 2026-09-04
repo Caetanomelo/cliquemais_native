@@ -317,15 +317,18 @@ class _AiTutorScreenState extends State<AiTutorScreen>
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const AiTutorCallScreen())),
-        backgroundColor: AppTheme.accentBright,
-        foregroundColor: Colors.black,
-        tooltip: AppLocalizations.of(context)!.aiTutorCallTooltip,
-        child: const Icon(Icons.call_rounded),
+        // Item 4 do pedido: ícone de call no canto superior direito da tela,
+        // não mais um FAB flutuando sobre o conteúdo/composer.
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AiTutorCallScreen())),
+            icon: const Icon(Icons.call_rounded),
+            color: AppTheme.accentBright,
+            tooltip: AppLocalizations.of(context)!.aiTutorCallTooltip,
+          ),
+        ],
       ),
       body: Column(
         children: [

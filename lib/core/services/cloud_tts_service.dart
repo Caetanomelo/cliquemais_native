@@ -85,11 +85,18 @@ class CloudTtsService {
     required String langCode,
     String voiceGender = 'female',
     String fallbackLanguage = 'en-US',
+    // Extra client-side playback-rate multiplier layered on top of the
+    // synthesized audio (Speechify itself ignores any speed param server-side
+    // — see tts-speechify.js — so this is the only reliable slowdown knob).
+    // 1.0 = no change; e.g. 0.7 = 30% slower. Used by the call screen to
+    // slow down the target-language segments relative to the student's CEFR
+    // level, mirroring web's TTS.speakWithRate.
+    double playbackRate = 1.0,
   }) async {
     try {
       final bytes = await _speakSpeechifyViaNetlify(text, voiceGender, langCode);
       await _player.stop();
-      await _playAndAwaitCompletion(bytes);
+      await _playAndAwaitCompletion(bytes, playbackRate: playbackRate);
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'CloudTtsService.speakSpeechify failed', fatal: false));
       await _stopPlayerSilently();
@@ -118,7 +125,7 @@ class CloudTtsService {
   /// different languages. This waits for the real completion event instead,
   /// with a safety timeout in case a platform audio stack never fires it and
   /// an early-out if [stop] is called mid-playback (lifecycle pause/dispose).
-  Future<void> _playAndAwaitCompletion(Uint8List bytes) async {
+  Future<void> _playAndAwaitCompletion(Uint8List bytes, {double playbackRate = 1.0}) async {
     final completer = Completer<void>();
     _pendingCompletion = completer;
     // `onPlayerComplete` is a separate event-channel stream from the
@@ -136,6 +143,7 @@ class CloudTtsService {
     });
     try {
       await _player.play(BytesSource(bytes));
+      if (playbackRate != 1.0) await _player.setPlaybackRate(playbackRate);
       playbackStarted = true;
       guard.start();
       await completer.future.timeout(const Duration(seconds: 30), onTimeout: () {});

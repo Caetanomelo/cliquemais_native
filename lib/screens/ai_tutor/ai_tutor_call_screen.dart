@@ -4,11 +4,14 @@ import 'dart:math';
 
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../../core/theme/app_theme.dart';
 import '../../core/services/ai_tutor_service.dart';
+import '../../core/services/netlify_post_json.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/course_language.dart';
 import '../../data/repositories/ai_content_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -73,8 +76,23 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   static const int _kVadSilenceMs = 900;
   static const int _kVadCalibrationMs = 400;
 
+  // Item 3 do pedido: quando o tutor fala no idioma-alvo (trechos {{...}}),
+  // a fala deve ser 20-40% mais lenta conforme o nível do aluno -- quanto
+  // mais iniciante, mais devagar. Fração de redução aplicada como
+  // multiplicador de playbackRate (1 - redução) só nesses trechos; trechos
+  // no idioma nativo tocam em velocidade normal.
+  static const Map<String, double> _kCallTargetSlowdownByLevel = {
+    'A1': 0.40,
+    'A2': 0.35,
+    'B1': 0.30,
+    'B2': 0.25,
+    'C1': 0.20,
+    'C2': 0.20,
+  };
+
   late final AppStateProvider _app;
   final AudioRecorder _recorder = AudioRecorder();
+  final http.Client _httpClient = http.Client();
   final List<AiChatMessage> _history = [];
   _CallState _state = _CallState.idle;
   String _transcript = '';
@@ -94,7 +112,6 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   StreamSubscription<Amplitude>? _ampSub;
   String? _monitorPath;
   int _fillerToken = 0;
-  final Random _rng = Random();
 
   @override
   void initState() {
@@ -102,6 +119,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     _app = context.read<AppStateProvider>();
     _persona = _app.aiContent.pickPersona();
     WidgetsBinding.instance.addObserver(this);
+    // Item 1 do pedido: mantém a tela acesa durante toda a chamada, senão o
+    // sistema entra em modo de descanso no meio de uma conversa por voz.
+    unawaited(WakelockPlus.enable());
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakWelcome());
   }
 
@@ -112,6 +132,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(WakelockPlus.enable());
       if (!_muted && _state == _CallState.idle) unawaited(_armVad());
       return;
     }
@@ -304,7 +325,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   }
 
   Future<void> _assessAndSend(List<int> wavBytes) async {
-    unawaited(_playFillers(includeAnalyzing: true));
+    unawaited(_playFiller());
 
     final result = await assessCallTurn(
       _app.pronunciation,
@@ -367,43 +388,44 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
 
   // ---- Filler audio (fire-and-forget, cut off automatically once the real
   // reply's playback calls CloudTtsService's `_player.stop()`) -------------
+  //
+  // Item 2 do pedido: nenhuma frase fixa em código/banco -- uma única frase
+  // curta é gerada em tempo real (Claude Haiku via a Netlify function
+  // `ai-filler`, mesma usada pelo web) no idioma nativo do aluno, a cada
+  // turno. `_fillerToken` garante que uma frase de um turno anterior nunca
+  // toca por cima do turno atual.
 
-  String _randomFillerAck() {
-    final l10n = AppLocalizations.of(context)!;
-    final options = [l10n.aiTutorCallFillerAck1, l10n.aiTutorCallFillerAck2, l10n.aiTutorCallFillerAck3];
-    return options[_rng.nextInt(options.length)];
+  Future<String?> _fetchFillerPhrase(String nativeLang) async {
+    try {
+      final json = await postJson(
+        _httpClient,
+        'ai-filler',
+        {'nativeLanguage': nativeLang},
+        errorLabel: 'Netlify AI filler',
+      );
+      final phrase = (json['phrase'] as String?)?.trim();
+      return (phrase != null && phrase.isNotEmpty) ? phrase : null;
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._fetchFillerPhrase failed', fatal: false));
+      return null;
+    }
   }
 
-  String _randomFillerAnalyzing() {
-    final l10n = AppLocalizations.of(context)!;
-    final options = [l10n.aiTutorCallFillerAnalyzing1, l10n.aiTutorCallFillerAnalyzing2];
-    return options[_rng.nextInt(options.length)];
-  }
-
-  Future<void> _playFillers({required bool includeAnalyzing}) async {
+  Future<void> _playFiller() async {
     final token = ++_fillerToken;
     if (!mounted) return;
     final nativeLang = _app.nativeLanguage;
+    final phrase = await _fetchFillerPhrase(nativeLang);
+    if (phrase == null || token != _fillerToken || !mounted) return;
     try {
       await _app.cloudTts.speakSpeechify(
-        _randomFillerAck(),
+        phrase,
         langCode: nativeLang,
         voiceGender: _app.voiceGender,
         fallbackLanguage: resolveLocale(nativeLang),
       );
     } catch (e, st) {
-      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._playFillers: ack failed', fatal: false));
-    }
-    if (!includeAnalyzing || token != _fillerToken || !mounted || _state != _CallState.thinking) return;
-    try {
-      await _app.cloudTts.speakSpeechify(
-        _randomFillerAnalyzing(),
-        langCode: nativeLang,
-        voiceGender: _app.voiceGender,
-        fallbackLanguage: resolveLocale(nativeLang),
-      );
-    } catch (e, st) {
-      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._playFillers: analyzing failed', fatal: false));
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._playFiller: speak failed', fatal: false));
     }
   }
 
@@ -438,6 +460,11 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     if (!mounted) return;
     setState(() => _state = _CallState.speaking);
     final clean = text.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('**', '');
+    // Item 3 do pedido: trechos no idioma-alvo tocam 20-40% mais devagar
+    // conforme o nível do aluno (quanto mais iniciante, mais devagar);
+    // trechos no idioma nativo tocam em velocidade normal.
+    final reduction = _kCallTargetSlowdownByLevel[_app.journeyProgress.cefr] ?? 0.30;
+    final targetExtraRate = 1.0 - reduction;
     for (final seg in _parseBilingualSegments(clean)) {
       if (!mounted) return;
       // AI Tutor sempre usa Speechify (paridade com web's _route()), com
@@ -448,6 +475,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
         langCode: seg.langCode,
         voiceGender: _app.voiceGender,
         fallbackLanguage: resolveLocale(seg.langCode),
+        playbackRate: seg.langCode == _app.courseLanguage ? targetExtraRate : 1.0,
       );
     }
     if (mounted) setState(() => _state = _CallState.idle);
@@ -472,6 +500,8 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _ampSub?.cancel();
+    unawaited(WakelockPlus.disable());
+    _httpClient.close();
     // stop() must finish before dispose() runs — firing both unawaited let
     // dispose() tear down the plugin's native session while stop() was
     // still flushing the in-progress recording, which could throw inside
