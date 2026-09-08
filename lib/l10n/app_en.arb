@@ -178,6 +178,11 @@
   "aiTutorMicIdleLabel": "Hold to speak in English",
   "aiTutorPronPerfect": "Natural pronunciation — great job! 🎉",
   "aiTutorPronAttention": "Pay attention to: {words}",
+  "aiTutorPronPracticeCta": "🎤 Practice pronunciation: {word}",
+  "@aiTutorPronPracticeCta": { "placeholders": { "word": { "type": "String" } } },
+  "aiTutorPronPracticeRecording": "🔴 Recording… tap to stop",
+  "aiTutorPronPracticeProcessing": "Scoring…",
+  "aiTutorPronPracticeError": "Couldn't score that right now. Tap to try again.",
 
   "aiTutorCallAudioError": "Couldn't process the audio. Tap the microphone to try again.",
   "aiTutorCallRepeatFallback": "Sorry, could you repeat that?",

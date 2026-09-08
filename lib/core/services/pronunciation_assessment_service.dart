@@ -53,6 +53,11 @@ class PronunciationAssessmentService {
     List<int> wavBytes, {
     String lang = 'en-US',
     bool isNativePass = false,
+    // Optional scripted mode: the chat "praticar pronúncia" chip (migration
+    // 068) already knows the exact word/expression being attempted, so it
+    // sends it as ReferenceText for a stricter/more accurate score than the
+    // unscripted mode the call-screen dual-pass uses.
+    String? referenceText,
   }) async {
     final json = await postJson(
       _client,
@@ -61,6 +66,7 @@ class PronunciationAssessmentService {
         'audioBase64': base64Encode(wavBytes),
         'lang': lang,
         'isNativePass': isNativePass,
+        if (referenceText != null && referenceText.isNotEmpty) 'referenceText': referenceText,
       },
       errorLabel: 'Pronunciation assessment',
     );
@@ -84,7 +90,11 @@ class PronunciationAssessmentService {
         ? 0
         : recognizedText.trim().split(RegExp(r'\s+')).length;
     final wordCount = wordsJson.isNotEmpty ? wordsJson.length : textWordCount;
-    if (wordCount < 2) return null;
+    // Scripted mode (referenceText set) is a deliberate single-word/short-
+    // expression practice attempt -- a genuine 1-word result is legitimate
+    // there, not noise, so only the unscripted dual-pass flow needs >= 2.
+    final scripted = referenceText != null && referenceText.isNotEmpty;
+    if (wordCount < (scripted ? 1 : 2)) return null;
 
     final pa = best['PronunciationAssessment'] as Map<String, dynamic>? ?? const {};
     final pronScore = (pa['PronScore'] as num?)?.toDouble() ?? 0.0;

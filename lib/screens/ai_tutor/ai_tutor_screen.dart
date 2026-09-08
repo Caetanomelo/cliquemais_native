@@ -19,6 +19,21 @@ import 'call_turn_assessor.dart';
 
 enum _MicState { idle, recording, processing }
 
+/// Parses and strips the `[[PRONOUNCE:word or expression]]` marker
+/// (migration 068) that the AI tutor may emit in a chat-mode reply. Returns
+/// the reply with the marker removed (safe to store/render as-is) plus the
+/// bare word/expression, or a null word when the reply carries no marker.
+(String, String?) _extractPronounceMarker(String text) {
+  final m = RegExp(r'\[\[PRONOUNCE:([^\]]{1,80})\]\]', caseSensitive: false).firstMatch(text);
+  if (m == null) return (text, null);
+  final word = m.group(1)!.trim();
+  final clean = (text.substring(0, m.start) + text.substring(m.end))
+      .replaceAll(RegExp(r'[ \t]+\n'), '\n')
+      .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+      .trim();
+  return (clean, word.isEmpty ? null : word);
+}
+
 /// IA Tutor — Claude-backed chat (via the shared Netlify `ai-chat` function)
 /// in a single merged feed: typed messages and mic-recorded pronunciation
 /// turns share one history. A mic turn is assessed via Azure Pronunciation
@@ -42,6 +57,10 @@ class _AiTutorScreenState extends State<AiTutorScreen>
   final ScrollController _scroll = ScrollController();
   bool _sending = false;
   _MicState _micState = _MicState.idle;
+  // Set by a _PronPracticeChip while it's recording -- guards against it and
+  // the composer's main mic (or another chip) capturing audio at the same
+  // time, mirroring the single-recording-at-a-time rule the web build uses.
+  bool _pronChipActive = false;
   // Picked once per screen instance so it stays fixed for this
   // conversation's duration — a fresh AiTutorScreen is pushed every time the
   // user taps the Tutor tab (see AppBottomNav), so this naturally re-rolls
@@ -103,8 +122,15 @@ class _AiTutorScreenState extends State<AiTutorScreen>
         userMessage: outgoing,
       );
       if (!mounted) return;
+      final (cleanReply, pronounceWord) = _extractPronounceMarker(reply);
       setState(
-        () => _history.add(AiChatMessage(role: 'assistant', content: reply)),
+        () => _history.add(
+          AiChatMessage(
+            role: 'assistant',
+            content: cleanReply,
+            pronounceWord: pronounceWord,
+          ),
+        ),
       );
       await _app.addXp(8);
     } catch (e, st) {
@@ -132,7 +158,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
   }
 
   Future<void> _startMicRecording() async {
-    if (_micState != _MicState.idle || _sending) return;
+    if (_micState != _MicState.idle || _sending || _pronChipActive) return;
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) return;
     final path =
@@ -300,7 +326,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
           ),
         );
     final welcome = _persona.welcome.isNotEmpty ? _persona.welcome : baseWelcome;
-    final micBusy = _micState != _MicState.idle;
+    final micBusy = _micState != _MicState.idle || _pronChipActive;
 
     return Scaffold(
       appBar: AppBar(
@@ -373,6 +399,24 @@ class _AiTutorScreenState extends State<AiTutorScreen>
                       lowScoreWords: m.lowScoreWords,
                     );
                   }
+                  if (m.role != 'user' && m.pronounceWord != null) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _AiBubble(text: m.content, isUser: false),
+                        _PronPracticeChip(
+                          word: m.pronounceWord!,
+                          pronunciation: _app.pronunciation,
+                          targetLang: resolveLocale(_app.courseLanguage),
+                          isBusyElsewhere: () =>
+                              _micState != _MicState.idle || _pronChipActive,
+                          onActiveChanged: (active) {
+                            if (mounted) setState(() => _pronChipActive = active);
+                          },
+                        ),
+                      ],
+                    );
+                  }
                   return _AiBubble(text: m.content, isUser: m.role == 'user');
                 }
                 return _AiBubble(text: welcome, isUser: false);
@@ -428,7 +472,7 @@ class _AiTutorScreenState extends State<AiTutorScreen>
                   const SizedBox(width: 8),
                   _MicButton(
                     state: _micState,
-                    disabled: _sending,
+                    disabled: _sending || _pronChipActive,
                     onStart: _startMicRecording,
                     onStop: _stopMicRecordingAndAssess,
                     onCancel: _cancelMicRecording,
@@ -671,6 +715,269 @@ class _PronCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+enum _ChipState { idle, recording, processing, error }
+
+/// "Praticar pronúncia" chip rendered below a bot bubble whose reply carried
+/// a `[[PRONOUNCE:word]]` marker (migration 068). Owns its own [AudioRecorder]
+/// (separate from the composer's) so it never contends over the same
+/// recorder session — [isBusyElsewhere]/[onActiveChanged] enforce the
+/// single-recording-at-a-time rule against the composer mic and other chips.
+/// Records just the one word/expression and sends it to
+/// [PronunciationAssessmentService.assess] with `referenceText` set, for a
+/// scripted (stricter) score than the unscripted mic pipeline elsewhere in
+/// this screen.
+class _PronPracticeChip extends StatefulWidget {
+  final String word;
+  final PronunciationAssessmentService pronunciation;
+  final String targetLang;
+  final bool Function() isBusyElsewhere;
+  final void Function(bool active) onActiveChanged;
+  const _PronPracticeChip({
+    required this.word,
+    required this.pronunciation,
+    required this.targetLang,
+    required this.isBusyElsewhere,
+    required this.onActiveChanged,
+  });
+
+  @override
+  State<_PronPracticeChip> createState() => _PronPracticeChipState();
+}
+
+class _PronPracticeChipState extends State<_PronPracticeChip> {
+  final AudioRecorder _recorder = AudioRecorder();
+  _ChipState _state = _ChipState.idle;
+  double? _score;
+
+  Future<void> _toggle() async {
+    if (_state == _ChipState.processing) return;
+    if (_state == _ChipState.recording) {
+      await _stopAndAssess();
+      return;
+    }
+    if (widget.isBusyElsewhere()) return;
+    await _start();
+  }
+
+  Future<void> _start() async {
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) return;
+    final path =
+        '${Directory.systemTemp.path}/tutor_pron_${DateTime.now().millisecondsSinceEpoch}.wav';
+    try {
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: path,
+      );
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: '_PronPracticeChip._start failed',
+          fatal: false,
+        ),
+      );
+      if (mounted) setState(() => _state = _ChipState.error);
+      return;
+    }
+    widget.onActiveChanged(true);
+    if (mounted) {
+      setState(() {
+        _state = _ChipState.recording;
+        _score = null;
+      });
+    }
+  }
+
+  Future<void> _stopAndAssess() async {
+    String? path;
+    try {
+      path = await _recorder.stop();
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: '_PronPracticeChip._stopAndAssess: stop failed',
+          fatal: false,
+        ),
+      );
+    }
+    widget.onActiveChanged(false);
+    if (mounted) setState(() => _state = _ChipState.processing);
+    if (path == null) {
+      if (mounted) setState(() => _state = _ChipState.error);
+      return;
+    }
+    try {
+      final bytes = await File(path).readAsBytes();
+      unawaited(_safeDelete(path));
+      // ~0.25s of 16kHz/16-bit/mono PCM — same accidental-tap filter used by
+      // the screen's main mic pipeline.
+      if (bytes.length < 8000) {
+        if (mounted) setState(() => _state = _ChipState.error);
+        return;
+      }
+      final result = await widget.pronunciation.assess(
+        bytes,
+        lang: widget.targetLang,
+        isNativePass: false,
+        referenceText: widget.word,
+      );
+      if (result == null) {
+        if (mounted) setState(() => _state = _ChipState.error);
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _state = _ChipState.idle;
+          _score = result.pronScore;
+        });
+      }
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: '_PronPracticeChip._stopAndAssess failed',
+          fatal: false,
+        ),
+      );
+      if (mounted) setState(() => _state = _ChipState.error);
+    }
+  }
+
+  Future<void> _safeDelete(String path) async {
+    try {
+      await File(path).delete();
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: '_PronPracticeChip._safeDelete failed',
+          fatal: false,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_state == _ChipState.recording) widget.onActiveChanged(false);
+    unawaited(_stopThenDisposeRecorder());
+    super.dispose();
+  }
+
+  Future<void> _stopThenDisposeRecorder() async {
+    try {
+      if (await _recorder.isRecording()) await _recorder.stop();
+    } catch (e, st) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: '_PronPracticeChip._stopThenDisposeRecorder: stop failed',
+          fatal: false,
+        ),
+      );
+    }
+    await _recorder.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final recording = _state == _ChipState.recording;
+    final processing = _state == _ChipState.processing;
+    final errored = _state == _ChipState.error;
+    final label = switch (_state) {
+      _ChipState.recording => l10n.aiTutorPronPracticeRecording,
+      _ChipState.processing => l10n.aiTutorPronPracticeProcessing,
+      _ChipState.error => l10n.aiTutorPronPracticeError,
+      _ChipState.idle => l10n.aiTutorPronPracticeCta(widget.word),
+    };
+    final accentColor = recording
+        ? AppTheme.red
+        : (errored ? AppTheme.gold : AppTheme.accentBright);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 10),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: processing ? null : _toggle,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (processing)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 6),
+                        child: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.accentBright,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_score != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (_score! >= 80 ? AppTheme.green : AppTheme.gold)
+                        .withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${_score!.round()}%',
+                    style: TextStyle(
+                      fontFamily: 'Sora',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: _score! >= 80 ? AppTheme.green : AppTheme.gold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

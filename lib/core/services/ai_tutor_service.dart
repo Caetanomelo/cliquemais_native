@@ -13,11 +13,17 @@ class AiChatMessage {
   // bubble instead of a plain one. Null/empty for every typed turn.
   final double? pronScore;
   final List<PronWord> lowScoreWords;
+  // Set only for an assistant turn whose reply carried a
+  // [[PRONOUNCE:word or expression]] marker (migration 068) -- already
+  // stripped out of [content] by the time this is set. Lets the feed render
+  // a "praticar pronúncia" chip below that bubble. Null for every other turn.
+  final String? pronounceWord;
   const AiChatMessage({
     required this.role,
     required this.content,
     this.pronScore,
     this.lowScoreWords = const [],
+    this.pronounceWord,
   });
 }
 

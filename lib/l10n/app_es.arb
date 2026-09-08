@@ -178,6 +178,11 @@
   "aiTutorMicIdleLabel": "Mantén presionado para hablar en inglés",
   "aiTutorPronPerfect": "Pronunciación natural — ¡felicidades! 🎉",
   "aiTutorPronAttention": "Presta atención a: {words}",
+  "aiTutorPronPracticeCta": "🎤 Practicar pronunciación: {word}",
+  "@aiTutorPronPracticeCta": { "placeholders": { "word": { "type": "String" } } },
+  "aiTutorPronPracticeRecording": "🔴 Grabando… toca para detener",
+  "aiTutorPronPracticeProcessing": "Evaluando…",
+  "aiTutorPronPracticeError": "No pude evaluarlo ahora. Toca para intentar de nuevo.",
 
   "aiTutorCallAudioError": "No pude procesar el audio. Toca el micrófono para intentarlo de nuevo.",
   "aiTutorCallRepeatFallback": "Perdón, ¿puedes repetir?",

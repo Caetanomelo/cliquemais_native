@@ -221,6 +221,11 @@
   "aiTutorPronPerfect": "Pronúncia natural — parabéns! 🎉",
   "aiTutorPronAttention": "Atenção a: {words}",
   "@aiTutorPronAttention": { "placeholders": { "words": { "type": "String" } } },
+  "aiTutorPronPracticeCta": "🎤 Praticar pronúncia: {word}",
+  "@aiTutorPronPracticeCta": { "placeholders": { "word": { "type": "String" } } },
+  "aiTutorPronPracticeRecording": "🔴 Gravando… toque para parar",
+  "aiTutorPronPracticeProcessing": "Avaliando…",
+  "aiTutorPronPracticeError": "Não consegui avaliar agora. Toque para tentar de novo.",
 
   "aiTutorCallAudioError": "Não consegui processar o áudio. Toque no microfone para tentar de novo.",
   "aiTutorCallRepeatFallback": "Desculpe, pode repetir?",
