@@ -28,8 +28,11 @@ class PronunciationResult {
   });
 
   /// True when this looks like a genuine English attempt worth scoring,
-  /// not noise or a Portuguese turn misheard by the en-US recognizer.
-  bool get isConfidentEnglish => confidence >= 0.5 && wordCount >= 2;
+  /// not noise or a Portuguese turn misheard by the en-US recognizer. A
+  /// single recognized word is legitimate (deliberate short attempt) — the
+  /// defenses against noise are `confidence`, the caller's minimum-audio-size
+  /// gate, and `_looksLikeLanguage`'s own plausibility check, not word count.
+  bool get isConfidentEnglish => confidence >= 0.5 && wordCount >= 1;
 
   /// Builds a `[Pronunciation feedback: ...]` note to append to the message
   /// sent to the tutor, or '' if there's nothing worth flagging.
@@ -54,10 +57,18 @@ class PronunciationAssessmentService {
     String lang = 'en-US',
     bool isNativePass = false,
     // Optional scripted mode: the chat "praticar pronúncia" chip (migration
-    // 068) already knows the exact word/expression being attempted, so it
-    // sends it as ReferenceText for a stricter/more accurate score than the
-    // unscripted mode the call-screen dual-pass uses.
+    // 068) and the call screen's "repeat this phrase" flow (migration 069)
+    // already know the exact word/expression/phrase being attempted, so they
+    // send it as ReferenceText for a stricter/more accurate score than the
+    // unscripted mode the call-screen dual-pass otherwise uses.
     String? referenceText,
+    // False makes a non-native-pass request plain transcription only (no
+    // Pronunciation-Assessment header, no scoring) — used by the call screen
+    // when there's no pending "repeat this phrase" request, so it can still
+    // identify what language the student spoke without scoring free
+    // conversation. Defaults to true so existing callers (chat pronunciation
+    // chip, chat inline mic) keep scoring exactly as before.
+    bool assessPronunciation = true,
   }) async {
     final json = await postJson(
       _client,
@@ -66,6 +77,7 @@ class PronunciationAssessmentService {
         'audioBase64': base64Encode(wavBytes),
         'lang': lang,
         'isNativePass': isNativePass,
+        'assessPronunciation': assessPronunciation,
         if (referenceText != null && referenceText.isNotEmpty) 'referenceText': referenceText,
       },
       errorLabel: 'Pronunciation assessment',
@@ -90,11 +102,11 @@ class PronunciationAssessmentService {
         ? 0
         : recognizedText.trim().split(RegExp(r'\s+')).length;
     final wordCount = wordsJson.isNotEmpty ? wordsJson.length : textWordCount;
-    // Scripted mode (referenceText set) is a deliberate single-word/short-
-    // expression practice attempt -- a genuine 1-word result is legitimate
-    // there, not noise, so only the unscripted dual-pass flow needs >= 2.
-    final scripted = referenceText != null && referenceText.isNotEmpty;
-    if (wordCount < (scripted ? 1 : 2)) return null;
+    // A genuine 1-word result is legitimate (a deliberate short attempt),
+    // not inherently noise -- the defenses against noise are `confidence`,
+    // the caller's minimum-audio-size gate, and `_looksLikeLanguage`'s own
+    // plausibility check, not a word-count floor.
+    if (wordCount < 1) return null;
 
     final pa = best['PronunciationAssessment'] as Map<String, dynamic>? ?? const {};
     final pronScore = (pa['PronScore'] as num?)?.toDouble() ?? 0.0;

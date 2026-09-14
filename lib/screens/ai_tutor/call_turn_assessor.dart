@@ -104,11 +104,31 @@ class CallTurnAssessment {
 /// unreachable/misconfigured), as opposed to a legitimate empty/silent turn,
 /// so the caller can tell "nothing to send" apart from "something went
 /// wrong" and surface that to the user.
+///
+/// [assessPrimaryPronunciation] and [referenceText] let the call screen turn
+/// Azure scoring on only for turns where the tutor just asked the student to
+/// repeat a target-language phrase (see migration 069) -- every other turn
+/// runs the primary pass as plain transcription (no scoring cost, no
+/// meaningless score from mixed-language/free-conversation audio). The
+/// inline chat mic (Option A) doesn't pass either, so it keeps always
+/// scoring, unaffected by this.
 Future<CallTurnAssessment> assessCallTurn(
   PronunciationAssessmentService pronunciation,
   List<int> wavBytes, {
   String primaryLang = 'en-US',
   String nativeLang = 'pt-BR',
+  // Whether the primary-language pass should run full Azure pronunciation
+  // scoring (true, the default -- preserves the inline chat mic's Option A
+  // behavior) or plain transcription only (false -- used by the call screen
+  // for turns with no pending "repeat this phrase" request, so it can still
+  // identify what language the student spoke without scoring free
+  // conversation/mixed-language audio).
+  bool assessPrimaryPronunciation = true,
+  // When set, the primary-language pass is scored against this exact phrase
+  // (the tutor's last "repeat this" request, see migration 069) instead of
+  // whatever it freely recognized -- only meaningful when
+  // [assessPrimaryPronunciation] is also true.
+  String? referenceText,
   void Function(Object error, StackTrace stack, {required String reason})?
   onError,
 }) async {
@@ -119,7 +139,13 @@ Future<CallTurnAssessment> assessCallTurn(
 
   await Future.wait([
     pronunciation
-        .assess(wavBytes, lang: primaryLang, isNativePass: false)
+        .assess(
+          wavBytes,
+          lang: primaryLang,
+          isNativePass: false,
+          assessPronunciation: assessPrimaryPronunciation,
+          referenceText: referenceText,
+        )
         .then((r) => primaryResult = r)
         .catchError((Object e, StackTrace st) {
           primaryError = e;

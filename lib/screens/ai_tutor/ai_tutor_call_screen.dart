@@ -112,6 +112,13 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   StreamSubscription<Amplitude>? _ampSub;
   String? _monitorPath;
   int _fillerToken = 0;
+  // Última frase no idioma-alvo que o tutor pediu explicitamente pro aluno
+  // repetir (marcador {{...}} final da resposta, ver migration 069) -- só
+  // enquanto setada o próximo turno roda com scoring de pronúncia real
+  // (referenceText = essa frase); caso contrário o pass do idioma-alvo é só
+  // transcrição, sem custo/score de pronúncia sobre conversa livre. Consumida
+  // (voltando a null) assim que usada no turno seguinte, com sucesso ou não.
+  String? _expectedPhrase;
 
   @override
   void initState() {
@@ -327,14 +334,20 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   Future<void> _assessAndSend(List<int> wavBytes) async {
     unawaited(_playFiller());
 
+    final expectedPhrase = _expectedPhrase;
     final result = await assessCallTurn(
       _app.pronunciation,
       wavBytes,
       primaryLang: resolveLocale(_app.courseLanguage),
       nativeLang: resolveLocale(_app.nativeLanguage),
+      assessPrimaryPronunciation: expectedPhrase != null,
+      referenceText: expectedPhrase,
       onError: (e, st, {required reason}) =>
           unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._assessAndSend: $reason', fatal: false)),
     );
+    // Consumida neste turno, com sucesso ou não -- quem decide pedir de novo
+    // é o próprio tutor via prompt (migration 069).
+    _expectedPhrase = null;
 
     if (result.transcript.trim().isEmpty) {
       unawaited(_app.cloudTts.stop());
@@ -465,7 +478,12 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     // trechos no idioma nativo tocam em velocidade normal.
     final reduction = _kCallTargetSlowdownByLevel[_app.journeyProgress.cefr] ?? 0.30;
     final targetExtraRate = 1.0 - reduction;
-    for (final seg in _parseBilingualSegments(clean)) {
+    final segments = _parseBilingualSegments(clean);
+    // Último trecho no idioma-alvo desta resposta vira a frase que o tutor
+    // pediu pro aluno repetir (ver migration 069); null se não pediu nenhuma.
+    final targetSegs = segments.where((s) => s.langCode == _app.courseLanguage).toList();
+    _expectedPhrase = targetSegs.isNotEmpty ? targetSegs.last.text.trim() : null;
+    for (final seg in segments) {
       if (!mounted) return;
       // AI Tutor sempre usa Speechify (paridade com web's _route()), com
       // fallback pro TTS on-device do proprio CloudTtsService.speakSpeechify
