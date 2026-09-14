@@ -26,6 +26,48 @@ class _CallSegment {
   const _CallSegment(this.text, this.langCode);
 }
 
+/// Pull-queue TTS player for the streaming AI-reply path (mirrors web's
+/// `_callStreamTTSQueue`, src/main.js): [pushSegment] enqueues a segment and
+/// starts playback immediately if nothing else is playing, so segment 1 can
+/// speak while segment 3 is still arriving over the network; [finish] marks
+/// that no more segments are coming and its returned future resolves once
+/// the queue drains. Kept separate from `_speak`'s array-based loop, which
+/// stays on the static welcome-message call site -- that text is fully
+/// known upfront, so there's no streaming benefit there.
+class _StreamTtsQueue {
+  final Future<void> Function(_CallSegment seg) _play;
+  _StreamTtsQueue(this._play);
+
+  final List<_CallSegment> _pending = [];
+  bool _draining = false;
+  bool _finished = false;
+  final Completer<void> _doneCompleter = Completer<void>();
+
+  void pushSegment(_CallSegment seg) {
+    if (seg.text.trim().isEmpty) return;
+    _pending.add(seg);
+    if (!_draining) unawaited(_drainLoop());
+  }
+
+  Future<void> _drainLoop() async {
+    _draining = true;
+    while (_pending.isNotEmpty) {
+      final seg = _pending.removeAt(0);
+      await _play(seg);
+    }
+    _draining = false;
+    if (_finished && !_doneCompleter.isCompleted) _doneCompleter.complete();
+  }
+
+  Future<void> finish() {
+    _finished = true;
+    if (!_draining && _pending.isEmpty && !_doneCompleter.isCompleted) {
+      _doneCompleter.complete();
+    }
+    return _doneCompleter.future;
+  }
+}
+
 /// Live voice call with the AI Tutor — continuous listening (no push-to-talk):
 /// the mic stays armed and a lightweight VAD (voice activity detection) both
 /// starts a turn when the student begins speaking and ends it after a
@@ -371,15 +413,111 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       final outgoing = feedback.isEmpty ? userText : '$userText\n\n$feedback';
       final basePrompt = _app.aiContent.systemPromptForKey('call');
       final systemPrompt = _persona.prompt.isEmpty ? basePrompt : '${_persona.prompt}\n\n$basePrompt';
-      final reply = await _app.aiTutor.send(
+
+      if (mounted) setState(() => _state = _CallState.speaking);
+
+      final nativeLang = _app.nativeLanguage;
+      final targetLang = _app.courseLanguage;
+      final reduction = _kCallTargetSlowdownByLevel[_app.journeyProgress.cefr] ?? 0.30;
+      final targetExtraRate = 1.0 - reduction;
+
+      final ttsQueue = _StreamTtsQueue((seg) => _app.cloudTts.speakSpeechify(
+            seg.text,
+            langCode: seg.langCode,
+            voiceGender: _app.voiceGender,
+            fallbackLanguage: resolveLocale(seg.langCode),
+            playbackRate: seg.langCode == targetLang ? targetExtraRate : 1.0,
+          ));
+
+      // Incremental {{...}}-boundary-safe segment extractor -- flushes plain
+      // text as it arrives so TTS can start on segment 1 while the network
+      // stream is still delivering the rest. Mirrors web's `onDelta` in
+      // `_callSendToAI` (src/main.js) line for line. A trailing lone '{' is
+      // always held back (it might be the start of '{{'); once '{{' opens,
+      // text is held until the matching '}}' closes it. `_parseBilingualSegments`
+      // (the full-text-safe, non-incremental version) is reused as a
+      // fallback for whatever is left over once the stream ends, and for
+      // the final `_expectedPhrase` computation below.
+      var buf = '';
+      var inMarker = false;
+      String sanitize(String s) => s.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('**', '');
+
+      void onDelta(String delta) {
+        buf += delta;
+        while (true) {
+          if (!inMarker) {
+            final idx = buf.indexOf('{{');
+            if (idx == -1) {
+              String safe;
+              String rest;
+              if (buf.endsWith('{') && !buf.endsWith('{{')) {
+                safe = buf.substring(0, buf.length - 1);
+                rest = '{';
+              } else {
+                safe = buf;
+                rest = '';
+              }
+              if (safe.isNotEmpty) {
+                ttsQueue.pushSegment(_CallSegment(sanitize(safe), nativeLang));
+              }
+              buf = rest;
+              break;
+            }
+            if (idx > 0) {
+              ttsQueue.pushSegment(_CallSegment(sanitize(buf.substring(0, idx)), nativeLang));
+            }
+            buf = buf.substring(idx + 2);
+            inMarker = true;
+          } else {
+            final idx2 = buf.indexOf('}}');
+            if (idx2 == -1) break;
+            final segText = buf.substring(0, idx2);
+            if (segText.trim().isNotEmpty) {
+              ttsQueue.pushSegment(_CallSegment(sanitize(segText), targetLang));
+            }
+            buf = buf.substring(idx2 + 2);
+            inMarker = false;
+          }
+        }
+      }
+
+      final reply = await _app.aiTutor.sendStream(
         systemPrompt: systemPrompt,
         history: priorHistory,
         userMessage: outgoing,
+        onDelta: onDelta,
       );
       _history.add(AiChatMessage(role: 'assistant', content: reply));
       if (!mounted) return;
-      await _speak(reply.isNotEmpty ? reply : AppLocalizations.of(context)!.aiTutorCallRepeatFallback);
-      if (!mounted || _muted) return;
+
+      if (reply.isEmpty) {
+        ttsQueue.pushSegment(_CallSegment(AppLocalizations.of(context)!.aiTutorCallRepeatFallback, nativeLang));
+      } else {
+        // Never-closed marker (buf still holding an opened '{{...') is put
+        // back as literal text -- `_parseBilingualSegments`'s regex only
+        // matches a full {{...}}, so an unclosed one is handled gracefully.
+        final leftoverRaw = inMarker ? '{{$buf' : buf;
+        if (leftoverRaw.trim().isNotEmpty) {
+          for (final seg in _parseBilingualSegments(sanitize(leftoverRaw))) {
+            ttsQueue.pushSegment(seg);
+          }
+        }
+      }
+
+      // `_expectedPhrase` (migration 069) is still computed from the full
+      // accumulated reply text via the unmodified full-text parser, exactly
+      // as before -- only the TTS flushing above is incremental.
+      final clean = (reply.isNotEmpty ? reply : AppLocalizations.of(context)!.aiTutorCallRepeatFallback)
+          .replaceAll(RegExp(r'<[^>]+>'), '')
+          .replaceAll('**', '');
+      final fullSegs = _parseBilingualSegments(clean);
+      final targetSegs = fullSegs.where((s) => s.langCode == targetLang).toList();
+      _expectedPhrase = targetSegs.isNotEmpty ? targetSegs.last.text.trim() : null;
+
+      await ttsQueue.finish();
+      if (!mounted) return;
+      setState(() => _state = _CallState.idle);
+      if (_muted) return;
       await _armVad();
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._sendToAI failed', fatal: false));
