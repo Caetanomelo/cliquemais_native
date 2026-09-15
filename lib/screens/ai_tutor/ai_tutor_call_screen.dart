@@ -457,8 +457,12 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
                 safe = buf;
                 rest = '';
               }
-              if (safe.isNotEmpty) {
-                ttsQueue.pushSegment(_CallSegment(sanitize(safe), nativeLang));
+              final boundary = _lastSentenceBoundary(safe);
+              if (boundary == -1) break;
+              final flushable = safe.substring(0, boundary);
+              rest = safe.substring(boundary) + rest;
+              if (flushable.trim().isNotEmpty) {
+                ttsQueue.pushSegment(_CallSegment(sanitize(flushable), nativeLang));
               }
               buf = rest;
               break;
@@ -578,6 +582,22 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._playFiller: speak failed', fatal: false));
     }
+  }
+
+  // Indice logo apos o ultimo limite de frase completa em `s` (uma
+  // sequencia de '.', '!' ou '?' seguida de espaco/fim, ou uma quebra de
+  // linha), ou -1 se `s` ainda nao tiver nenhum -- usado pra segurar o
+  // texto que vai chegando do streaming ate fechar uma frase inteira, em
+  // vez de mandar pra fila de TTS cada delta bruto da rede (geralmente
+  // uma palavra so), que soava como o tutor falando palavra por palavra.
+  // Mirrors web's `_lastSentenceBoundary` in src/main.js line for line.
+  int _lastSentenceBoundary(String s) {
+    final re = RegExp(r'[.!?]+(?=\s|$)|\n+');
+    var last = -1;
+    for (final m in re.allMatches(s)) {
+      last = m.end;
+    }
+    return last;
   }
 
   // Divide a resposta do Tutor em trechos por idioma usando o marcador
