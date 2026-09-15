@@ -380,7 +380,14 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   }
 
   Future<void> _assessAndSend(List<int> wavBytes) async {
-    unawaited(_playFiller());
+    // Filler DESATIVADO temporariamente (teste de diagnóstico -- mirrors web
+    // commit 8e75689, WEB_BASE/src/main.js _callEndTurn). Era a única fala
+    // tocada em TODO turno logo após capturar o áudio do aluno; suspeita
+    // (confirmada no web) de estar contribuindo pro efeito "palavra por
+    // palavra" relatado -- o _playFiller() é cortado no meio assim que a
+    // resposta real chega. Ver comentário original em _playFiller() acima.
+    // TODO: remover de vez (ver pendência espelhada do lado web).
+    // unawaited(_playFiller());
 
     final expectedPhrase = _expectedPhrase;
     final result = await assessCallTurn(
@@ -575,6 +582,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     }
   }
 
+  // Call site commented out in _assessAndSend (diagnostic test, see comment
+  // there); kept intact to make reverting easy.
+  // ignore: unused_element
   Future<void> _playFiller() async {
     final token = ++_fillerToken;
     if (!mounted) return;
