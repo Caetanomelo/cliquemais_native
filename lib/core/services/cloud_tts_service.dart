@@ -27,13 +27,53 @@ class CloudTtsService {
   // always goes through it instead of calling the network helper directly.
   final Map<String, Future<Uint8List>> _speechifyCache = {};
 
+  // Concurrency limiter for actual network Speechify fetches -- mirrors
+  // web's _gatedTtsFetch (src/main.js). preloadSpeechify() fires the moment
+  // each segment is known, which can queue several requests near-
+  // simultaneously for one AI reply; capping how many run at once avoids
+  // tripping Speechify's own per-account concurrency/rate limit, which
+  // otherwise surfaces as an intermittent single-segment failure even
+  // though most requests succeed.
+  static const int _maxConcurrentSpeechifyFetches = 3;
+  int _activeSpeechifyFetches = 0;
+  final List<void Function()> _speechifyFetchWaiters = [];
+
+  Future<T> _gatedSpeechifyFetch<T>(Future<T> Function() fn) {
+    if (_activeSpeechifyFetches < _maxConcurrentSpeechifyFetches) {
+      _activeSpeechifyFetches++;
+      return fn().whenComplete(() {
+        _activeSpeechifyFetches--;
+        if (_speechifyFetchWaiters.isNotEmpty) _speechifyFetchWaiters.removeAt(0)();
+      });
+    }
+    final completer = Completer<T>();
+    _speechifyFetchWaiters.add(() {
+      _activeSpeechifyFetches++;
+      fn().then(completer.complete, onError: completer.completeError).whenComplete(() {
+        _activeSpeechifyFetches--;
+        if (_speechifyFetchWaiters.isNotEmpty) _speechifyFetchWaiters.removeAt(0)();
+      });
+    });
+    return completer.future;
+  }
+
+  // One silent retry for transient failures (network blip, upstream 5xx,
+  // momentary concurrency-limit rejection) before letting the caller fall
+  // back to on-device speech -- mirrors web's retry in TTS._run().
+  Future<Uint8List> _fetchSpeechifyWithRetry(String text, String voiceGender, String langCode) {
+    return _gatedSpeechifyFetch(() => _speakSpeechifyViaNetlify(text, voiceGender, langCode)).catchError((Object _) async {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      return _gatedSpeechifyFetch(() => _speakSpeechifyViaNetlify(text, voiceGender, langCode));
+    });
+  }
+
   String _speechifyCacheKey(String text, String langCode, String voiceGender) => '$langCode|$voiceGender|$text';
 
   Future<Uint8List> _fetchSpeechifyCached(String text, String voiceGender, String langCode) {
     final key = _speechifyCacheKey(text, langCode, voiceGender);
     final cached = _speechifyCache[key];
     if (cached != null) return cached;
-    final future = _speakSpeechifyViaNetlify(text, voiceGender, langCode);
+    final future = _fetchSpeechifyWithRetry(text, voiceGender, langCode);
     _speechifyCache[key] = future;
     // Don't let a failed fetch poison the cache forever -- a later real
     // playback attempt for the same text should retry, not replay the error.
