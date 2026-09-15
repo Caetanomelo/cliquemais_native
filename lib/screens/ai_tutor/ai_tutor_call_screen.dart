@@ -36,7 +36,8 @@ class _CallSegment {
 /// known upfront, so there's no streaming benefit there.
 class _StreamTtsQueue {
   final Future<void> Function(_CallSegment seg) _play;
-  _StreamTtsQueue(this._play);
+  final void Function(_CallSegment seg)? _prefetch;
+  _StreamTtsQueue(this._play, [this._prefetch]);
 
   final List<_CallSegment> _pending = [];
   bool _draining = false;
@@ -45,6 +46,11 @@ class _StreamTtsQueue {
 
   void pushSegment(_CallSegment seg) {
     if (seg.text.trim().isEmpty) return;
+    // Kick off this segment's audio fetch the moment it's queued, not when
+    // its turn to play arrives -- mirrors web's _callStreamTTSQueue.pushSegment
+    // (src/main.js). Without this, each segment boundary added a full TTS
+    // round-trip of silence, sounding like the tutor pausing word by word.
+    _prefetch?.call(seg);
     _pending.add(seg);
     if (!_draining) unawaited(_drainLoop());
   }
@@ -421,13 +427,16 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       final reduction = _kCallTargetSlowdownByLevel[_app.journeyProgress.cefr] ?? 0.30;
       final targetExtraRate = 1.0 - reduction;
 
-      final ttsQueue = _StreamTtsQueue((seg) => _app.cloudTts.speakSpeechify(
-            seg.text,
-            langCode: seg.langCode,
-            voiceGender: _app.voiceGender,
-            fallbackLanguage: resolveLocale(seg.langCode),
-            playbackRate: seg.langCode == targetLang ? targetExtraRate : 1.0,
-          ));
+      final ttsQueue = _StreamTtsQueue(
+        (seg) => _app.cloudTts.speakSpeechify(
+          seg.text,
+          langCode: seg.langCode,
+          voiceGender: _app.voiceGender,
+          fallbackLanguage: resolveLocale(seg.langCode),
+          playbackRate: seg.langCode == targetLang ? targetExtraRate : 1.0,
+        ),
+        (seg) => _app.cloudTts.preloadSpeechify(seg.text, langCode: seg.langCode, voiceGender: _app.voiceGender),
+      );
 
       // Incremental {{...}}-boundary-safe segment extractor -- flushes plain
       // text as it arrives so TTS can start on segment 1 while the network
@@ -637,6 +646,14 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     final reduction = _kCallTargetSlowdownByLevel[_app.journeyProgress.cefr] ?? 0.30;
     final targetExtraRate = 1.0 - reduction;
     final segments = _parseBilingualSegments(clean);
+    // Texto todo já é conhecido de antemão aqui (mensagem de boas-vindas
+    // fixa), então já dispara o fetch de todos os segmentos em paralelo em
+    // vez de deixar o loop abaixo buscar um de cada vez -- mesma lógica do
+    // prefetch em _StreamTtsQueue.pushSegment, só que sem streaming. Mirrors
+    // web's _callSpeak (src/main.js).
+    for (final seg in segments) {
+      _app.cloudTts.preloadSpeechify(seg.text, langCode: seg.langCode, voiceGender: _app.voiceGender);
+    }
     // Último trecho no idioma-alvo desta resposta vira a frase que o tutor
     // pediu pro aluno repetir (ver migration 069); null se não pediu nenhuma.
     final targetSegs = segments.where((s) => s.langCode == _app.courseLanguage).toList();

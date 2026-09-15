@@ -18,6 +18,43 @@ class CloudTtsService {
   final http.Client _client;
   Completer<void>? _pendingCompletion;
 
+  // In-memory cache + in-flight dedup for Speechify fetches, keyed by the
+  // params that actually affect the synthesized bytes (speed isn't one of
+  // them -- Speechify ignores it server-side, see speakSpeechify's doc
+  // comment). Mirrors web's AudioCache + TTS._fetch's `_pending` map
+  // (src/main.js), which is what makes TTS.preload() actually useful there.
+  // Native never had an equivalent cache before this, so speakSpeechify now
+  // always goes through it instead of calling the network helper directly.
+  final Map<String, Future<Uint8List>> _speechifyCache = {};
+
+  String _speechifyCacheKey(String text, String langCode, String voiceGender) => '$langCode|$voiceGender|$text';
+
+  Future<Uint8List> _fetchSpeechifyCached(String text, String voiceGender, String langCode) {
+    final key = _speechifyCacheKey(text, langCode, voiceGender);
+    final cached = _speechifyCache[key];
+    if (cached != null) return cached;
+    final future = _speakSpeechifyViaNetlify(text, voiceGender, langCode);
+    _speechifyCache[key] = future;
+    // Don't let a failed fetch poison the cache forever -- a later real
+    // playback attempt for the same text should retry, not replay the error.
+    unawaited(future.catchError((Object _) {
+      if (identical(_speechifyCache[key], future)) _speechifyCache.remove(key);
+      return Uint8List(0);
+    }));
+    return future;
+  }
+
+  /// Kicks off the Speechify fetch for [text] in the background so it's
+  /// already in cache (or in flight) by the time [speakSpeechify] wants it --
+  /// without this, playback only starts fetching once it's that segment's
+  /// turn to play, adding a full network round-trip of silence before every
+  /// segment. Mirrors web's TTS.preload() (src/main.js). Errors are swallowed
+  /// here; a real playback attempt will surface and handle them normally.
+  void preloadSpeechify(String text, {required String langCode, String voiceGender = 'female'}) {
+    if (text.trim().isEmpty) return;
+    unawaited(_fetchSpeechifyCached(text, voiceGender, langCode).catchError((Object _) => Uint8List(0)));
+  }
+
   CloudTtsService({
     required TtsService fallback,
     http.Client? client,
@@ -94,7 +131,7 @@ class CloudTtsService {
     double playbackRate = 1.0,
   }) async {
     try {
-      final bytes = await _speakSpeechifyViaNetlify(text, voiceGender, langCode);
+      final bytes = await _fetchSpeechifyCached(text, voiceGender, langCode);
       await _player.stop();
       await _playAndAwaitCompletion(bytes, playbackRate: playbackRate);
     } catch (e, st) {
