@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
@@ -91,13 +92,17 @@ class _StreamTtsQueue {
 /// a live `MediaStream` via `AnalyserNode` without recording anything, but
 /// `record`'s `onAmplitudeChanged` only emits while a recording is actually
 /// active (confirmed against record 6.2.1's source — `isRecording()` gates
-/// every tick). So instead, a disposable "monitor" recording runs whenever
-/// the call is armed (idle, unmuted) purely to sample dBFS amplitude; the
-/// instant that crosses the calibrated threshold, the monitor recording is
-/// stopped/discarded and the real per-turn WAV recording starts immediately
-/// on the same `AudioRecorder` (its amplitude stream survives across
-/// start/stop cycles of one instance) — trading a small (~100-150ms) restart
-/// gap for not having to trim a continuously-growing WAV file.
+/// every tick). So instead, ONE recording runs continuously for the whole
+/// idle-then-turn span whenever the call is armed (idle, unmuted): the
+/// instant amplitude crosses the calibrated threshold, [_beginTurnFromVad]
+/// only flips state (no recorder stop/start), tracking the elapsed-ms
+/// timestamp of that crossing. Only when the turn later ends does the
+/// recorder actually stop, and [_trimWavLeadIn] cuts the idle lead-in off
+/// the front of the resulting WAV (keeping a small pre-roll before the
+/// detected onset) before the bytes are sent to Azure. This replaced an
+/// earlier stop/discard/restart-at-onset design that lost the ~100-150ms of
+/// audio right at the moment the student started speaking — enough to
+/// regularly clip the first word of a turn.
 ///
 /// Since the call is mostly in the student's native language (the tutor
 /// corrects the target language only when attempted), a single WAV is
@@ -123,6 +128,12 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   static const double _kVadMinThresholdDb = -45.0;
   static const int _kVadSilenceMs = 900;
   static const int _kVadCalibrationMs = 400;
+  // How much audio to keep before the detected speech-onset timestamp when
+  // trimming the continuous recording's idle lead-in -- covers the up-to-
+  // ~100ms amplitude-polling granularity (onAmplitudeChanged tick every
+  // 100ms) plus margin, without keeping so much silence it risks confusing
+  // Azure's recognizer.
+  static const int _kVadPreRollMs = 300;
 
   // Item 3 do pedido: quando o tutor fala no idioma-alvo (trechos {{...}}),
   // a fala deve ser 20-40% mais lenta conforme o nível do aluno -- quanto
@@ -157,6 +168,11 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   double _vadThresholdDb = _kVadMinThresholdDb;
   DateTime? _vadSilenceSince;
   Stopwatch? _calibrationStopwatch;
+  // Tracks elapsed time since the current continuous recording started
+  // (armed in _armVad), so _beginTurnFromVad can stamp the speech-onset
+  // moment without stopping/restarting the recorder -- see class doc comment.
+  Stopwatch? _recordingStopwatch;
+  int? _turnOnsetElapsedMs;
   StreamSubscription<Amplitude>? _ampSub;
   String? _monitorPath;
   int _fillerToken = 0;
@@ -232,6 +248,8 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     _calibrating = true;
     _vadCalFloorDb = -100.0;
     _calibrationStopwatch = Stopwatch()..start();
+    _recordingStopwatch = Stopwatch()..start();
+    _turnOnsetElapsedMs = null;
     _ampSub = _recorder.onAmplitudeChanged(const Duration(milliseconds: 100)).listen(_onVadAmplitude);
   }
 
@@ -271,32 +289,20 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
 
     if (_muted || _state != _CallState.idle) return;
     if (a.current >= _vadThresholdDb) {
-      unawaited(_beginTurnFromVad());
+      _beginTurnFromVad();
     }
   }
 
-  Future<void> _beginTurnFromVad() async {
+  // No recorder I/O here on purpose -- the same continuous recording that's
+  // been running since _armVad just keeps going, so there's no stop/restart
+  // gap to lose the first word of the turn to. This only flips state and
+  // stamps the onset timestamp; _stopRecordingAndSend trims the idle lead-in
+  // back out of the WAV once the turn actually ends.
+  void _beginTurnFromVad() {
     if (_turnActive || _state != _CallState.idle || _muted) return;
     _turnActive = true;
     _vadSilenceSince = null;
-    try {
-      final monitorPath = await _recorder.stop();
-      if (monitorPath != null) unawaited(_safeDelete(monitorPath));
-    } catch (e, st) {
-      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._beginTurnFromVad: stop monitor failed', fatal: false));
-    }
-    final path = '${Directory.systemTemp.path}/call_turn_${DateTime.now().millisecondsSinceEpoch}.wav';
-    try {
-      await _recorder.start(
-        const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
-        path: path,
-      );
-    } catch (e, st) {
-      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._beginTurnFromVad: start turn failed', fatal: false));
-      _turnActive = false;
-      unawaited(_armVad());
-      return;
-    }
+    _turnOnsetElapsedMs = _recordingStopwatch?.elapsedMilliseconds ?? 0;
     if (!mounted) return;
     setState(() {
       _state = _CallState.listening;
@@ -356,8 +362,12 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       return;
     }
     try {
-      final bytes = await File(path).readAsBytes();
+      final rawBytes = await File(path).readAsBytes();
       unawaited(_safeDelete(path));
+      final onsetMs = _turnOnsetElapsedMs;
+      _turnOnsetElapsedMs = null;
+      final skipMs = onsetMs != null ? max(0, onsetMs - _kVadPreRollMs) : 0;
+      final bytes = _trimWavLeadIn(rawBytes, skipMs);
       // ~0.25s of 16kHz/16-bit/mono PCM — filters out VAD false-triggers
       // (a cough, a door) without spending an Azure call on them.
       if (bytes.length < 8000) {
@@ -377,6 +387,62 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._safeDelete failed', fatal: false));
     }
+  }
+
+  /// Drops `skipMs` of audio off the front of a WAV recording's `data`
+  /// chunk, patching the RIFF/data chunk sizes so the result stays a valid
+  /// WAV -- used to cut the idle-listening lead-in now that the recorder
+  /// runs continuously through the VAD onset instead of restarting there
+  /// (see class doc comment). Walks chunks generically (not a fixed 44-byte
+  /// header) since `record`'s encoder may emit extra chunks before `data`.
+  /// Returns the input unchanged if `skipMs <= 0` or the WAV can't be
+  /// parsed, rather than risk sending a corrupt file to Azure.
+  static Uint8List _trimWavLeadIn(Uint8List wavBytes, int skipMs) {
+    if (skipMs <= 0 || wavBytes.length < 44) return wavBytes;
+    if (wavBytes[0] != 0x52 || wavBytes[1] != 0x49 || wavBytes[2] != 0x46 || wavBytes[3] != 0x46) {
+      return wavBytes; // not "RIFF" -- unexpected format, leave untouched
+    }
+    final byteData = ByteData.sublistView(wavBytes);
+    var offset = 12; // past "RIFF" + size(4) + "WAVE"
+    int? sampleRate;
+    int? numChannels;
+    int? bitsPerSample;
+    int? dataOffset;
+    int? dataSize;
+    while (offset + 8 <= wavBytes.length) {
+      final id = String.fromCharCodes(wavBytes.sublist(offset, offset + 4));
+      final size = byteData.getUint32(offset + 4, Endian.little);
+      final bodyOffset = offset + 8;
+      if (id == 'fmt ' && bodyOffset + 16 <= wavBytes.length) {
+        numChannels = byteData.getUint16(bodyOffset + 2, Endian.little);
+        sampleRate = byteData.getUint32(bodyOffset + 4, Endian.little);
+        bitsPerSample = byteData.getUint16(bodyOffset + 14, Endian.little);
+      } else if (id == 'data') {
+        dataOffset = bodyOffset;
+        dataSize = min(size, wavBytes.length - bodyOffset);
+        break;
+      }
+      offset = bodyOffset + size + (size.isOdd ? 1 : 0); // chunks are word-aligned
+    }
+    if (sampleRate == null || numChannels == null || bitsPerSample == null || dataOffset == null || dataSize == null) {
+      return wavBytes; // couldn't parse -- leave untouched rather than risk corrupting it
+    }
+
+    final blockAlign = numChannels * (bitsPerSample ~/ 8);
+    if (blockAlign <= 0) return wavBytes;
+    var skipBytes = ((skipMs / 1000) * sampleRate * blockAlign).round();
+    skipBytes -= skipBytes % blockAlign; // keep sample framing intact
+    if (skipBytes <= 0) return wavBytes;
+    if (skipBytes >= dataSize) return wavBytes; // safety: never drop the whole turn
+
+    final trimmedData = wavBytes.sublist(dataOffset + skipBytes, dataOffset + dataSize);
+    final out = Uint8List(dataOffset + trimmedData.length);
+    out.setRange(0, dataOffset, wavBytes.sublist(0, dataOffset));
+    out.setRange(dataOffset, out.length, trimmedData);
+    final outView = ByteData.sublistView(out);
+    outView.setUint32(4, out.length - 8, Endian.little); // RIFF chunk size
+    outView.setUint32(dataOffset - 4, trimmedData.length, Endian.little); // "data" subchunk size
+    return out;
   }
 
   Future<void> _assessAndSend(List<int> wavBytes) async {
