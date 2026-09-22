@@ -64,7 +64,12 @@ void main() {
       expect(await service.assess([1, 2, 3]), isNull);
     });
 
-    test('returns null when fewer than 2 words were recognized', () async {
+    // A single recognized word is a legitimate deliberate short attempt, not
+    // inherently noise -- the defenses against noise are `confidence`, the
+    // caller's minimum-audio-size gate, and `_looksLikeLanguage`'s own
+    // plausibility check, not a word-count floor (see the doc comment on
+    // `isConfidentEnglish`).
+    test('returns a result for a single recognized word (not noise)', () async {
       final service = PronunciationAssessmentService(
         client: MockClient((request) async => http.Response(
               jsonEncode({
@@ -86,7 +91,11 @@ void main() {
             )),
       );
 
-      expect(await service.assess([1, 2, 3]), isNull);
+      final result = await service.assess([1, 2, 3]);
+
+      expect(result, isNotNull);
+      expect(result!.wordCount, 1);
+      expect(result.isConfidentEnglish, isTrue);
     });
 
     // Regression test for the native-pass "nothing happens when I speak
@@ -122,7 +131,7 @@ void main() {
       expect(result.lowScoreWords, isEmpty);
     });
 
-    test('still returns null when the Words-less text is under 2 words (native pass)', () async {
+    test('returns a result for a single Words-less recognized word (native pass)', () async {
       final service = PronunciationAssessmentService(
         client: MockClient((request) async => http.Response(
               jsonEncode({
@@ -134,7 +143,11 @@ void main() {
             )),
       );
 
-      expect(await service.assess([1, 2, 3], lang: 'pt-BR'), isNull);
+      final result = await service.assess([1, 2, 3], lang: 'pt-BR');
+
+      expect(result, isNotNull);
+      expect(result!.recognizedText, 'oi');
+      expect(result.wordCount, 1);
     });
 
     test('throws when the function returns a non-200 status', () async {
