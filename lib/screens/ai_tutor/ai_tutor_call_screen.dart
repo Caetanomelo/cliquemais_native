@@ -464,23 +464,13 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
           if (!inMarker) {
             final idx = buf.indexOf('{{');
             if (idx == -1) {
-              String safe;
-              String rest;
-              if (buf.endsWith('{') && !buf.endsWith('{{')) {
-                safe = buf.substring(0, buf.length - 1);
-                rest = '{';
-              } else {
-                safe = buf;
-                rest = '';
-              }
-              final boundary = _lastSentenceBoundary(safe);
-              if (boundary == -1) break;
-              final flushable = safe.substring(0, boundary);
-              rest = safe.substring(boundary) + rest;
-              if (flushable.trim().isNotEmpty) {
-                ttsQueue.pushSegment(_CallSegment(sanitize(flushable), nativeLang));
-              }
-              buf = rest;
+              // Hold everything back until a marker opens or the stream
+              // ends, instead of flushing at each sentence boundary --
+              // splitting native-language text into one TTS call per
+              // sentence made the reply sound disjointed/robotic (each
+              // clip synthesized independently, no shared prosody). This
+              // matches the pre-streaming behaviour of speaking a whole
+              // passage in one render.
               break;
             }
             if (idx > 0) {
@@ -512,11 +502,21 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
 
       if (reply.isEmpty) {
         ttsQueue.pushSegment(_CallSegment(AppLocalizations.of(context)!.aiTutorCallRepeatFallback, nativeLang));
+      } else if (inMarker) {
+        // Marker never closed (stream ended mid-{{...}}, e.g. cut off by
+        // max_tokens or a malformed reply) -- we know this buffered text
+        // was meant to be target-language, so speak it as such instead of
+        // falling through `_parseBilingualSegments` (which requires a
+        // closing `}}` to recognize a marker at all) and mislabeling real
+        // target-language content as native language -- that produced the
+        // "mixed pt/es" sound, on top of leaking literal `{{` characters
+        // into the TTS text.
+        final segText = buf.trim();
+        if (segText.isNotEmpty) {
+          ttsQueue.pushSegment(_CallSegment(sanitize(segText), targetLang));
+        }
       } else {
-        // Never-closed marker (buf still holding an opened '{{...') is put
-        // back as literal text -- `_parseBilingualSegments`'s regex only
-        // matches a full {{...}}, so an unclosed one is handled gracefully.
-        final leftoverRaw = inMarker ? '{{$buf' : buf;
+        final leftoverRaw = buf;
         if (leftoverRaw.trim().isNotEmpty) {
           for (final seg in _parseBilingualSegments(sanitize(leftoverRaw))) {
             ttsQueue.pushSegment(seg);
@@ -601,22 +601,6 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._playFiller: speak failed', fatal: false));
     }
-  }
-
-  // Indice logo apos o ultimo limite de frase completa em `s` (uma
-  // sequencia de '.', '!' ou '?' seguida de espaco/fim, ou uma quebra de
-  // linha), ou -1 se `s` ainda nao tiver nenhum -- usado pra segurar o
-  // texto que vai chegando do streaming ate fechar uma frase inteira, em
-  // vez de mandar pra fila de TTS cada delta bruto da rede (geralmente
-  // uma palavra so), que soava como o tutor falando palavra por palavra.
-  // Mirrors web's `_lastSentenceBoundary` in src/main.js line for line.
-  int _lastSentenceBoundary(String s) {
-    final re = RegExp(r'[.!?]+(?=\s|$)|\n+');
-    var last = -1;
-    for (final m in re.allMatches(s)) {
-      last = m.end;
-    }
-    return last;
   }
 
   // Divide a resposta do Tutor em trechos por idioma usando o marcador
