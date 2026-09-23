@@ -136,17 +136,17 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   static const int _kVadPreRollMs = 300;
 
   // Item 3 do pedido: quando o tutor fala no idioma-alvo (trechos {{...}}),
-  // a fala deve ser 20-40% mais lenta conforme o nível do aluno -- quanto
+  // a fala deve ser 0-20% mais lenta conforme o nível do aluno -- quanto
   // mais iniciante, mais devagar. Fração de redução aplicada como
   // multiplicador de playbackRate (1 - redução) só nesses trechos; trechos
   // no idioma nativo tocam em velocidade normal.
   static const Map<String, double> _kCallTargetSlowdownByLevel = {
-    'A1': 0.40,
-    'A2': 0.35,
-    'B1': 0.30,
-    'B2': 0.25,
-    'C1': 0.20,
-    'C2': 0.20,
+    'A1': 0.20,
+    'A2': 0.15,
+    'B1': 0.10,
+    'B2': 0.05,
+    'C1': 0.00,
+    'C2': 0.00,
   };
 
   late final AppStateProvider _app;
