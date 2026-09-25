@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../netlify_config.dart';
-import 'netlify_post_json.dart';
 import 'pronunciation_assessment_service.dart';
 
 enum AiTutorMode { chat, pronunciation }
@@ -38,19 +37,23 @@ class AiTutorService {
 
   AiTutorService({http.Client? client}) : _client = client ?? http.Client();
 
+  // `ai-chat.mjs` is a Netlify V2 streaming function and always responds as
+  // NDJSON now -- there is no more one-shot `{reply: ...}` JSON body to
+  // parse, so this just delegates to [sendStream] with a no-op [onDelta]
+  // and returns the fully concatenated text (mirrors web's `_callAI`, which
+  // hit the same bug: postJSON silently got `{}` from the NDJSON body and
+  // every plain chat reply fell back to the generic error message).
   Future<String> send({
     required String systemPrompt,
     required List<AiChatMessage> history,
     required String userMessage,
-  }) async {
-    final json = await postJson(_client, 'ai-chat', {
-      'systemPrompt': systemPrompt,
-      'history': history
-          .map((m) => {'role': m.role, 'content': m.content})
-          .toList(),
-      'userMessage': userMessage,
-    }, errorLabel: 'AI Tutor request');
-    return json['reply'] as String? ?? '';
+  }) {
+    return sendStream(
+      systemPrompt: systemPrompt,
+      history: history,
+      userMessage: userMessage,
+      onDelta: (_) {},
+    );
   }
 
   /// Streaming counterpart of [send] — mirrors web's `postJSONStream`/
