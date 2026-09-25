@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
-import '../screens/ai_tutor/ai_tutor_screen.dart';
+import '../screens/ai_tutor/ai_tutor_mode_select.dart';
 import '../screens/content/all_content_screen.dart';
 
 /// The three top-level destinations the persistent bottom nav can jump to.
@@ -77,7 +77,14 @@ class AppBottomNav extends StatelessWidget {
         nav.push(MaterialPageRoute(builder: (_) => const AllContentScreen()));
         break;
       case AppTab.tutor:
-        nav.push(MaterialPageRoute(builder: (_) => const AiTutorScreen()));
+        // Usa nav.context (o BuildContext do próprio Navigator), não o
+        // `context` deste método -- o popUntil acima já pode ter desmontado
+        // a tela que hospedava esse AppBottomNav, e showAiTutorModeSelect
+        // precisa de um context vivo pra abrir o bottom sheet. nav.context
+        // é o context persistente do NavigatorState, por isso é seguro aqui
+        // mesmo cruzando o gap assíncrono do await acima.
+        // ignore: use_build_context_synchronously
+        showAiTutorModeSelect(nav.context);
         break;
     }
   }

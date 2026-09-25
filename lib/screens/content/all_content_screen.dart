@@ -7,7 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/level_unit_picker.dart';
-import '../ai_tutor/ai_tutor_screen.dart';
+import '../ai_tutor/ai_tutor_mode_select.dart';
 import '../drive_mode/drive_mode_screen.dart';
 import '../lesson/unit_lesson_screen.dart';
 import '../content/study_session_screen.dart';
@@ -104,9 +104,7 @@ class AllContentScreen extends StatelessWidget {
                       MaterialPageRoute(builder: (_) => DriveModeScreen(units: units)),
                     ),
                   ),
-                  onTutor: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AiTutorScreen()),
-                  ),
+                  onTutor: () => showAiTutorModeSelect(context),
                 ),
               ],
             );

@@ -8,7 +8,7 @@ import '../../providers/app_state_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/info_card_row.dart';
 import '../../widgets/profile_completion_dialog.dart';
-import '../ai_tutor/ai_tutor_screen.dart';
+import '../ai_tutor/ai_tutor_mode_select.dart';
 import '../content/study_session_screen.dart';
 import '../corp/corp_portal_screen.dart';
 
@@ -174,9 +174,7 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.smart_toy_rounded,
             title: l10n.settingsAiTutorTitle,
             subtitle: l10n.settingsAiTutorSubtitle,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AiTutorScreen()),
-            ),
+            onTap: () => showAiTutorModeSelect(context),
           ),
           const SizedBox(height: 10),
           _ResourceRow(
