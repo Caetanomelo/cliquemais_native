@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../netlify_config.dart';
 import 'pronunciation_assessment_service.dart';
@@ -82,12 +83,19 @@ class AiTutorService {
       // See netlify_post_json.dart's postJson: checkOrigin() on the backend
       // rejects any request without a matching Origin, which package:http
       // never sends on its own.
-      ..headers['Origin'] = NetlifyConfig.baseUrl
-      ..body = jsonEncode({
-        'systemPrompt': systemPrompt,
-        'history': history.map((m) => {'role': m.role, 'content': m.content}).toList(),
-        'userMessage': userMessage,
-      });
+      ..headers['Origin'] = NetlifyConfig.baseUrl;
+    // Monthly AI Tutor usage cap (lib/usage-cap.js on the Netlify side)
+    // resolves the caller from this token; native has direct, synchronous
+    // Supabase access (unlike web's iframe-isolated postMessage bridge), so
+    // no async round-trip is needed here. Null when logged out -- the
+    // endpoint already treats a missing token as "cap doesn't apply".
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token != null) req.headers['Authorization'] = 'Bearer $token';
+    req.body = jsonEncode({
+      'systemPrompt': systemPrompt,
+      'history': history.map((m) => {'role': m.role, 'content': m.content}).toList(),
+      'userMessage': userMessage,
+    });
 
     // Only the initial response (headers) is time-boxed here -- once the
     // stream starts, the body can keep arriving for as long as Claude takes

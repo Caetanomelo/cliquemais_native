@@ -7,11 +7,18 @@ import '../netlify_config.dart';
 /// ([AiTutorService], [PronunciationAssessmentService], [CloudTtsService]):
 /// POSTs JSON to `<NetlifyConfig.baseUrl>/.netlify/functions/<functionName>`
 /// and decodes the JSON response body, throwing on any non-200 status.
+///
+/// Optional [token] (Supabase access token) attaches `Authorization: Bearer`
+/// -- used by the AI Tutor endpoints so their monthly usage cap
+/// (lib/usage-cap.js on the Netlify side) can resolve which user is calling.
+/// Omitted/null is fine everywhere else; those endpoints fail open (cap just
+/// doesn't apply) when there's no token.
 Future<Map<String, dynamic>> postJson(
   http.Client client,
   String functionName,
   Map<String, dynamic> body, {
   required String errorLabel,
+  String? token,
 }) async {
   final uri = Uri.parse(
     '${NetlifyConfig.baseUrl}/.netlify/functions/$functionName',
@@ -27,6 +34,7 @@ Future<Map<String, dynamic>> postJson(
         headers: {
           'Content-Type': 'application/json',
           'Origin': NetlifyConfig.baseUrl,
+          if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
       )

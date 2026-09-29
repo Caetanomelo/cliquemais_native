@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'netlify_post_json.dart';
 import 'tts_service.dart';
@@ -182,6 +183,11 @@ class CloudTtsService {
   }
 
   Future<Uint8List> _speakSpeechifyViaNetlify(String text, String voiceGender, String langCode) async {
+    // speakSpeechify() (this method's only caller) is the AI Tutor voice
+    // call's TTS -- native never routes lesson TTS through Speechify (that's
+    // web-only, gated by a user toggle), so 'ai_tutor' applies unconditionally
+    // here, unlike tts-speechify.js's web call site which only tags it when
+    // the client opts in. See lib/usage-cap.js for the monthly cap this feeds.
     final json = await postJson(
       _client,
       'tts-speechify',
@@ -189,8 +195,10 @@ class CloudTtsService {
         'text': text,
         'lang': langCode,
         'gender': voiceGender,
+        'feature': 'ai_tutor',
       },
       errorLabel: 'Netlify Speechify TTS',
+      token: Supabase.instance.client.auth.currentSession?.accessToken,
     );
     return base64Decode(json['audioContent'] as String);
   }

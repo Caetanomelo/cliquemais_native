@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'netlify_post_json.dart';
 
@@ -81,6 +82,10 @@ class PronunciationAssessmentService {
         if (referenceText != null && referenceText.isNotEmpty) 'referenceText': referenceText,
       },
       errorLabel: 'Pronunciation assessment',
+      // Monthly AI Tutor usage cap (lib/usage-cap.js) -- this endpoint is
+      // 100% Tutor-only, so the cap applies unconditionally on the backend;
+      // this token just lets it resolve which user to charge.
+      token: Supabase.instance.client.auth.currentSession?.accessToken,
     );
     final nBest = json['NBest'] as List?;
     if (nBest == null || nBest.isEmpty) return null;
