@@ -79,10 +79,15 @@ class _StreamTtsQueue {
 /// the mic stays armed and a lightweight VAD (voice activity detection) both
 /// starts a turn when the student begins speaking and ends it after a
 /// sustained silence, mirroring the web app's `AiTutor.openCall()` flow. The
-/// mic button is a mute toggle, not a record trigger. No barge-in in this
-/// phase — VAD only starts turns, it never interrupts the tutor's own
-/// playback (the recorder used for VAD sampling is simply not running while
-/// `thinking`/`speaking`).
+/// mic button is a mute toggle, not a record trigger. Barge-in: the same
+/// continuous recording is also armed just before the tutor starts talking
+/// ([_armBargeInMonitor]) and kept running through `thinking`/`speaking`, so
+/// [_onVadAmplitude] can detect the student talking over the tutor. That
+/// check uses a stricter, sustained threshold ([_kBargeInMarginDb] /
+/// [_kBargeInSustainMs]) than normal turn-start, mirroring the web app's
+/// `BARGE_IN_MARGIN`/`BARGE_IN_SUSTAIN_MS` (src/main.js) — needed because on
+/// speakerphone the tutor's own TTS leaks into the mic, and an instantaneous
+/// spike would misfire on that echo instead of real speech.
 ///
 /// Deliberate divergence from the web app: `speech_to_text` + a raw-audio
 /// recorder can't run at once on Android (both claim the mic's exclusive
@@ -134,6 +139,16 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   // 100ms) plus margin, without keeping so much silence it risks confusing
   // Azure's recognizer.
   static const int _kVadPreRollMs = 300;
+  // Barge-in: how much LOUDER than the already-elevated _vadThresholdDb the
+  // mic must read, sustained for _kBargeInSustainMs, before it counts as the
+  // student interrupting the tutor -- deliberately much stricter than normal
+  // turn-start so the tutor's own TTS leaking into the mic on speakerphone
+  // doesn't self-trigger. Mirrors web's BARGE_IN_MARGIN/BARGE_IN_SUSTAIN_MS
+  // (src/main.js), adapted from a linear-amplitude multiplier to an additive
+  // dB margin on record's dBFS scale -- a starting point, tune against a real
+  // device/speakerphone before relying on it.
+  static const double _kBargeInMarginDb = 15.0;
+  static const int _kBargeInSustainMs = 220;
 
   // Item 3 do pedido: quando o tutor fala no idioma-alvo (trechos {{...}}),
   // a fala deve ser 0-20% mais lenta conforme o nível do aluno -- quanto
@@ -183,6 +198,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   // transcrição, sem custo/score de pronúncia sobre conversa livre. Consumida
   // (voltando a null) assim que usada no turno seguinte, com sucesso ou não.
   String? _expectedPhrase;
+  // Barge-in bookkeeping -- see class doc comment and _onVadAmplitude/_bargeIn.
+  DateTime? _bargeInSince;
+  int _speakGen = 0;
 
   @override
   void initState() {
@@ -220,7 +238,10 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
 
   Future<void> _speakWelcome() async {
     final welcome = _persona.welcome.isNotEmpty ? _persona.welcome : _app.aiContent.welcomeMessageForKey('call');
-    if (welcome.isNotEmpty) await _speak(welcome);
+    if (welcome.isNotEmpty) {
+      unawaited(_armBargeInMonitor());
+      await _speak(welcome);
+    }
     if (!mounted || _muted) return;
     await _armVad();
   }
@@ -229,6 +250,16 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
 
   Future<void> _armVad() async {
     if (!mounted || _muted || _state != _CallState.idle || _turnActive) return;
+    // A gravação contínua de barge-in (armada em _armBargeInMonitor antes do
+    // tutor começar a falar) pode já estar rodando -- não reinicia o
+    // gravador nem a calibração/stopwatch nesse caso (perderia a referência
+    // de onset em uso), só garante que o listener de amplitude está de novo
+    // escutando.
+    if (await _recorder.isRecording()) {
+      _ampSub?.cancel();
+      _ampSub = _recorder.onAmplitudeChanged(const Duration(milliseconds: 100)).listen(_onVadAmplitude);
+      return;
+    }
     _ampSub?.cancel();
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) {
@@ -250,6 +281,35 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     _calibrationStopwatch = Stopwatch()..start();
     _recordingStopwatch = Stopwatch()..start();
     _turnOnsetElapsedMs = null;
+    _ampSub = _recorder.onAmplitudeChanged(const Duration(milliseconds: 100)).listen(_onVadAmplitude);
+  }
+
+  // Arma a gravação contínua ANTES do tutor começar a falar, pra já estar
+  // escutando assim que o estado virar `speaking` -- essa mesma gravação
+  // segue rodando sem parar/reiniciar durante thinking -> speaking -> idle
+  // (ver _armVad, que agora não reinicia o gravador se já tiver uma gravação
+  // em andamento) até o próximo turno real começar de verdade. Reaproveita o
+  // limiar já calibrado (_vadThresholdDb) em vez de recalibrar contra a
+  // própria fala do tutor.
+  Future<void> _armBargeInMonitor() async {
+    if (!mounted || _muted) return;
+    if (await _recorder.isRecording()) return;
+    _ampSub?.cancel();
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) return;
+    _monitorPath = '${Directory.systemTemp.path}/call_monitor_${DateTime.now().millisecondsSinceEpoch}.wav';
+    try {
+      await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
+        path: _monitorPath!,
+      );
+    } catch (e, st) {
+      unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._armBargeInMonitor: recorder.start failed', fatal: false));
+      return;
+    }
+    _recordingStopwatch = Stopwatch()..start();
+    _turnOnsetElapsedMs = null;
+    _bargeInSince = null;
     _ampSub = _recorder.onAmplitudeChanged(const Duration(milliseconds: 100)).listen(_onVadAmplitude);
   }
 
@@ -287,10 +347,47 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       return;
     }
 
+    if (_state == _CallState.speaking) {
+      if (_muted) return;
+      final bargeThreshold = _vadThresholdDb + _kBargeInMarginDb;
+      if (a.current > bargeThreshold) {
+        _bargeInSince ??= DateTime.now();
+        if (DateTime.now().difference(_bargeInSince!).inMilliseconds >= _kBargeInSustainMs) {
+          _bargeInSince = null;
+          _bargeIn();
+        }
+      } else {
+        _bargeInSince = null;
+      }
+      return;
+    }
+
     if (_muted || _state != _CallState.idle) return;
     if (a.current >= _vadThresholdDb) {
       _beginTurnFromVad();
     }
+  }
+
+  // Espelha o barge-in do web (src/main.js _callBargeIn): interrompe a fala
+  // do tutor e começa um novo turno reaproveitando a MESMA gravação contínua
+  // que já estava rodando desde _armBargeInMonitor -- mesmo padrão de
+  // _beginTurnFromVad, só troca o estado e marca o onset, sem parar/religar
+  // o gravador. Incrementa _speakGen pra invalidar qualquer continuação de
+  // TTS ainda em voo (ver guards em _sendToAI/_speak).
+  void _bargeIn() {
+    ++_speakGen;
+    ++_fillerToken;
+    unawaited(_app.cloudTts.stop());
+    _app.tts.stop();
+    _turnActive = true;
+    _vadSilenceSince = null;
+    _turnOnsetElapsedMs = _recordingStopwatch?.elapsedMilliseconds ?? 0;
+    if (!mounted) return;
+    setState(() {
+      _state = _CallState.listening;
+      _transcript = '';
+      _errorText = null;
+    });
   }
 
   // No recorder I/O here on purpose -- the same continuous recording that's
@@ -355,6 +452,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     } catch (e, st) {
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._stopRecordingAndSend: recorder.stop failed', fatal: false));
     }
+    // Rearma já aqui (antes de "thinking"/"speaking") pra estar escutando a
+    // tempo de pegar um barge-in assim que o tutor começar a responder.
+    unawaited(_armBargeInMonitor());
     setState(() => _state = _CallState.thinking);
 
     if (path == null) {
@@ -485,6 +585,10 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   }
 
   Future<void> _sendToAI(String userText, String feedback) async {
+    // Snapshot pra invalidar essa cadeia de TTS/estado se um barge-in
+    // (_bargeIn) incrementar _speakGen enquanto ela ainda está em voo -- ver
+    // guards abaixo e no _play do ttsQueue.
+    final mySpeakGen = _speakGen;
     setState(() => _state = _CallState.thinking);
     try {
       final priorHistory = List<AiChatMessage>.from(_history);
@@ -501,13 +605,19 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       final targetExtraRate = 1.0 - reduction;
 
       final ttsQueue = _StreamTtsQueue(
-        (seg) => _app.cloudTts.speakSpeechify(
-          seg.text,
-          langCode: seg.langCode,
-          voiceGender: _app.voiceGender,
-          fallbackLanguage: resolveLocale(seg.langCode),
-          playbackRate: seg.langCode == targetLang ? targetExtraRate : 1.0,
-        ),
+        (seg) {
+          // Uma vez que um barge-in mudou _speakGen, vira no-op imediato --
+          // esvazia a fila rápido em vez de continuar tocando segmentos de
+          // uma resposta que já foi interrompida.
+          if (mySpeakGen != _speakGen) return Future<void>.value();
+          return _app.cloudTts.speakSpeechify(
+            seg.text,
+            langCode: seg.langCode,
+            voiceGender: _app.voiceGender,
+            fallbackLanguage: resolveLocale(seg.langCode),
+            playbackRate: seg.langCode == targetLang ? targetExtraRate : 1.0,
+          );
+        },
         (seg) => _app.cloudTts.preloadSpeechify(seg.text, langCode: seg.langCode, voiceGender: _app.voiceGender),
       );
 
@@ -601,11 +711,13 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       _expectedPhrase = targetSegs.isNotEmpty ? targetSegs.last.text.trim() : null;
 
       await ttsQueue.finish();
+      if (mySpeakGen != _speakGen) return;
       if (!mounted) return;
       setState(() => _state = _CallState.idle);
       if (_muted) return;
       await _armVad();
     } catch (e, st) {
+      if (mySpeakGen != _speakGen) return;
       unawaited(FirebaseCrashlytics.instance.recordError(e, st, reason: 'AiTutorCallScreen._sendToAI failed', fatal: false));
       unawaited(_app.cloudTts.stop());
       if (mounted) {
@@ -698,6 +810,9 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
 
   Future<void> _speak(String text) async {
     if (!mounted) return;
+    // Snapshot pra invalidar essa fala se um barge-in (_bargeIn) incrementar
+    // _speakGen enquanto ela ainda está tocando -- ver guards no loop abaixo.
+    final mySpeakGen = _speakGen;
     setState(() => _state = _CallState.speaking);
     final clean = text.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll('**', '');
     // Item 3 do pedido: trechos no idioma-alvo tocam 20-40% mais devagar
@@ -719,7 +834,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     final targetSegs = segments.where((s) => s.langCode == _app.courseLanguage).toList();
     _expectedPhrase = targetSegs.isNotEmpty ? targetSegs.last.text.trim() : null;
     for (final seg in segments) {
-      if (!mounted) return;
+      if (!mounted || mySpeakGen != _speakGen) return;
       // AI Tutor sempre usa Speechify (paridade com web's _route()), com
       // fallback pro TTS on-device do proprio CloudTtsService.speakSpeechify
       // se a Netlify function falhar/sem rede.
@@ -731,6 +846,7 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
         playbackRate: seg.langCode == _app.courseLanguage ? targetExtraRate : 1.0,
       );
     }
+    if (mySpeakGen != _speakGen) return;
     if (mounted) setState(() => _state = _CallState.idle);
   }
 
