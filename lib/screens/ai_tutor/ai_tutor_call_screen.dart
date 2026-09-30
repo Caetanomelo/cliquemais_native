@@ -198,6 +198,11 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
   // transcrição, sem custo/score de pronúncia sobre conversa livre. Consumida
   // (voltando a null) assim que usada no turno seguinte, com sucesso ou não.
   String? _expectedPhrase;
+  // Resumo da última call com este aluno neste idioma-alvo (migration 074 no
+  // WEB_BASE) -- buscado uma vez em initState e injetado no system prompt de
+  // _sendToAI. Null enquanto a busca não termina ou se nunca houve resumo
+  // salvo; nunca bloqueia a call.
+  String? _lastSessionSummary;
   // Barge-in bookkeeping -- see class doc comment and _onVadAmplitude/_bargeIn.
   DateTime? _bargeInSince;
   int _speakGen = 0;
@@ -211,7 +216,14 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     // Item 1 do pedido: mantém a tela acesa durante toda a chamada, senão o
     // sistema entra em modo de descanso no meio de uma conversa por voz.
     unawaited(WakelockPlus.enable());
+    unawaited(_fetchLastSessionSummary());
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakWelcome());
+  }
+
+  Future<void> _fetchLastSessionSummary() async {
+    final summary = await _app.aiTutor.fetchSessionSummary(targetLanguage: _app.courseLanguage);
+    if (!mounted) return;
+    _lastSessionSummary = summary;
   }
 
   // Continuous listening leaves a raw AudioRecord session open (monitor or
@@ -595,7 +607,11 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
       _history.add(AiChatMessage(role: 'user', content: userText));
       final outgoing = feedback.isEmpty ? userText : '$userText\n\n$feedback';
       final basePrompt = _app.aiContent.systemPromptForKey('call');
-      final systemPrompt = _persona.prompt.isEmpty ? basePrompt : '${_persona.prompt}\n\n$basePrompt';
+      final summarySuffix = (_lastSessionSummary != null && _lastSessionSummary!.isNotEmpty)
+          ? '\n\nResumo da ultima conversa com este aluno: $_lastSessionSummary'
+          : '';
+      final systemPrompt =
+          (_persona.prompt.isEmpty ? basePrompt : '${_persona.prompt}\n\n$basePrompt') + summarySuffix;
 
       if (mounted) setState(() => _state = _CallState.speaking);
 
@@ -870,6 +886,13 @@ class _AiTutorCallScreenState extends State<AiTutorCallScreen> with WidgetsBindi
     WidgetsBinding.instance.removeObserver(this);
     _ampSub?.cancel();
     unawaited(WakelockPlus.disable());
+    // Usa _app.aiTutor (client próprio, independente do _httpClient logo
+    // abaixo) porque este save é fire-and-forget e roda depois do close().
+    unawaited(_app.aiTutor.saveSessionSummary(
+      targetLanguage: _app.courseLanguage,
+      nativeLanguage: _app.nativeLanguage,
+      history: List<AiChatMessage>.from(_history),
+    ));
     _httpClient.close();
     // stop() must finish before dispose() runs — firing both unawaited let
     // dispose() tear down the plugin's native session while stop() was

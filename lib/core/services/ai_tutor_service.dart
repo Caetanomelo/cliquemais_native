@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../netlify_config.dart';
+import 'netlify_post_json.dart';
 import 'pronunciation_assessment_service.dart';
 
 enum AiTutorMode { chat, pronunciation }
@@ -142,6 +143,62 @@ class AiTutorService {
     handleLine(lineBuf.trim());
 
     return full.toString();
+  }
+
+  /// Resumo de sessao do AI Tutor (migration 074 no WEB_BASE, mirrora
+  /// `_callFetchSessionSummary`/`_callSaveSessionSummary` de src/main.js) --
+  /// da continuidade ao modo call, que hoje comeca cada ligacao do zero (cada
+  /// AiTutorCallScreen e uma instancia nova, sem nenhuma lembranca do que foi
+  /// praticado antes). As duas chamadas usam o proprio [_client] desta
+  /// classe, nao o `_httpClient` da tela de call -- este ultimo e fechado
+  /// logo no inicio de `dispose()`, antes de qualquer cleanup assincrono
+  /// rodar, entao um save disparado a partir de `dispose()` precisa de um
+  /// client que continue vivo.
+  ///
+  /// Ambas falham em silencio (sem token, erro de rede, endpoint fora do ar):
+  /// ausencia de resumo nunca deve travar ou atrasar a UX da call.
+  Future<String?> fetchSessionSummary({required String targetLanguage}) async {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token == null) return null;
+    try {
+      final data = await postJson(
+        _client,
+        'ai-tutor-session-summary',
+        {'action': 'get', 'targetLanguage': targetLanguage},
+        errorLabel: 'AI Tutor session summary fetch',
+        token: token,
+      ).timeout(const Duration(seconds: 8));
+      final summary = data['summary'] as String?;
+      return (summary != null && summary.isNotEmpty) ? summary : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveSessionSummary({
+    required String targetLanguage,
+    required String nativeLanguage,
+    required List<AiChatMessage> history,
+  }) async {
+    if (history.length < 4) return;
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token == null) return;
+    try {
+      await postJson(
+        _client,
+        'ai-tutor-session-summary',
+        {
+          'action': 'save',
+          'targetLanguage': targetLanguage,
+          'nativeLanguage': nativeLanguage,
+          'turns': history.map((m) => {'role': m.role, 'content': m.content}).toList(),
+        },
+        errorLabel: 'AI Tutor session summary save',
+        token: token,
+      ).timeout(const Duration(seconds: 15));
+    } catch (_) {
+      // silencioso -- a call ja terminou, nada visivel ao aluno depende disso
+    }
   }
 
   void dispose() => _client.close();
